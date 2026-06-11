@@ -35,6 +35,7 @@ qml.files += \
     qml/Main.qml \
     qml/MainScreen.ui.qml \
     qml/Base/qmldir \
+    qml/Base/BsOpcUaConnectionForm.qml \
     qml/Base/BsOpcUaBrowser.qml \
     qml/Base/BsMenuBar.qml
 qml.prefix = /

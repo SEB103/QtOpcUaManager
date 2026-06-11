@@ -5,12 +5,21 @@ MenuBar {
     id: appMenuBar
 
     signal quitRequested()
+    signal apiServerConnectionRequested()
 
     Menu {
         title: qsTr("Application")
 
         MenuItem {
             text: qsTr("&Login")
+        }
+        Menu {
+            title: qsTr("OPC UA")
+
+            MenuItem {
+                text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
+                onTriggered: appMenuBar.apiServerConnectionRequested()
+            }
         }
         MenuItem {
             text: qsTr("Sta&rt/Stop")

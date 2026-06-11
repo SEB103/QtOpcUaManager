@@ -8,6 +8,7 @@ qt6_add_qml_module(Base
     VERSION 1.0
     RESOURCE_PREFIX "/qt/qml"
     QML_FILES
+        "BsOpcUaConnectionForm.qml"
         "BsMenuBar.qml"
         "BsOpcUaBrowser.qml"
 )

@@ -1,4 +1,5 @@
 module Base
 
+BsOpcUaConnectionForm 1.1 BsOpcUaConnectionForm.qml
 BsOpcUaBrowser      1.1 BsOpcUaBrowser.qml
 BsMenuBar           1.1 BsMenuBar.qml
