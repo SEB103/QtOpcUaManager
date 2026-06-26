@@ -2,7 +2,6 @@
 #define OPCUAMODEL_H
 
 #include <QAbstractItemModel>
-#include <QtQmlIntegration/qqmlintegration.h>
 #include <memory>
 #include "core/opcuanodedata.h"
 #include "treeitem.h"
@@ -20,8 +19,6 @@
 class OpcUaModel : public QAbstractItemModel
 {
     Q_OBJECT
-    QML_ELEMENT
-    QML_UNCREATABLE("OpcUaModel is exposed by OpcUaManager::treeModel.")
     Q_PROPERTY(bool autoMonitor READ autoMonitor WRITE setAutoMonitor NOTIFY autoMonitorChanged)
 
 public:

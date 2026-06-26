@@ -1,99 +1,47 @@
-# This file is used to ignore files which are generated
-# ----------------------------------------------------------------------------
-
-# Build directories
+# Build output
 /build/
 /build-*/
 /cmake-build-*/
 
-*~
-*.autosave
-*.a
-*.core
-*.dylib
-*.la
-*.lai
-*.lo
-*.moc
-*.o
-*.obj
-*.orig
-*.rej
-*.slo
-*.so
-*.so.*
-*_pch.h.cpp
-*_plugin_import.cpp
-*_resource.rc
+# Qt Creator user state
+*.user
+*.user.*
+.qtcreator/
+
+# CMake-generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Generated Qt files
+*.qmlc
+*.jsc
 *.qm
-.#*
-*.*#
-core
-!core/
-tags
-.DS_Store
-.directory
-*.debug
-Makefile*
-*.prl
-*.app
 moc_*.cpp
 moc_*.h
-ui_*.h
 qrc_*.cpp
-Thumbs.db
-*.res
-*.rc
-/.qmake.cache
-/.qmake.stash
-object_script.*.Debug
-object_script.*.Release
+ui_*.h
 
-# qtcreator generated files
-*.pro.user*
-*.qbs.user*
-CMakeLists.txt.user*
-*creator.user*
-compile_commands.json
-
-# QtCreator Qml generated files
-*.jsc
-*.qmlc
-*.qmlproject.user*
-
-# Qt unit tests
-target_wrapper.*
-
-# xemacs temporary files
-*.flc
-
-# Vim temporary files
-.*.swp
-
-# Visual Studio generated files
-*.ib_pdb_index
-*.idb
-*.ilk
-*.pdb
-*.sln
-*.suo
-*.vcproj
-*vcproj.*.*.user
-*.ncb
-*.sdf
-*.opensdf
-*.vcxproj
-*vcxproj.*
-
-# MinGW generated files
-*.Debug
-*.Release
-
-# Python byte code
-*.pyc
-
-# Binaries
-# --------
+# Compiler/linker output
+*.obj
+*.o
+*.a
+*.lib
 *.dll
+*.so
+*.so.*
+*.dylib
 *.exe
+*.pdb
+*.ilk
 
+# Editor/OS files
+*.autosave
+*.orig
+*.rej
+*~
+.DS_Store
+Thumbs.db

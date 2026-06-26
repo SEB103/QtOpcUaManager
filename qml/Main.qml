@@ -1,18 +1,31 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.VirtualKeyboard
+import QtQuick.Controls.Material
 import Base as Base
 
-Window {
+ApplicationWindow {
     id: mainWindow
+
     width: 1200
     height: 800
+    minimumWidth: 800
+    minimumHeight: 600
     visible: true
     title: qsTr("OPC UA Manager")
+
+    // Preserve the light/dark switch from the Qt 6.11 template, but apply it
+    // to the complete Material-styled application. The initial value follows
+    // the operating system; the View menu can override it for this session.
+    property bool darkTheme: Application.styleHints.colorScheme === Qt.Dark
+
+    Material.theme: darkTheme ? Material.Dark : Material.Light
+    Material.accent: Material.Teal
+    Material.primary: Material.BlueGrey
 
     MainScreen {
         id: mainScreen
         anchors.fill: parent
+        darkTheme: mainWindow.darkTheme
     }
 
     Connections {
@@ -28,10 +41,15 @@ Window {
             else
                 apiServerDialog.open()
         }
+
+        function onThemeToggleRequested() {
+            mainWindow.darkTheme = !mainWindow.darkTheme
+        }
     }
 
     Dialog {
         id: apiServerDialog
+
         x: Math.round((mainWindow.width - width) / 2)
         y: Math.round((mainWindow.height - height) / 2)
         width: Math.min(mainWindow.width - 80, 940)
@@ -56,20 +74,4 @@ Window {
         }
     }
 
-    InputPanel {
-        id: inputPanel
-        property bool showKeyboard: active
-
-        z: 10
-        y: showKeyboard ? parent.height - height : parent.height
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-        Behavior on y {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.InOutQuad
-            }
-        }
-    }
 }

@@ -1,11 +1,15 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 MenuBar {
     id: appMenuBar
 
+    property bool darkTheme: false
+
     signal quitRequested()
     signal apiServerConnectionRequested()
+    signal themeToggleRequested()
 
     Menu {
         title: qsTr("Application")
@@ -13,6 +17,7 @@ MenuBar {
         MenuItem {
             text: qsTr("&Login")
         }
+
         Menu {
             title: qsTr("OPC UA")
 
@@ -21,18 +26,15 @@ MenuBar {
                 onTriggered: appMenuBar.apiServerConnectionRequested()
             }
         }
+
         MenuItem {
             text: qsTr("Sta&rt/Stop")
         }
 
-        //        MenuSeparator {
-        //            visible: recentFilesModel.count > 0
-        //        }
+        MenuSeparator {}
+
         MenuItem {
             text: qsTr("&Quit")
-            //        shortcut: "Ctrl+Q"
-            //        iconName: "Quit"
-            //        iconSource: "/images/power-off-DRED.svg"
             onTriggered: appMenuBar.quitRequested()
         }
     }
@@ -40,44 +42,29 @@ MenuBar {
     Menu {
         title: qsTr("Project")
 
-        MenuItem {
-            text: qsTr("&Changelog")
-        }
-        MenuItem {
-            text: qsTr("&Database Service")
-        }
-        MenuItem {
-            text: qsTr("&Option")
-        }
-        MenuItem {
-            text: qsTr("&Scale")
-        }
-        MenuItem {
-            text: qsTr("S&tatistic")
-        }
-        MenuItem {
-            text: qsTr("&User Managmant")
-        }
-    }
-
-    Menu {
-        title: qsTr("Info")
-        MenuItem {
-            text: qsTr("&Info")
-        }
-    }
-
-    Menu {
-        title: qsTr("Help")
-        MenuItem {
-            text: qsTr("&Help")
-        }
+        MenuItem { text: qsTr("&Changelog") }
+        MenuItem { text: qsTr("&Database Service") }
+        MenuItem { text: qsTr("&Option") }
+        MenuItem { text: qsTr("&Scale") }
+        MenuItem { text: qsTr("S&tatistic") }
+        MenuItem { text: qsTr("&User Management") }
     }
 
     Menu {
         title: qsTr("View")
+
+        MenuItem {
+            text: appMenuBar.darkTheme
+                  ? qsTr("Switch to &Light Theme")
+                  : qsTr("Switch to &Dark Theme")
+            onTriggered: appMenuBar.themeToggleRequested()
+        }
+
+        MenuSeparator {}
+
         Menu {
             title: qsTr("&Toolbars")
+
             MenuItem {
                 text: qsTr("&Main Toolbar")
                 checkable: true
@@ -85,23 +72,19 @@ MenuBar {
         }
     }
 
-    // delegate: MenuBarItem {
-    //     id: menuBarItem
-    //     contentItem: Text {
-    //         text: menuBarItem.text
-    //         font: menuBarItem.font
-    //         opacity: enabled ? 1.0 : 0.3
-    //         color: menuBarItem.highlighted ? "#ffffff" : "#21be2b"
-    //         horizontalAlignment: Text.AlignLeft
-    //         verticalAlignment: Text.AlignVCenter
-    //         elide: Text.ElideRight
-    //     }
+    Menu {
+        title: qsTr("Info")
 
-    //     background: Rectangle {
-    //         implicitWidth: 40
-    //         implicitHeight: 40
-    //         opacity: enabled ? 1.0 : 0.3
-    //         color: menuBarItem.highlighted ? "#21be2b" : "transparent"
-    //     }
-    // }
+        MenuItem {
+            text: qsTr("&Info")
+        }
+    }
+
+    Menu {
+        title: qsTr("Help")
+
+        MenuItem {
+            text: qsTr("&Help")
+        }
+    }
 }

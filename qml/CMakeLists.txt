@@ -1,4 +1,21 @@
-# Add the QML component modules used by the reference application's main QML
-# path. Experimental Controls and empty Models modules were moved to Archive,
-# so Base is currently the only active child module under qml/.
+# Reusable visual components form their own QML module.
 add_subdirectory(Base)
+
+# Application-level QML module. Main.qml contains behavior and signal handling;
+# MainScreen.ui.qml contains the declarative visual composition.
+qt_add_library(MainQml STATIC)
+
+qt_add_qml_module(MainQml
+    URI OpcUaManager
+    CLASS_NAME OpcUaManagerPlugin
+    QML_FILES
+        Main.qml
+        MainScreen.ui.qml
+)
+
+target_link_libraries(MainQml
+    PRIVATE
+        Base
+        Qt6::Quick
+        Qt6::QuickControls2
+)
