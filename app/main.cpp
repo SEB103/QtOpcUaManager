@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
     AppCore::setMessagePattern();
     AppCore app(argc, argv);
 
+    QCoreApplication::setOrganizationName(QStringLiteral("OpcUaManager"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("opcuamanager.local"));
     QCoreApplication::setApplicationName(QStringLiteral("OpcUaManager"));
     QCoreApplication::setApplicationVersion(QStringLiteral(OPCUAMANAGER_VERSION));
 
