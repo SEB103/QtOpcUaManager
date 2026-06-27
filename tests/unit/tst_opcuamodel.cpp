@@ -11,6 +11,7 @@ private slots:
     void initialStateIsEmpty();
     void connectionRequestsRootFolderBrowse();
     void successfulSnapshotPopulatesRows();
+    void successfulEmptySnapshotMarksNodeAsLeaf();
     void browseFailurePreservesRowsAndAllowsRetry();
     void disconnectClearsTree();
 };
@@ -58,6 +59,28 @@ void OpcUaModelTest::successfulSnapshotPopulatesRows()
              QStringLiteral("ns=2;s=Machine"));
     QCOMPARE(model.data(model.index(1, 0), OpcUaModel::NodeClassNameRole).toString(),
              QStringLiteral("Variable"));
+}
+
+void OpcUaModelTest::successfulEmptySnapshotMarksNodeAsLeaf()
+{
+    OpcUaModel model;
+    model.setConnectionActive(true);
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=Machine"),
+                        QStringLiteral("Machine"),
+                        QStringLiteral("Machine"),
+                        int(QOpcUa::NodeClass::Object),
+                        true});
+    model.applyChildrenSnapshot(QStringLiteral("ns=0;i=84"), children, true);
+
+    const QModelIndex machineIndex = model.index(0, 0);
+    QVERIFY(model.hasChildren(machineIndex));
+
+    model.applyChildrenSnapshot(QStringLiteral("ns=2;s=Machine"), {}, true);
+
+    QVERIFY(!model.hasChildren(machineIndex));
+    QVERIFY(!model.canFetchMore(machineIndex));
 }
 
 void OpcUaModelTest::browseFailurePreservesRowsAndAllowsRetry()

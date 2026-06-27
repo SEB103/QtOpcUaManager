@@ -327,6 +327,9 @@ bool OpcUaModel::hasChildren(const QModelIndex &parent) const
     if (item->childCount() > 0)
         return true;
 
+    if (item->fetchState() == TreeItem::FetchState::Fetched)
+        return false;
+
     return item->mayHaveChildren();
 }
 
