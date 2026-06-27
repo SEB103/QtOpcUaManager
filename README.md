@@ -122,13 +122,7 @@ CMake creates QML lint targets for the QML modules:
 cmake --build --preset windows-msvc2022-debug --target all_qmllint
 ```
 
-Repository settings are stored in:
-
-- `.qmlformat.ini`
-- `.qmllint.ini`
-- `qml/.contextProperties.ini`
-- `.clang-format`
-- `.clang-tidy`
+QML context-property settings are stored in `qml/.contextProperties.ini`.
 
 Formatting should be applied separately from functional changes and reviewed before commit.
 
