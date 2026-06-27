@@ -16,6 +16,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Login")
+            enabled: false
         }
 
         Menu {
@@ -23,12 +24,14 @@ MenuBar {
 
             MenuItem {
                 text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
+                enabled: !cppManagerOpcUa.busy
                 onTriggered: appMenuBar.apiServerConnectionRequested()
             }
         }
 
         MenuItem {
             text: qsTr("Sta&rt/Stop")
+            enabled: false
         }
 
         MenuSeparator {}
@@ -42,12 +45,12 @@ MenuBar {
     Menu {
         title: qsTr("Project")
 
-        MenuItem { text: qsTr("&Changelog") }
-        MenuItem { text: qsTr("&Database Service") }
-        MenuItem { text: qsTr("&Option") }
-        MenuItem { text: qsTr("&Scale") }
-        MenuItem { text: qsTr("S&tatistic") }
-        MenuItem { text: qsTr("&User Management") }
+        MenuItem { text: qsTr("&Changelog"); enabled: false }
+        MenuItem { text: qsTr("&Database Service"); enabled: false }
+        MenuItem { text: qsTr("&Option"); enabled: false }
+        MenuItem { text: qsTr("&Scale"); enabled: false }
+        MenuItem { text: qsTr("S&tatistic"); enabled: false }
+        MenuItem { text: qsTr("&User Management"); enabled: false }
     }
 
     Menu {
@@ -64,6 +67,7 @@ MenuBar {
 
         Menu {
             title: qsTr("&Toolbars")
+            enabled: false
 
             MenuItem {
                 text: qsTr("&Main Toolbar")
@@ -77,6 +81,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Info")
+            enabled: false
         }
     }
 
@@ -85,6 +90,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Help")
+            enabled: false
         }
     }
 }

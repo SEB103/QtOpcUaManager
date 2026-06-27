@@ -66,7 +66,9 @@ void OpcUaModel::setConnectionActive(bool active)
  * GUI-thread TreeItem instances and replaces the current children of the
  * matching parent item.
  */
-void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId, const QList<OpcUaNodeData> &children)
+void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
+                                       const QList<OpcUaNodeData> &children,
+                                       bool success)
 {
     if (!mRootItem)
         return;
@@ -75,9 +77,19 @@ void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId, const QList<
     if (!parentItem)
         return;
 
-    const QModelIndex parentIndex = (parentItem == mRootItem.get())
+    const QModelIndex parentIndex = parentItem == mRootItem.get()
         ? QModelIndex()
         : indexForItem(parentItem, 0);
+
+    if (!success) {
+        parentItem->setFetchState(TreeItem::FetchState::Error);
+        if (parentIndex.isValid()) {
+            const QModelIndex left = index(parentIndex.row(), 0, parentIndex.parent());
+            const QModelIndex right = index(parentIndex.row(), columnCount() - 1, parentIndex.parent());
+            emit dataChanged(left, right, {FetchStateRole});
+        }
+        return;
+    }
 
     const int oldCount = parentItem->childCount();
     if (oldCount > 0) {

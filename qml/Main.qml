@@ -54,7 +54,7 @@ ApplicationWindow {
         y: Math.round((mainWindow.height - height) / 2)
         width: Math.min(mainWindow.width - 80, 940)
         height: Math.min(mainWindow.height - 80, implicitHeight)
-        title: qsTr("Connect to API server")
+        title: qsTr("Connect to OPC UA server")
         modal: true
         focus: true
         standardButtons: Dialog.Close

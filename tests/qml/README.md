@@ -1,5 +1,17 @@
 # QML tests
 
-Place future Qt Quick Test cases in this directory. The root project already
-uses `include(CTest)` and keeps all QML files in the `OpcUaManager` module, so a
-`QuickTest` target can be added here without restructuring the application.
+`OpcUaManager.QmlSmoke` loads the `Base` QML module with a small mock
+`cppManagerOpcUa` context property and verifies that `BsMenuBar` can be created.
+
+Run all tests from the build directory:
+
+```bash
+ctest --output-on-failure -C Debug
+```
+
+The external OPC UA integration test is skipped unless this environment variable
+is set:
+
+```text
+OPCUAMANAGER_TEST_SERVER_URL=opc.tcp://127.0.0.1:4840
+```

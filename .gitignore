@@ -3,6 +3,14 @@
 /build-*/
 /cmake-build-*/
 
+# Local AI assistants and skills
+/.claude/
+/.opencode/
+/.codex/
+
+/CLAUDE.md
+/AGENTS.md
+
 # Qt Creator user state
 *.user
 *.user.*
@@ -45,3 +53,16 @@ ui_*.h
 *~
 .DS_Store
 Thumbs.db
+
+# Local CMake preset overrides
+CMakeUserPresets.json
+
+# OPC UA credentials generated or installed locally
+/pki/own/private/*
+!/pki/own/private/.gitkeep
+/pki/own/certs/*
+!/pki/own/certs/.gitkeep
+
+# Runtime application data and logs
+/log/
+*.log

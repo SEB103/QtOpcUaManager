@@ -2,10 +2,7 @@
 #define OPCUASERVICE_H
 
 #include <QObject>
-#include <QStringList>
-#include <QUrl>
-#include <QVariantMap>
-#include <QScopedPointer>
+#include <QList>
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaApplicationIdentity>
 #include <QOpcUaAuthenticationInformation>
@@ -16,11 +13,15 @@
 #include <QOpcUaPkiConfiguration>
 #include <QOpcUaProvider>
 #include <QOpcUaUserTokenPolicy>
+#include <QScopedPointer>
+#include <QStringList>
 #include <QTimer>
+#include <QUrl>
+#include <QVariantMap>
 
 #include "opcuanodedata.h"
 
-/*! 
+/*!
  * \class OpcUaService
  * \brief Worker-thread OPC UA service behind OpcUaManager.
  */
@@ -30,6 +31,15 @@ class OpcUaService : public QObject
     Q_DISABLE_COPY_MOVE(OpcUaService)
 
 public:
+    enum class OperationState {
+        Idle = 0,
+        DiscoveringServers,
+        RequestingEndpoints,
+        Connecting,
+        Disconnecting
+    };
+    Q_ENUM(OperationState)
+
     explicit OpcUaService(const QString &initialUrl = QString(), QObject *parent = nullptr);
     ~OpcUaService() override;
 
@@ -38,7 +48,9 @@ public slots:
     void setBackend(const QString &backend);
     void setAnonymousAuthentication();
     void setUsernameAuthentication(const QString &userName, const QString &password);
+    void setCertificatePrivateKeyPassword(const QString &password);
     void setCertificateAuthentication();
+    void setEndpointUrlRewriteEnabled(bool enabled);
     void discoverServers(const QString &hostOrUrl);
     void requestEndpoints(const QString &serverUrl);
     void requestEndpointsForServer(int serverIndex);
@@ -54,7 +66,12 @@ signals:
     void connectedChanged(bool connected);
     void lastErrorChanged(const QString &lastError);
     void authModeChanged(int authMode);
-    void browseChildrenReady(const QString &parentNodeId, const QList<OpcUaNodeData> &children);
+    void operationStateChanged(int operationState);
+    void clientStateChanged(int clientState);
+    void endpointUrlRewriteEnabledChanged(bool enabled);
+    void browseChildrenReady(const QString &parentNodeId,
+                             const QList<OpcUaNodeData> &children,
+                             bool success);
 
 private slots:
     void findServersComplete(const QList<QOpcUaApplicationDescription> &servers,
@@ -69,17 +86,21 @@ private slots:
     void onClientErrorChanged(QOpcUaClient::ClientError error);
     void onConnectError(QOpcUaErrorState *errorState);
     void handleFindServersTimeout();
+    void handleEndpointsTimeout();
     void namespacesArrayUpdated(const QStringList &namespaceArray);
     void handleGenericStructHandlerInitFinished(bool success);
 
 private:
     static QUrl normalizeDiscoveryUrl(const QString &hostOrUrl);
     void setupPkiConfiguration();
+    bool validateCertificateConfiguration(QString *errorMessage) const;
+    QOpcUaApplicationIdentity buildApplicationIdentity() const;
     void setLastError(const QString &err);
+    void setOperationState(OperationState state);
     QString serverUrlAt(int index) const;
-    void applyOpcUaIdentity();
-    void applyClientSecurityConfiguration();
-    void queueClientSecurityConfiguration();
+    bool applyOpcUaIdentity();
+    bool applyClientSecurityConfiguration();
+    bool queueClientSecurityConfiguration();
     void handleFindServersDispatchResult(bool dispatched, const QUrl &url);
     void handleEndpointsDispatchResult(bool dispatched, const QUrl &url);
     bool endpointSupportsAuth(const QOpcUaEndpointDescription &ep) const;
@@ -112,14 +133,21 @@ private:
     QOpcUaApplicationIdentity m_identity;
     QOpcUaPkiConfiguration m_pkiConfig;
     QOpcUaAuthenticationInformation m_authInfo;
+    QString m_pkiBaseDirectory;
+    QString m_certificatePrivateKeyPassword;
     bool m_identityApplied {false};
     bool m_endpointCacheValid {false};
+    bool m_endpointUrlRewriteEnabled {false};
     QUrl m_endpointCacheDiscoveryUrl;
-    QOpcUaUserTokenPolicy::TokenType m_endpointCacheAuthType {QOpcUaUserTokenPolicy::TokenType::Anonymous};
-    QOpcUaEndpointDescription m_cachedEndpoint;
+    QOpcUaUserTokenPolicy::TokenType m_endpointCacheAuthType {
+        QOpcUaUserTokenPolicy::TokenType::Anonymous
+    };
+    QList<QOpcUaEndpointDescription> m_cachedEndpoints;
     QTimer *m_findServersTimeoutTimer {nullptr};
     QTimer *m_endpointsTimeoutTimer {nullptr};
     bool m_findServersRequestPending {false};
+    bool m_endpointsRequestPending {false};
+    OperationState m_operationState {OperationState::Idle};
     int m_findServersRequestTimeoutMs {5000};
     int m_endpointsRequestTimeoutMs {5000};
 };

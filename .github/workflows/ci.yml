@@ -1,0 +1,55 @@
+name: Qt CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-msvc2022:
+    runs-on: windows-2022
+    env:
+      CMAKE_GENERATOR: Ninja
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.11.1
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: 'qtopcua'
+          cache: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Validate assistant scaffold
+        run: python .claude/scripts/validate_scaffold.py
+
+      - name: Configure
+        run: >-
+          cmake -S . -B build/ci -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DOPCUAMANAGER_COPY_WINDOWS_RUNTIME=OFF
+
+      - name: Build
+        run: cmake --build build/ci --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build/ci --output-on-failure
+
+      - name: Run QML lint targets
+        run: cmake --build build/ci --target all_qmllint

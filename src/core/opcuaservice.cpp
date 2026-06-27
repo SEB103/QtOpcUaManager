@@ -185,14 +185,15 @@ void OpcUaService::initialize()
     m_endpointsTimeoutTimer->setSingleShot(true);
     m_endpointsTimeoutTimer->setTimerType(Qt::PreciseTimer);
 
-    connect(m_endpointsTimeoutTimer, &QTimer::timeout, m_endpointsTimeoutTimer, [this]() {
-        qWarning() << "GetEndpoints timeout."
-                   << "url:" << m_lastEndpointsRequestUrl
-                   << "timeout ms:" << m_endpointsRequestTimeoutMs;
-        setLastError(QStringLiteral("GetEndpoints timeout for %1").arg(m_lastEndpointsRequestUrl.toString()));
-    });
+    connect(m_endpointsTimeoutTimer,
+            &QTimer::timeout,
+            this,
+            &OpcUaService::handleEndpointsTimeout);
 
     m_initialized = true;
+    emit operationStateChanged(int(m_operationState));
+    emit clientStateChanged(int(QOpcUaClient::ClientState::Disconnected));
+    emit endpointUrlRewriteEnabledChanged(m_endpointUrlRewriteEnabled);
 
     setAnonymousAuthentication();
 
@@ -217,28 +218,37 @@ void OpcUaService::setBackend(const QString &backend)
 {
     initialize();
 
-    const QString b = backend.trimmed();
-    if (b.isEmpty() || b == m_backend)
+    const QString selectedBackend = backend.trimmed();
+    if (selectedBackend.isEmpty() || selectedBackend == m_backend)
         return;
 
     m_findServersRequestPending = false;
+    m_endpointsRequestPending = false;
     if (m_findServersTimeoutTimer)
         m_findServersTimeoutTimer->stop();
+    if (m_endpointsTimeoutTimer)
+        m_endpointsTimeoutTimer->stop();
+    setOperationState(OperationState::Idle);
 
     if (m_client) {
-        if (m_endpointsTimeoutTimer)
-            m_endpointsTimeoutTimer->stop();
         m_genericStructHandler.reset();
         m_client->disconnectFromEndpoint();
         delete m_client;
         m_client = nullptr;
+        m_identityApplied = false;
         if (m_clientConnected) {
             m_clientConnected = false;
             emit connectedChanged(m_clientConnected);
         }
+        emit clientStateChanged(int(QOpcUaClient::ClientState::Disconnected));
     }
 
-    m_backend = b;
+    invalidateEndpointCache();
+    m_endpointList.clear();
+    m_endpointsDisplay.clear();
+    emit endpointsChanged(m_endpointsDisplay);
+
+    m_backend = selectedBackend;
     emit backendChanged(m_backend);
     createClient();
 }
@@ -251,7 +261,9 @@ void OpcUaService::setAnonymousAuthentication()
     initialize();
     QOpcUaAuthenticationInformation info;
     m_authInfo = info;
+    m_identityApplied = false;
     invalidateEndpointCache();
+    setLastError(QString());
     emit authModeChanged(int(m_authInfo.authenticationType()));
     if (m_client)
         queueClientSecurityConfiguration();
@@ -263,10 +275,18 @@ void OpcUaService::setAnonymousAuthentication()
 void OpcUaService::setUsernameAuthentication(const QString &userName, const QString &password)
 {
     initialize();
+
+    if (userName.trimmed().isEmpty()) {
+        setLastError(QStringLiteral("Username authentication requires a user name."));
+        return;
+    }
+
     QOpcUaAuthenticationInformation info;
     info.setUsernameAuthentication(userName, password);
     m_authInfo = info;
+    m_identityApplied = false;
     invalidateEndpointCache();
+    setLastError(QString());
     emit authModeChanged(int(m_authInfo.authenticationType()));
     if (m_client)
         queueClientSecurityConfiguration();
@@ -278,13 +298,47 @@ void OpcUaService::setUsernameAuthentication(const QString &userName, const QStr
 void OpcUaService::setCertificateAuthentication()
 {
     initialize();
+
+    // Select the requested mode before validation. A subsequently queued
+    // endpoint or connect request will therefore fail closed instead of
+    // silently continuing with the previously selected authentication mode.
     QOpcUaAuthenticationInformation info;
     info.setCertificateAuthentication();
     m_authInfo = info;
+    m_identityApplied = false;
     invalidateEndpointCache();
     emit authModeChanged(int(m_authInfo.authenticationType()));
+
+    QString validationError;
+    if (!validateCertificateConfiguration(&validationError)) {
+        setLastError(validationError);
+        return;
+    }
+
+    setLastError(QString());
     if (m_client)
         queueClientSecurityConfiguration();
+}
+
+/*!
+ * \brief Stores the password used when the configured private key is encrypted.
+ */
+void OpcUaService::setCertificatePrivateKeyPassword(const QString &password)
+{
+    m_certificatePrivateKeyPassword = password;
+}
+
+/*!
+ * \brief Enables the optional endpoint host and port rewrite workaround.
+ */
+void OpcUaService::setEndpointUrlRewriteEnabled(bool enabled)
+{
+    if (m_endpointUrlRewriteEnabled == enabled)
+        return;
+
+    m_endpointUrlRewriteEnabled = enabled;
+    invalidateEndpointCache();
+    emit endpointUrlRewriteEnabledChanged(m_endpointUrlRewriteEnabled);
 }
 
 /*!
@@ -300,6 +354,7 @@ void OpcUaService::discoverServers(const QString &hostOrUrl)
     m_findServersRequestPending = false;
     if (m_findServersTimeoutTimer)
         m_findServersTimeoutTimer->stop();
+    setOperationState(OperationState::DiscoveringServers);
     m_servers.clear();
     emit serversChanged(m_servers);
     m_endpointList.clear();
@@ -316,15 +371,22 @@ void OpcUaService::discoverServers(const QString &hostOrUrl)
     if (!url.isValid()) {
         qWarning() << "OpcUaService discoverServers rejected invalid URL:" << input;
         setLastError(QStringLiteral("Invalid discovery URL: %1").arg(input));
+        setOperationState(OperationState::Idle);
         return;
     }
 
     createClient();
-    if (!m_client)
+    if (!m_client) {
+        setOperationState(OperationState::Idle);
         return;
+    }
 
     m_lastFindServersRequestUrl = url;
     m_serverDescriptions.clear();
+
+    m_findServersRequestPending = true;
+    if (m_findServersTimeoutTimer)
+        m_findServersTimeoutTimer->start(m_findServersRequestTimeoutMs);
 
     const QPointer<QOpcUaClient> client(m_client);
     const QPointer<OpcUaService> service(this);
@@ -350,13 +412,12 @@ void OpcUaService::discoverServers(const QString &hostOrUrl)
             << "client thread:" << m_client->thread()
             << "service thread:" << thread();
     if (!queued) {
+        m_findServersRequestPending = false;
+        if (m_findServersTimeoutTimer)
+            m_findServersTimeoutTimer->stop();
         setLastError(QStringLiteral("findServers() failed to queue for %1").arg(url.toString()));
-        return;
+        setOperationState(OperationState::Idle);
     }
-
-    m_findServersRequestPending = true;
-    if (m_findServersTimeoutTimer)
-        m_findServersTimeoutTimer->start(m_findServersRequestTimeoutMs);
 }
 
 /*!
@@ -368,6 +429,10 @@ void OpcUaService::discoverServers(const QString &hostOrUrl)
 void OpcUaService::requestEndpoints(const QString &serverUrl)
 {
     initialize();
+    m_endpointsRequestPending = false;
+    if (m_endpointsTimeoutTimer)
+        m_endpointsTimeoutTimer->stop();
+    setOperationState(OperationState::RequestingEndpoints);
     m_endpointList.clear();
     if (!m_endpointsDisplay.isEmpty()) {
         m_endpointsDisplay.clear();
@@ -382,25 +447,32 @@ void OpcUaService::requestEndpoints(const QString &serverUrl)
     if (!url.isValid()) {
         qWarning() << "OpcUaService requestEndpoints rejected invalid URL:" << serverUrl;
         setLastError(QStringLiteral("Invalid server URL: %1").arg(serverUrl));
+        setOperationState(OperationState::Idle);
         return;
     }
 
     createClient();
-    if (!m_client)
+    if (!m_client) {
+        setOperationState(OperationState::Idle);
         return;
+    }
 
-    queueClientSecurityConfiguration();
+    if (!queueClientSecurityConfiguration()) {
+        setOperationState(OperationState::Idle);
+        return;
+    }
     m_lastEndpointsRequestUrl = url;
+    m_endpointsRequestPending = true;
 
     if (m_endpointCacheValid
         && m_endpointCacheDiscoveryUrl == url
         && m_endpointCacheAuthType == m_authInfo.authenticationType()) {
-
-        QList<QOpcUaEndpointDescription> cachedList;
-        cachedList << patchEndpointForDiscoveryUrl(m_cachedEndpoint, url);
-        getEndpointsComplete(cachedList, QOpcUa::UaStatusCode::Good, url);
+        getEndpointsComplete(m_cachedEndpoints, QOpcUa::UaStatusCode::Good, url);
         return;
     }
+
+    if (m_endpointsTimeoutTimer)
+        m_endpointsTimeoutTimer->start(m_endpointsRequestTimeoutMs);
 
     const QPointer<QOpcUaClient> client(m_client);
     const QPointer<OpcUaService> service(this);
@@ -426,12 +498,12 @@ void OpcUaService::requestEndpoints(const QString &serverUrl)
             << "client thread:" << m_client->thread()
             << "service thread:" << thread();
     if (!queued) {
+        m_endpointsRequestPending = false;
+        if (m_endpointsTimeoutTimer)
+            m_endpointsTimeoutTimer->stop();
         setLastError(QStringLiteral("requestEndpoints() failed to queue for %1").arg(url.toString()));
-        return;
+        setOperationState(OperationState::Idle);
     }
-
-    if (m_endpointsTimeoutTimer)
-        m_endpointsTimeoutTimer->start(m_endpointsRequestTimeoutMs);
 }
 
 /*!
@@ -457,10 +529,15 @@ void OpcUaService::requestEndpointsForServer(int serverIndex)
 void OpcUaService::connectToEndpoint(int endpointIndex)
 {
     initialize();
+    setLastError(QString());
+    setOperationState(OperationState::Connecting);
+
     if (!m_client)
         createClient();
-    if (!m_client)
+    if (!m_client) {
+        setOperationState(OperationState::Idle);
         return;
+    }
     if (m_clientConnected) {
         disconnectFromServer();
         return;
@@ -470,6 +547,7 @@ void OpcUaService::connectToEndpoint(int endpointIndex)
                    << "index:" << endpointIndex
                    << "endpoint count:" << m_endpointList.size();
         setLastError(QStringLiteral("Endpoint index out of range: %1").arg(endpointIndex));
+        setOperationState(OperationState::Idle);
         return;
     }
     const QOpcUaEndpointDescription endpoint = m_endpointList.at(endpointIndex);
@@ -481,10 +559,14 @@ void OpcUaService::connectToEndpoint(int endpointIndex)
             << "auth modes:" << endpointAuthModesToString(endpoint);
     if (!endpointSupportsAuth(endpoint)) {
         setLastError(QStringLiteral("Selected endpoint does not support current authentication mode."));
+        setOperationState(OperationState::Idle);
         return;
     }
     m_genericStructHandler.reset();
-    queueClientSecurityConfiguration();
+    if (!queueClientSecurityConfiguration()) {
+        setOperationState(OperationState::Idle);
+        return;
+    }
 
     const QPointer<QOpcUaClient> client(m_client);
     const bool queued = QMetaObject::invokeMethod(m_client,
@@ -493,8 +575,10 @@ void OpcUaService::connectToEndpoint(int endpointIndex)
                                                           client->connectToEndpoint(endpoint);
                                                   },
                                                   Qt::QueuedConnection);
-    if (!queued)
+    if (!queued) {
         setLastError(QStringLiteral("connectToEndpoint() failed to queue for %1").arg(endpoint.endpointUrl()));
+        setOperationState(OperationState::Idle);
+    }
 }
 
 /*!
@@ -502,18 +586,24 @@ void OpcUaService::connectToEndpoint(int endpointIndex)
  */
 void OpcUaService::disconnectFromServer()
 {
-    if (m_client)
-        qInfo() << "OpcUaService disconnectFromServer requested.";
-    if (!m_client)
+    qInfo() << "OpcUaService disconnectFromServer requested.";
+    if (!m_client) {
+        setOperationState(OperationState::Idle);
         return;
+    }
 
+    setOperationState(OperationState::Disconnecting);
     const QPointer<QOpcUaClient> client(m_client);
-    QMetaObject::invokeMethod(m_client,
-                              [client]() {
-                                  if (client)
-                                      client->disconnectFromEndpoint();
-                              },
-                              Qt::QueuedConnection);
+    const bool queued = QMetaObject::invokeMethod(m_client,
+                                                  [client]() {
+                                                      if (client)
+                                                          client->disconnectFromEndpoint();
+                                                  },
+                                                  Qt::QueuedConnection);
+    if (!queued) {
+        setLastError(QStringLiteral("disconnectFromEndpoint() failed to queue."));
+        setOperationState(OperationState::Idle);
+    }
 }
 
 /*!
@@ -532,17 +622,20 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
     }
 
     initialize();
-    const QString effectiveParentNodeId = parentNodeId.trimmed().isEmpty() ? QStringLiteral("ns=0;i=84") : parentNodeId;
+    const QString effectiveParentNodeId = parentNodeId.trimmed().isEmpty()
+        ? QStringLiteral("ns=0;i=84")
+        : parentNodeId;
 
     if (!m_clientConnected || !m_client) {
-        emit browseChildrenReady(effectiveParentNodeId, {});
+        setLastError(QStringLiteral("Browse requires an active OPC UA connection."));
+        emit browseChildrenReady(effectiveParentNodeId, {}, false);
         return;
     }
 
     QOpcUaNode *node = m_client->node(effectiveParentNodeId);
     if (!node) {
         setLastError(QStringLiteral("Failed to create node for %1").arg(effectiveParentNodeId));
-        emit browseChildrenReady(effectiveParentNodeId, {});
+        emit browseChildrenReady(effectiveParentNodeId, {}, false);
         return;
     }
 
@@ -551,33 +644,38 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
 
     node->setParent(this);
 
-    connect(node, &QOpcUaNode::browseFinished, this,
+    connect(node,
+            &QOpcUaNode::browseFinished,
+            this,
             [this, node, effectiveParentNodeId](const QList<QOpcUaReferenceDescription> &children,
                                                 QOpcUa::UaStatusCode statusCode) {
-        QList<OpcUaNodeData> snapshotChildren;
-        if (statusCode == QOpcUa::UaStatusCode::Good) {
-            snapshotChildren.reserve(children.size());
-            for (const auto &ref : children) {
-                OpcUaNodeData child;
-                child.nodeId = ref.targetNodeId().nodeId();
-                child.browseName = ref.browseName().name();
-                child.displayName = ref.displayName().text();
-                child.nodeClass = int(ref.nodeClass());
-                child.hasChildren = (ref.nodeClass() != QOpcUa::NodeClass::Method);
-                snapshotChildren.push_back(child);
-            }
-        } else {
-            setLastError(QStringLiteral("Browse failed for %1: %2")
-                             .arg(effectiveParentNodeId, QOpcUa::statusToString(statusCode)));
-        }
-        emit browseChildrenReady(effectiveParentNodeId, snapshotChildren);
-        node->deleteLater();
-    });
+                QList<OpcUaNodeData> snapshotChildren;
+                const bool success = statusCode == QOpcUa::UaStatusCode::Good;
+                if (success) {
+                    snapshotChildren.reserve(children.size());
+                    for (const auto &ref : children) {
+                        OpcUaNodeData child;
+                        child.nodeId = ref.targetNodeId().nodeId();
+                        child.browseName = ref.browseName().name();
+                        child.displayName = ref.displayName().text();
+                        child.nodeClass = int(ref.nodeClass());
+                        child.hasChildren = ref.nodeClass() != QOpcUa::NodeClass::Method;
+                        snapshotChildren.push_back(child);
+                    }
+                } else {
+                    setLastError(QStringLiteral("Browse failed for %1: %2")
+                                     .arg(effectiveParentNodeId,
+                                          QOpcUa::statusToString(statusCode)));
+                }
+                emit browseChildrenReady(effectiveParentNodeId, snapshotChildren, success);
+                node->deleteLater();
+            });
 
     if (!node->browseChildren()) {
-        setLastError(QStringLiteral("browseChildren() failed to dispatch for %1").arg(effectiveParentNodeId));
+        setLastError(QStringLiteral("browseChildren() failed to dispatch for %1")
+                         .arg(effectiveParentNodeId));
         node->deleteLater();
-        emit browseChildrenReady(effectiveParentNodeId, {});
+        emit browseChildrenReady(effectiveParentNodeId, {}, false);
     }
 }
 
@@ -598,15 +696,111 @@ QUrl OpcUaService::normalizeDiscoveryUrl(const QString &hostOrUrl)
 
 void OpcUaService::setupPkiConfiguration()
 {
-    const QString pkiSrc = QCoreApplication::applicationDirPath() + QLatin1String("/pki");
-    const QString pkiDst = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QLatin1String("/pki");
-    copyDirRecursively(pkiSrc, pkiDst);
-    m_pkiConfig.setClientCertificateFile(pkiDst + QLatin1String("/own/certs/client.der"));
-    m_pkiConfig.setPrivateKeyFile(pkiDst + QLatin1String("/own/private/client.pem"));
-    m_pkiConfig.setTrustListDirectory(pkiDst + QLatin1String("/trusted/certs"));
-    m_pkiConfig.setRevocationListDirectory(pkiDst + QLatin1String("/trusted/crl"));
-    m_pkiConfig.setIssuerListDirectory(pkiDst + QLatin1String("/issuers/certs"));
-    m_pkiConfig.setIssuerRevocationListDirectory(pkiDst + QLatin1String("/issuers/crl"));
+    const QString pkiSource = QCoreApplication::applicationDirPath() + QLatin1String("/pki");
+    m_pkiBaseDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        + QLatin1String("/pki");
+    qInfo() << "OPC UA runtime PKI directory:" << m_pkiBaseDirectory;
+
+    const QStringList requiredDirectories {
+        m_pkiBaseDirectory + QLatin1String("/own/certs"),
+        m_pkiBaseDirectory + QLatin1String("/own/private"),
+        m_pkiBaseDirectory + QLatin1String("/trusted/certs"),
+        m_pkiBaseDirectory + QLatin1String("/trusted/crl"),
+        m_pkiBaseDirectory + QLatin1String("/issuers/certs"),
+        m_pkiBaseDirectory + QLatin1String("/issuers/crl")
+    };
+
+    for (const QString &directory : requiredDirectories) {
+        if (!QDir().mkpath(directory))
+            qWarning() << "Failed to create PKI directory:" << directory;
+    }
+
+    if (QDir(pkiSource).exists() && !copyDirRecursively(pkiSource, m_pkiBaseDirectory))
+        qWarning() << "Failed to copy the initial PKI directory to" << m_pkiBaseDirectory;
+
+    m_pkiConfig.setClientCertificateFile(
+        m_pkiBaseDirectory + QLatin1String("/own/certs/client.der"));
+    m_pkiConfig.setPrivateKeyFile(
+        m_pkiBaseDirectory + QLatin1String("/own/private/client.pem"));
+    m_pkiConfig.setTrustListDirectory(
+        m_pkiBaseDirectory + QLatin1String("/trusted/certs"));
+    m_pkiConfig.setRevocationListDirectory(
+        m_pkiBaseDirectory + QLatin1String("/trusted/crl"));
+    m_pkiConfig.setIssuerListDirectory(
+        m_pkiBaseDirectory + QLatin1String("/issuers/certs"));
+    m_pkiConfig.setIssuerRevocationListDirectory(
+        m_pkiBaseDirectory + QLatin1String("/issuers/crl"));
+}
+
+/*!
+ * \brief Validates files required for certificate-based authentication.
+ */
+bool OpcUaService::validateCertificateConfiguration(QString *errorMessage) const
+{
+    const QFileInfo certificateInfo(m_pkiConfig.clientCertificateFile());
+    const QFileInfo privateKeyInfo(m_pkiConfig.privateKeyFile());
+
+    if (!certificateInfo.isFile() || !certificateInfo.isReadable()) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral("Client certificate is missing or unreadable: %1")
+                                .arg(certificateInfo.absoluteFilePath());
+        }
+        return false;
+    }
+
+    if (!privateKeyInfo.isFile() || !privateKeyInfo.isReadable()) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral("Client private key is missing or unreadable: %1")
+                                .arg(privateKeyInfo.absoluteFilePath());
+        }
+        return false;
+    }
+
+    if (!m_pkiConfig.isPkiValid()) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral(
+                "The OPC UA PKI directories are incomplete or invalid under %1")
+                                .arg(m_pkiBaseDirectory);
+        }
+        return false;
+    }
+
+    const QOpcUaApplicationIdentity certificateIdentity = m_pkiConfig.applicationIdentity();
+    if (!certificateIdentity.isValid() || certificateIdentity.applicationUri().trimmed().isEmpty()) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral(
+                "The client certificate does not contain a valid OPC UA application identity.");
+        }
+        return false;
+    }
+
+    return true;
+}
+
+/*!
+ * \brief Builds an identity that matches the selected authentication mode.
+ */
+QOpcUaApplicationIdentity OpcUaService::buildApplicationIdentity() const
+{
+    if (m_authInfo.authenticationType() == QOpcUaUserTokenPolicy::TokenType::Certificate)
+        return m_pkiConfig.applicationIdentity();
+
+    QString organizationDomain = QCoreApplication::organizationDomain().trimmed();
+    if (organizationDomain.isEmpty())
+        organizationDomain = QStringLiteral("local");
+    organizationDomain = sanitizeUrnToken(organizationDomain);
+
+    QString applicationName = QCoreApplication::applicationName().trimmed();
+    if (applicationName.isEmpty())
+        applicationName = QStringLiteral("OpcUaManager");
+
+    QOpcUaApplicationIdentity identity;
+    identity.setApplicationName(applicationName);
+    identity.setApplicationUri(loadOrCreateStableApplicationUri());
+    identity.setProductUri(QStringLiteral("urn:%1:products:%2")
+                               .arg(organizationDomain, sanitizeUrnToken(applicationName)));
+    identity.setApplicationType(QOpcUaApplicationDescription::Client);
+    return identity;
 }
 
 /*!
@@ -623,6 +817,18 @@ void OpcUaService::setLastError(const QString &err)
     else
         qWarning() << "OpcUaService lastError:" << m_lastError;
     emit lastErrorChanged(m_lastError);
+}
+
+/*!
+ * \brief Updates the operation state exposed to the GUI.
+ */
+void OpcUaService::setOperationState(OperationState state)
+{
+    if (m_operationState == state)
+        return;
+
+    m_operationState = state;
+    emit operationStateChanged(int(m_operationState));
 }
 
 /*!
@@ -650,70 +856,76 @@ QString OpcUaService::serverUrlAt(int index) const
 /*!
  * \brief Applies the client identity required by Qt OPC UA.
  */
-void OpcUaService::applyOpcUaIdentity()
+bool OpcUaService::applyOpcUaIdentity()
 {
-    if (m_identityApplied || !m_client)
-        return;
-    QString orgDomain = QCoreApplication::organizationDomain().trimmed();
-    if (orgDomain.isEmpty())
-        orgDomain = QStringLiteral("local");
-    orgDomain = sanitizeUrnToken(orgDomain);
-    QString appName = QCoreApplication::applicationName().trimmed();
-    if (appName.isEmpty())
-        appName = QStringLiteral("OpcUaBrowser");
-    const QString appNameUrn = sanitizeUrnToken(appName);
-    QOpcUaApplicationIdentity identity;
-    identity.setApplicationName(appName);
-    identity.setApplicationUri(loadOrCreateStableApplicationUri());
-    identity.setProductUri(QStringLiteral("urn:%1:products:%2").arg(orgDomain, appNameUrn));
-    identity.setApplicationType(QOpcUaApplicationDescription::Client);
+    if (m_identityApplied)
+        return true;
+    if (!m_client)
+        return false;
+
+    if (m_authInfo.authenticationType() == QOpcUaUserTokenPolicy::TokenType::Certificate) {
+        QString validationError;
+        if (!validateCertificateConfiguration(&validationError)) {
+            setLastError(validationError);
+            return false;
+        }
+    }
+
+    const QOpcUaApplicationIdentity identity = buildApplicationIdentity();
+    if (!identity.isValid()) {
+        setLastError(QStringLiteral("The OPC UA application identity is invalid."));
+        return false;
+    }
+
     m_identity = identity;
     m_client->setApplicationIdentity(m_identity);
     m_identityApplied = true;
+    return true;
 }
 
 /*!
  * \brief Applies authentication and PKI settings to the active client.
  */
-void OpcUaService::applyClientSecurityConfiguration()
+bool OpcUaService::applyClientSecurityConfiguration()
 {
     if (!m_client)
-        return;
-    applyOpcUaIdentity();
+        return false;
+    if (!applyOpcUaIdentity())
+        return false;
+
     m_client->setAuthenticationInformation(m_authInfo);
     if (m_authInfo.authenticationType() == QOpcUaUserTokenPolicy::TokenType::Certificate)
         m_client->setPkiConfiguration(m_pkiConfig);
+    return true;
 }
 
-/*! 
+/*!
  * \brief Applies client security settings in the QOpcUaClient object's thread.
  */
-void OpcUaService::queueClientSecurityConfiguration()
+bool OpcUaService::queueClientSecurityConfiguration()
 {
     if (!m_client)
-        return;
+        return false;
 
-    if (m_client->thread() == QThread::currentThread()) {
-        applyClientSecurityConfiguration();
-        return;
+    if (m_authInfo.authenticationType() == QOpcUaUserTokenPolicy::TokenType::Certificate) {
+        QString validationError;
+        if (!validateCertificateConfiguration(&validationError)) {
+            setLastError(validationError);
+            return false;
+        }
     }
 
-    QString orgDomain = QCoreApplication::organizationDomain().trimmed();
-    if (orgDomain.isEmpty())
-        orgDomain = QStringLiteral("local");
-    orgDomain = sanitizeUrnToken(orgDomain);
-    QString appName = QCoreApplication::applicationName().trimmed();
-    if (appName.isEmpty())
-        appName = QStringLiteral("OpcUaBrowser");
-    const QString appNameUrn = sanitizeUrnToken(appName);
+    const QOpcUaApplicationIdentity identity = buildApplicationIdentity();
+    if (!identity.isValid()) {
+        setLastError(QStringLiteral("The OPC UA application identity is invalid."));
+        return false;
+    }
 
-    QOpcUaApplicationIdentity identity;
-    identity.setApplicationName(appName);
-    identity.setApplicationUri(loadOrCreateStableApplicationUri());
-    identity.setProductUri(QStringLiteral("urn:%1:products:%2").arg(orgDomain, appNameUrn));
-    identity.setApplicationType(QOpcUaApplicationDescription::Client);
     m_identity = identity;
     m_identityApplied = true;
+
+    if (m_client->thread() == QThread::currentThread())
+        return applyClientSecurityConfiguration();
 
     const QOpcUaAuthenticationInformation authInfo = m_authInfo;
     const QOpcUaPkiConfiguration pkiConfig = m_pkiConfig;
@@ -735,37 +947,47 @@ void OpcUaService::queueClientSecurityConfiguration()
                                                   },
                                                   Qt::QueuedConnection);
     if (!queued)
-        qWarning() << "Failed to queue OPC UA client security configuration.";
+        setLastError(QStringLiteral("Failed to queue OPC UA client security configuration."));
+    return queued;
 }
 
-/*! 
+/*!
  * \brief Handles the result of queueing and executing FindServers in the client thread.
  */
 void OpcUaService::handleFindServersDispatchResult(bool dispatched, const QUrl &url)
 {
     qInfo() << "OpcUaService findServers dispatched:" << dispatched << "url:" << url;
+    if (url != m_lastFindServersRequestUrl)
+        return;
+
     if (!dispatched) {
         m_findServersRequestPending = false;
         if (m_findServersTimeoutTimer)
             m_findServersTimeoutTimer->stop();
         setLastError(QStringLiteral("findServers() failed to dispatch for %1").arg(url.toString()));
+        setOperationState(OperationState::Idle);
     }
 }
 
-/*! 
+/*!
  * \brief Handles the result of queueing and executing GetEndpoints in the client thread.
  */
 void OpcUaService::handleEndpointsDispatchResult(bool dispatched, const QUrl &url)
 {
     qInfo() << "OpcUaService requestEndpoints dispatched:" << dispatched << "url:" << url;
+    if (url != m_lastEndpointsRequestUrl)
+        return;
+
     if (!dispatched) {
+        m_endpointsRequestPending = false;
         if (m_endpointsTimeoutTimer)
             m_endpointsTimeoutTimer->stop();
         setLastError(QStringLiteral("requestEndpoints() failed to dispatch for %1").arg(url.toString()));
+        setOperationState(OperationState::Idle);
     }
 }
 
-/*! 
+/*!
  * \brief Returns whether \a ep accepts the selected authentication mode.
  */
 bool OpcUaService::endpointSupportsAuth(const QOpcUaEndpointDescription &ep) const
@@ -836,15 +1058,23 @@ QString OpcUaService::endpointAuthModesToString(const QOpcUaEndpointDescription 
  * current client. Preserving the selected discovery host keeps local direct
  * connections practical.
  */
-QOpcUaEndpointDescription OpcUaService::patchEndpointForDiscoveryUrl(const QOpcUaEndpointDescription &ep, const QUrl &discoveryUrl) const
+QOpcUaEndpointDescription OpcUaService::patchEndpointForDiscoveryUrl(
+    const QOpcUaEndpointDescription &ep,
+    const QUrl &discoveryUrl) const
 {
-    QOpcUaEndpointDescription patchedEp = ep;
-    QUrl patched(patchedEp.endpointUrl());
-    patched.setHost(discoveryUrl.host());
+    if (!m_endpointUrlRewriteEnabled || !discoveryUrl.isValid())
+        return ep;
+
+    QOpcUaEndpointDescription patchedEndpoint = ep;
+    QUrl endpointUrl(patchedEndpoint.endpointUrl());
+    if (!endpointUrl.isValid())
+        return ep;
+
+    endpointUrl.setHost(discoveryUrl.host());
     if (discoveryUrl.port() > 0)
-        patched.setPort(discoveryUrl.port());
-    patchedEp.setEndpointUrl(patched.toString());
-    return patchedEp;
+        endpointUrl.setPort(discoveryUrl.port());
+    patchedEndpoint.setEndpointUrl(endpointUrl.toString());
+    return patchedEndpoint;
 }
 
 /*!
@@ -855,7 +1085,7 @@ void OpcUaService::invalidateEndpointCache()
     m_endpointCacheValid = false;
     m_endpointCacheDiscoveryUrl = QUrl();
     m_endpointCacheAuthType = m_authInfo.authenticationType();
-    m_cachedEndpoint = QOpcUaEndpointDescription();
+    m_cachedEndpoints.clear();
 }
 
 /*!
@@ -899,9 +1129,44 @@ void OpcUaService::createClient()
     connect(m_client, &QOpcUaClient::disconnected, this, &OpcUaService::onClientDisconnected, Qt::QueuedConnection);
     connect(m_client, &QOpcUaClient::stateChanged, this, &OpcUaService::onClientStateChanged, Qt::QueuedConnection);
     connect(m_client, &QOpcUaClient::errorChanged, this, &OpcUaService::onClientErrorChanged, Qt::QueuedConnection);
-    connect(m_client, &QOpcUaClient::connectError, this, &OpcUaService::onConnectError, Qt::QueuedConnection);
+    // QOpcUaClient waits for connectError handlers to return. Handle the
+    // temporary QOpcUaErrorState synchronously and never keep its pointer.
+    connect(m_client,
+            &QOpcUaClient::connectError,
+            this,
+            &OpcUaService::onConnectError,
+            Qt::DirectConnection);
     connect(m_client, &QOpcUaClient::findServersFinished, this, &OpcUaService::findServersComplete, Qt::QueuedConnection);
     connect(m_client, &QOpcUaClient::endpointsRequestFinished, this, &OpcUaService::getEndpointsComplete, Qt::QueuedConnection);
+    connect(m_client,
+            &QOpcUaClient::passwordForPrivateKeyRequired,
+            this,
+            [this](const QString &keyFilePath, QString *password, bool previousTryWasInvalid) {
+                if (!password)
+                    return;
+                QString errorText;
+                if (previousTryWasInvalid) {
+                    errorText = QStringLiteral("The password for private key %1 is invalid.")
+                                    .arg(keyFilePath);
+                    password->clear();
+                } else {
+                    *password = m_certificatePrivateKeyPassword;
+                    if (password->isEmpty()) {
+                        errorText = QStringLiteral(
+                            "Private key %1 is encrypted. Enter its password and retry.")
+                                        .arg(keyFilePath);
+                    }
+                }
+
+                if (!errorText.isEmpty()) {
+                    const auto applyError = [this, errorText]() { setLastError(errorText); };
+                    if (isInObjectThread())
+                        applyError();
+                    else
+                        QMetaObject::invokeMethod(this, applyError, Qt::QueuedConnection);
+                }
+            },
+            Qt::DirectConnection);
     queueClientSecurityConfiguration();
 }
 
@@ -918,6 +1183,11 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
             << "server count:" << servers.size()
             << "request URL:" << requestUrl;
     const QUrl effectiveRequestUrl = requestUrl.isValid() ? requestUrl : m_lastFindServersRequestUrl;
+    if (!m_findServersRequestPending) {
+        qWarning() << "Ignoring late FindServers result after request completion or timeout."
+                   << "request URL:" << requestUrl;
+        return;
+    }
     if (requestUrl.isValid() && requestUrl != m_lastFindServersRequestUrl) {
         qWarning() << "Ignoring stale FindServers result."
                    << "request URL:" << requestUrl
@@ -927,6 +1197,7 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
     m_findServersRequestPending = false;
     if (m_findServersTimeoutTimer)
         m_findServersTimeoutTimer->stop();
+    setOperationState(OperationState::Idle);
 
     if (statusCode != QOpcUa::UaStatusCode::Good) {
         setLastError(QStringLiteral("FindServers failed: %1").arg(QOpcUa::statusToString(statusCode)));
@@ -983,64 +1254,91 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
  * \details The endpoint list is patched, sorted by the current authentication
  * preference, cached, and exposed as display text for QML.
  */
-void OpcUaService::getEndpointsComplete(const QList<QOpcUaEndpointDescription> &endpoints, QOpcUa::UaStatusCode statusCode, const QUrl &requestUrl)
+void OpcUaService::getEndpointsComplete(const QList<QOpcUaEndpointDescription> &endpoints,
+                                        QOpcUa::UaStatusCode statusCode,
+                                        const QUrl &requestUrl)
 {
     qInfo() << "OpcUaService getEndpointsComplete."
             << "status:" << QOpcUa::statusToString(statusCode)
             << "endpoint count:" << endpoints.size()
             << "request URL:" << requestUrl;
+
+    if (!m_endpointsRequestPending) {
+        qWarning() << "Ignoring late GetEndpoints result after request completion or timeout."
+                   << "request URL:" << requestUrl;
+        return;
+    }
+
+    if (requestUrl != m_lastEndpointsRequestUrl) {
+        qWarning() << "Ignoring stale GetEndpoints result."
+                   << "request URL:" << requestUrl
+                   << "last request URL:" << m_lastEndpointsRequestUrl;
+        return;
+    }
+
+    m_endpointsRequestPending = false;
     if (m_endpointsTimeoutTimer)
         m_endpointsTimeoutTimer->stop();
-    if (requestUrl != m_lastEndpointsRequestUrl)
-        return;
+    setOperationState(OperationState::Idle);
+
     m_endpointList.clear();
     if (!m_endpointsDisplay.isEmpty()) {
         m_endpointsDisplay.clear();
         emit endpointsChanged(m_endpointsDisplay);
     }
     if (statusCode != QOpcUa::UaStatusCode::Good) {
-        setLastError(QStringLiteral("GetEndpoints failed: %1").arg(QOpcUa::statusToString(statusCode)));
+        setLastError(QStringLiteral("GetEndpoints failed: %1")
+                         .arg(QOpcUa::statusToString(statusCode)));
         return;
     }
     if (endpoints.isEmpty()) {
-        setLastError(QStringLiteral("GetEndpoints returned 0 endpoints for %1").arg(requestUrl.toString()));
+        setLastError(QStringLiteral("GetEndpoints returned 0 endpoints for %1")
+                         .arg(requestUrl.toString()));
         return;
     }
-    QList<QOpcUaEndpointDescription> patched;
-    for (const auto &ep : endpoints)
-        patched << patchEndpointForDiscoveryUrl(ep, requestUrl);
-    std::stable_sort(patched.begin(), patched.end(), [this](const QOpcUaEndpointDescription &a, const QOpcUaEndpointDescription &b) {
-        const bool aPreferred = endpointIsNoSecurity(a) && endpointSupportsAuth(a);
-        const bool bPreferred = endpointIsNoSecurity(b) && endpointSupportsAuth(b);
-        if (aPreferred != bPreferred)
-            return aPreferred > bPreferred;
-        const bool aSupported = endpointSupportsAuth(a);
-        const bool bSupported = endpointSupportsAuth(b);
-        if (aSupported != bSupported)
-            return aSupported > bSupported;
-        return a.endpointUrl() < b.endpointUrl();
-    });
-    m_endpointList = patched;
-    m_endpointsDisplay.clear();
-    const QMetaEnum modeEnum = QMetaEnum::fromType<QOpcUaEndpointDescription::MessageSecurityMode>();
-    for (const auto &ep : m_endpointList) {
-        const QString mode = QString::fromLatin1(modeEnum.valueToKey(int(ep.securityMode())));
-        const QString auth = endpointAuthModesToString(ep);
-        const QString line = QStringLiteral("%1 | %2 | %3 | auth:%4").arg(ep.endpointUrl(), ep.securityPolicy(), mode, auth.isEmpty() ? QStringLiteral("<none>") : auth);
-        m_endpointsDisplay.push_back(line);
-        qInfo() << "OpcUaService endpoint."
-                << "url:" << ep.endpointUrl()
-                << "security policy:" << ep.securityPolicy()
-                << "security mode:" << mode
-                << "auth modes:" << auth;
+
+    QList<QOpcUaEndpointDescription> displayEndpoints;
+    displayEndpoints.reserve(endpoints.size());
+    for (const auto &endpoint : endpoints)
+        displayEndpoints << patchEndpointForDiscoveryUrl(endpoint, requestUrl);
+
+    std::stable_sort(displayEndpoints.begin(),
+                     displayEndpoints.end(),
+                     [this](const QOpcUaEndpointDescription &left,
+                            const QOpcUaEndpointDescription &right) {
+                         const bool leftPreferred = endpointIsNoSecurity(left)
+                             && endpointSupportsAuth(left);
+                         const bool rightPreferred = endpointIsNoSecurity(right)
+                             && endpointSupportsAuth(right);
+                         if (leftPreferred != rightPreferred)
+                             return leftPreferred > rightPreferred;
+                         const bool leftSupported = endpointSupportsAuth(left);
+                         const bool rightSupported = endpointSupportsAuth(right);
+                         if (leftSupported != rightSupported)
+                             return leftSupported > rightSupported;
+                         return left.endpointUrl() < right.endpointUrl();
+                     });
+
+    m_endpointList = displayEndpoints;
+    m_cachedEndpoints = endpoints;
+    m_endpointCacheValid = true;
+    m_endpointCacheDiscoveryUrl = requestUrl;
+    m_endpointCacheAuthType = m_authInfo.authenticationType();
+
+    const QMetaEnum modeEnum =
+        QMetaEnum::fromType<QOpcUaEndpointDescription::MessageSecurityMode>();
+    for (const auto &endpoint : m_endpointList) {
+        const QString mode = QString::fromLatin1(
+            modeEnum.valueToKey(int(endpoint.securityMode())));
+        const QString auth = endpointAuthModesToString(endpoint);
+        m_endpointsDisplay.push_back(
+            QStringLiteral("%1 | %2 | %3 | auth:%4")
+                .arg(endpoint.endpointUrl(),
+                     endpoint.securityPolicy(),
+                     mode,
+                     auth.isEmpty() ? QStringLiteral("<none>") : auth));
     }
-    const QOpcUaEndpointDescription preferred = chooseEndpoint(m_endpointList);
-    if (!preferred.endpointUrl().isEmpty()) {
-        m_cachedEndpoint = preferred;
-        m_endpointCacheValid = true;
-        m_endpointCacheDiscoveryUrl = requestUrl;
-        m_endpointCacheAuthType = m_authInfo.authenticationType();
-    }
+
     emit endpointsChanged(m_endpointsDisplay);
 }
 
@@ -1051,8 +1349,14 @@ void OpcUaService::onClientConnected()
 {
     qInfo() << "OpcUaService client connected.";
     m_clientConnected = true;
+    setOperationState(OperationState::Idle);
+    setLastError(QString());
     emit connectedChanged(m_clientConnected);
-    connect(m_client, &QOpcUaClient::namespaceArrayUpdated, this, &OpcUaService::namespacesArrayUpdated, Qt::UniqueConnection);
+    connect(m_client,
+            &QOpcUaClient::namespaceArrayUpdated,
+            this,
+            &OpcUaService::namespacesArrayUpdated,
+            Qt::UniqueConnection);
     m_client->updateNamespaceArray();
 }
 
@@ -1063,9 +1367,14 @@ void OpcUaService::onClientDisconnected()
 {
     qInfo() << "OpcUaService client disconnected.";
     m_clientConnected = false;
+    setOperationState(OperationState::Idle);
     emit connectedChanged(m_clientConnected);
-    if (m_client)
-        disconnect(m_client, &QOpcUaClient::namespaceArrayUpdated, this, &OpcUaService::namespacesArrayUpdated);
+    if (m_client) {
+        disconnect(m_client,
+                   &QOpcUaClient::namespaceArrayUpdated,
+                   this,
+                   &OpcUaService::namespacesArrayUpdated);
+    }
     m_genericStructHandler.reset();
 }
 
@@ -1075,6 +1384,20 @@ void OpcUaService::onClientDisconnected()
 void OpcUaService::onClientStateChanged(QOpcUaClient::ClientState state)
 {
     qInfo() << "OpcUaService client state changed:" << int(state);
+    emit clientStateChanged(int(state));
+
+    switch (state) {
+    case QOpcUaClient::ClientState::Connecting:
+        setOperationState(OperationState::Connecting);
+        break;
+    case QOpcUaClient::ClientState::Closing:
+        setOperationState(OperationState::Disconnecting);
+        break;
+    case QOpcUaClient::ClientState::Connected:
+    case QOpcUaClient::ClientState::Disconnected:
+        setOperationState(OperationState::Idle);
+        break;
+    }
 }
 
 /*!
@@ -1083,8 +1406,11 @@ void OpcUaService::onClientStateChanged(QOpcUaClient::ClientState state)
 void OpcUaService::onClientErrorChanged(QOpcUaClient::ClientError error)
 {
     qInfo() << "OpcUaService client error changed:" << int(error);
-    if (error != QOpcUaClient::ClientError::NoError)
-        setLastError(QStringLiteral("ClientError: %1").arg(int(error)));
+    if (error == QOpcUaClient::ClientError::NoError)
+        return;
+
+    setOperationState(OperationState::Idle);
+    setLastError(QStringLiteral("ClientError: %1").arg(int(error)));
 }
 
 /*!
@@ -1094,10 +1420,36 @@ void OpcUaService::onConnectError(QOpcUaErrorState *errorState)
 {
     if (!errorState)
         return;
+
     qWarning() << "OpcUaService connect error."
                << "status:" << QOpcUa::statusToString(errorState->errorCode())
+               << "connection step:" << int(errorState->connectionStep())
                << "client side:" << errorState->isClientSideError();
-    setLastError(QStringLiteral("Connect error (%1): %2").arg(QOpcUa::statusToString(errorState->errorCode()), errorState->isClientSideError() ? QStringLiteral("client") : QStringLiteral("server")));
+
+    // Security errors are intentionally not ignored. Trust is established by
+    // placing the server DER certificate in pki/trusted/certs and reconnecting.
+    const QString trustHint = errorState->connectionStep()
+            == QOpcUaErrorState::ConnectionStep::CertificateValidation
+        ? QStringLiteral(" Add the verified server certificate to %1/trusted/certs and retry.")
+              .arg(m_pkiBaseDirectory)
+        : QString();
+
+    const QString errorText = QStringLiteral("Connect error (%1, step %2, %3).%4")
+                                  .arg(QOpcUa::statusToString(errorState->errorCode()))
+                                  .arg(int(errorState->connectionStep()))
+                                  .arg(errorState->isClientSideError()
+                                           ? QStringLiteral("client")
+                                           : QStringLiteral("server"),
+                                       trustHint);
+
+    const auto applyError = [this, errorText]() {
+        setOperationState(OperationState::Idle);
+        setLastError(errorText);
+    };
+    if (isInObjectThread())
+        applyError();
+    else
+        QMetaObject::invokeMethod(this, applyError, Qt::QueuedConnection);
 }
 
 /*!
@@ -1109,11 +1461,29 @@ void OpcUaService::handleFindServersTimeout()
         return;
 
     m_findServersRequestPending = false;
+    setOperationState(OperationState::Idle);
     qWarning() << "FindServers timeout."
                << "url:" << m_lastFindServersRequestUrl
                << "timeout ms:" << m_findServersRequestTimeoutMs;
     setLastError(QStringLiteral("FindServers timeout for %1.")
                      .arg(m_lastFindServersRequestUrl.toString()));
+}
+
+/*!
+ * \brief Handles a GetEndpoints request that did not complete in time.
+ */
+void OpcUaService::handleEndpointsTimeout()
+{
+    if (!m_endpointsRequestPending)
+        return;
+
+    m_endpointsRequestPending = false;
+    setOperationState(OperationState::Idle);
+    qWarning() << "GetEndpoints timeout."
+               << "url:" << m_lastEndpointsRequestUrl
+               << "timeout ms:" << m_endpointsRequestTimeoutMs;
+    setLastError(QStringLiteral("GetEndpoints timeout for %1.")
+                     .arg(m_lastEndpointsRequestUrl.toString()));
 }
 
 /*!

@@ -1,12 +1,12 @@
 #ifndef OPCUAMANAGER_H
 #define OPCUAMANAGER_H
 
+#include <QMutex>
 #include <QObject>
 #include <QStringList>
-#include <QMutex>
 
-#include "models/opcuamodel.h"
 #include "core/opcuanodedata.h"
+#include "models/opcuamodel.h"
 
 class OpcUaService;
 
@@ -30,69 +30,63 @@ class OpcUaManager : public QObject
     Q_PROPERTY(QStringList servers READ servers NOTIFY serversChanged)
     Q_PROPERTY(QStringList endpoints READ endpoints NOTIFY endpointsChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
+    Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
+    Q_PROPERTY(int operationState READ operationState NOTIFY operationStateChanged)
+    Q_PROPERTY(int clientState READ clientState NOTIFY clientStateChanged)
+    Q_PROPERTY(bool endpointUrlRewriteEnabled READ endpointUrlRewriteEnabled
+                   WRITE setEndpointUrlRewriteEnabled
+                   NOTIFY endpointUrlRewriteEnabledChanged)
     Q_PROPERTY(OpcUaModel *treeModel READ treeModel CONSTANT)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(int authMode READ authMode NOTIFY authModeChanged)
 
 public:
-    /*! Creates the GUI-thread OPC UA facade. */
-    explicit OpcUaManager(const QString &initialUrl = QString(), QObject *parent = nullptr);
+    enum OperationState {
+        OperationIdle = 0,
+        OperationDiscoveringServers,
+        OperationRequestingEndpoints,
+        OperationConnecting,
+        OperationDisconnecting
+    };
+    Q_ENUM(OperationState)
 
-    /*! Destroys the facade. */
+    enum ClientState {
+        ClientDisconnected = 0,
+        ClientConnecting,
+        ClientConnected,
+        ClientClosing
+    };
+    Q_ENUM(ClientState)
+
+    explicit OpcUaManager(const QString &initialUrl = QString(), QObject *parent = nullptr);
     ~OpcUaManager() override;
 
-    /*! Returns the available Qt OPC UA backends. */
     QStringList opcUaBackend() const;
-
-    /*! Returns the selected backend name. */
     QString backend() const;
-
-    /*! Returns the current server list. */
     QStringList servers() const;
-
-    /*! Returns the current endpoint list. */
     QStringList endpoints() const;
-
-    /*! Returns whether the OPC UA service reports an active session. */
     bool connected() const;
-
-    /*! Returns the GUI-thread browse model. */
+    bool busy() const;
+    int operationState() const;
+    int clientState() const;
+    bool endpointUrlRewriteEnabled() const;
     OpcUaModel *treeModel() const;
-
-    /*! Returns the last error text. */
     QString lastError() const;
-
-    /*! Returns the current authentication mode. */
     int authMode() const;
 
-    /*! Selects the active Qt OPC UA backend. */
     void setBackend(const QString &backend);
+    void setEndpointUrlRewriteEnabled(bool enabled);
 
-    /*! Selects anonymous authentication. */
     Q_INVOKABLE void setAnonymousAuthentication();
-
-    /*! Selects username/password authentication. */
     Q_INVOKABLE void setUsernameAuthentication(const QString &userName, const QString &password);
-
-    /*! Selects certificate authentication. */
+    Q_INVOKABLE void setCertificatePrivateKeyPassword(const QString &password);
     Q_INVOKABLE void setCertificateAuthentication();
-
-    /*! Starts a FindServers request. */
     Q_INVOKABLE void discoverServers(const QString &hostOrUrl);
-
-    /*! Starts a GetEndpoints request. */
     Q_INVOKABLE void requestEndpoints(const QString &serverUrl);
-
-    /*! Requests endpoints for the selected server. */
     Q_INVOKABLE void requestEndpointsForServer(int serverIndex);
-
-    /*! Connects to the selected endpoint. */
     Q_INVOKABLE void connectToEndpoint(int endpointIndex);
-
-    /*! Disconnects from the current server. */
     Q_INVOKABLE void disconnectFromServer();
 
-    /*! Attaches the OPC UA service signal/slot bridge. */
     void attachService(OpcUaService *service);
 
 signals:
@@ -101,6 +95,10 @@ signals:
     void serversChanged();
     void endpointsChanged();
     void connectedChanged();
+    void busyChanged();
+    void operationStateChanged();
+    void clientStateChanged();
+    void endpointUrlRewriteEnabledChanged();
     void lastErrorChanged();
     void authModeChanged();
 
@@ -108,7 +106,9 @@ signals:
     void setBackendRequested(const QString &backend);
     void setAnonymousAuthenticationRequested();
     void setUsernameAuthenticationRequested(const QString &userName, const QString &password);
+    void setCertificatePrivateKeyPasswordRequested(const QString &password);
     void setCertificateAuthenticationRequested();
+    void setEndpointUrlRewriteEnabledRequested(bool enabled);
     void discoverServersRequested(const QString &hostOrUrl);
     void requestEndpointsRequested(const QString &serverUrl);
     void requestEndpointsForServerRequested(int serverIndex);
@@ -122,9 +122,14 @@ public slots:
     void applyServers(const QStringList &servers);
     void applyEndpoints(const QStringList &endpoints);
     void applyConnected(bool connected);
+    void applyOperationState(int operationState);
+    void applyClientState(int clientState);
+    void applyEndpointUrlRewriteEnabled(bool enabled);
     void applyLastError(const QString &lastError);
     void applyAuthMode(int authMode);
-    void applyBrowseChildren(const QString &parentNodeId, const QList<OpcUaNodeData> &children);
+    void applyBrowseChildren(const QString &parentNodeId,
+                             const QList<OpcUaNodeData> &children,
+                             bool success);
 
 private:
     mutable QMutex m_stateMutex;
@@ -134,6 +139,9 @@ private:
     QStringList m_servers;
     QStringList m_endpoints;
     bool m_connected {false};
+    int m_operationState {OperationIdle};
+    int m_clientState {ClientDisconnected};
+    bool m_endpointUrlRewriteEnabled {false};
     QString m_lastError;
     int m_authMode {0};
     OpcUaModel *m_treeModel {nullptr};

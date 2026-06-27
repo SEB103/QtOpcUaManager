@@ -155,7 +155,8 @@ bool TreeItem::supportsMonitoring() const
  */
 bool TreeItem::canFetchMore() const
 {
-    return m_hasChildren && m_fetchState == FetchState::NotFetched;
+    return m_hasChildren
+        && (m_fetchState == FetchState::NotFetched || m_fetchState == FetchState::Error);
 }
 
 /*!

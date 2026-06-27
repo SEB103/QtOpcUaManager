@@ -54,7 +54,9 @@ public:
     void setConnectionActive(bool active);
 
     /*! Applies a child snapshot for \a parentNodeId. */
-    void applyChildrenSnapshot(const QString &parentNodeId, const QList<OpcUaNodeData> &children);
+    void applyChildrenSnapshot(const QString &parentNodeId,
+                               const QList<OpcUaNodeData> &children,
+                               bool success = true);
 
     /*! Clears the current tree. */
     void clear();

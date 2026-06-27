@@ -60,6 +60,9 @@ qt_add_executable(appOpcUaManager
     app/appengine.h
 )
 
+# Application-level style configuration and bundled SVG resources.
+add_subdirectory(resources)
+
 target_include_directories(appOpcUaManager
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/app"

@@ -1,5 +1,5 @@
-#include <QColor>
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -7,6 +7,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QTextStream>
 #include <QThread>
 #include <QTimer>
@@ -24,7 +25,6 @@ namespace {
 constexpr auto kLogDirectoryName = "log";
 constexpr auto kLogFileName = "app.log";
 QtMessageHandler g_prevQtMessageHandler = nullptr;
-QObject* g_guiLogSink = nullptr;
 QFile  g_logFile;
 QMutex g_logMutex;
 bool   g_logInitAttempted = false;
@@ -41,6 +41,19 @@ QString formatContextFunction(const QMessageLogContext& context)
     return functionInfo;
 }
 
+
+QString messageTypeName(QtMsgType type)
+{
+    switch (type) {
+    case QtDebugMsg: return QStringLiteral("DEBUG");
+    case QtInfoMsg: return QStringLiteral("INFO");
+    case QtWarningMsg: return QStringLiteral("WARNING");
+    case QtCriticalMsg: return QStringLiteral("CRITICAL");
+    case QtFatalMsg: return QStringLiteral("FATAL");
+    }
+    return QStringLiteral("UNKNOWN");
+}
+
 bool ensureLogFileOpenLocked()
 {
     if (g_logFile.isOpen())
@@ -48,8 +61,10 @@ bool ensureLogFileOpenLocked()
     if (g_logInitAttempted)
         return false;
     g_logInitAttempted = true;
-    const QString exeDir = QCoreApplication::applicationDirPath();
-    const QString logDirPath = QDir(exeDir).filePath(QString::fromLatin1(kLogDirectoryName));
+    const QString applicationDataDirectory = QStandardPaths::writableLocation(
+        QStandardPaths::AppLocalDataLocation);
+    const QString logDirPath = QDir(applicationDataDirectory)
+                                   .filePath(QString::fromLatin1(kLogDirectoryName));
     if (!QDir().mkpath(logDirPath))
         return false;
     const QString logFilePath = QDir(logDirPath).filePath(QString::fromLatin1(kLogFileName));
@@ -71,19 +86,22 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, 
 {
     if (msg.startsWith(QLatin1String("Model size of")))
         return;
-    const QString message = msg;
-    const QString contextStr = QStringLiteral("  (%1; %2: %3)")
-                                   .arg(formatContextFunction(context), context.file ? QString::fromUtf8(context.file) : QStringLiteral("<unknown>"), QString::number(context.line));
-    appendLogLineToFile(message + contextStr);
+    const QString contextString = QStringLiteral("(%1; %2:%3)")
+                                      .arg(formatContextFunction(context),
+                                           context.file
+                                               ? QString::fromUtf8(context.file)
+                                               : QStringLiteral("<unknown>"),
+                                           QString::number(context.line));
+    const QString line = QStringLiteral("%1 [%2] %3 %4")
+                             .arg(QDateTime::currentDateTime().toString(Qt::ISODateWithMs),
+                                  messageTypeName(type),
+                                  msg,
+                                  contextString);
+    appendLogLineToFile(line);
     if (g_prevQtMessageHandler)
         g_prevQtMessageHandler(type, context, msg);
 }
 
-void passthroughMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-    if (g_prevQtMessageHandler)
-        g_prevQtMessageHandler(type, context, msg);
-}
 } // namespace
 
 /*!
@@ -105,11 +123,8 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<OpcUaModel>("Cpp.OpcUaManager", 1, 0, "OpcUaModel", QStringLiteral("OpcUaModel is exposed by OpcUaManager::treeModel."));
     rootContext()->setContextProperty("cppManagerOpcUa", m_opcUaManager);
 
-    g_guiLogSink = nullptr;
 #ifdef QT_NO_DEBUG
     g_prevQtMessageHandler = qInstallMessageHandler(customLogMessageHandler);
-#else
-    g_prevQtMessageHandler = qInstallMessageHandler(passthroughMessageHandler);
 #endif
 }
 
@@ -154,6 +169,16 @@ AppEngine::~AppEngine()
     }
     m_opcUaService = nullptr;
     m_opcUaManager = nullptr;
+
+    qInstallMessageHandler(g_prevQtMessageHandler);
+    g_prevQtMessageHandler = nullptr;
+
+    QMutexLocker locker(&g_logMutex);
+    if (g_logFile.isOpen()) {
+        g_logFile.flush();
+        g_logFile.close();
+    }
+    g_logInitAttempted = false;
 }
 
 /*!
