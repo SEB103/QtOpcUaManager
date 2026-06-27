@@ -11,11 +11,6 @@ Rectangle {
 
     property string validationError: ""
 
-    color: Material.background
-    radius: 6
-    border.color: Material.primary
-    border.width: 2
-
     function applyAuthentication() {
         root.validationError = "";
         switch (authenticationComboBox.currentIndex) {
@@ -52,6 +47,11 @@ Rectangle {
             return cppManagerOpcUa.connected ? qsTr("Connected") : qsTr("Disconnected");
         }
     }
+
+    color: Material.background
+    radius: 6
+    border.color: Material.primary
+    border.width: 2
 
     ColumnLayout {
         id: contentColumn
