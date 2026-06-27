@@ -1,5 +1,22 @@
 find_package(Qt6 6.11 REQUIRED COMPONENTS QuickTest Test)
 
+set(OPCUAMANAGER_TEST_FILES
+    CMakeLists.txt
+    unit/tst_opcuamodel.cpp
+    integration/tst_opcuaintegration.cpp
+    qml/tst_qml.cpp
+    qml/tst_menubar.qml
+    qml/README.md
+)
+
+add_custom_target(OpcUaManagerTestFiles SOURCES
+    ${OPCUAMANAGER_TEST_FILES}
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES
+    ${OPCUAMANAGER_TEST_FILES}
+)
+
 qt_add_executable(tst_opcuamodel
     unit/tst_opcuamodel.cpp
 )
