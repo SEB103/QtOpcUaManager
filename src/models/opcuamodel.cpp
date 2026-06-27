@@ -41,6 +41,7 @@ void OpcUaModel::setConnectionActive(bool active)
         return;
 
     m_connectionActive = active;
+    m_pendingFetchRequests.clear();
 
     beginResetModel();
 
@@ -67,19 +68,39 @@ void OpcUaModel::setConnectionActive(bool active)
  * matching parent item.
  */
 void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
+                                       quint64 requestId,
                                        const QList<OpcUaNodeData> &children,
                                        bool success)
 {
     if (!mRootItem)
         return;
 
-    TreeItem *parentItem = findItemByNodeId(parentNodeId, mRootItem.get());
-    if (!parentItem)
+    const auto pendingIt = m_pendingFetchRequests.find(requestId);
+    if (pendingIt == m_pendingFetchRequests.end())
         return;
 
-    const QModelIndex parentIndex = parentItem == mRootItem.get()
-        ? QModelIndex()
-        : indexForItem(parentItem, 0);
+    const PendingFetch pending = pendingIt.value();
+    m_pendingFetchRequests.erase(pendingIt);
+
+    if (pending.parentNodeId != parentNodeId)
+        return;
+
+    QModelIndex parentIndex;
+    TreeItem *parentItem = nullptr;
+    if (pending.root) {
+        parentItem = mRootItem.get();
+    } else {
+        if (!pending.parentIndex.isValid())
+            return;
+        parentIndex = QModelIndex(pending.parentIndex);
+        parentItem = itemFromIndex(parentIndex);
+    }
+
+    if (!parentItem || parentItem->nodeId() != parentNodeId)
+        return;
+
+    if (!pending.root)
+        parentIndex = indexForItem(parentItem, 0);
 
     if (!success) {
         parentItem->setFetchState(TreeItem::FetchState::Error);
@@ -369,13 +390,20 @@ void OpcUaModel::fetchMore(const QModelIndex &parent)
 
     item->markFetching();
 
+    const quint64 requestId = ++m_nextFetchRequestId;
+    PendingFetch pending;
+    pending.parentNodeId = item->nodeId();
+    pending.parentIndex = QPersistentModelIndex(parent);
+    pending.root = !parent.isValid();
+    m_pendingFetchRequests.insert(requestId, pending);
+
     if (parent.isValid()) {
         const QModelIndex left = this->index(parent.row(), 0, parent.parent());
         const QModelIndex right = this->index(parent.row(), columnCount() - 1, parent.parent());
         emit dataChanged(left, right, {FetchStateRole});
     }
 
-    emit fetchChildrenRequested(item->nodeId());
+    emit fetchChildrenRequested(item->nodeId(), requestId);
 }
 
 /*!
@@ -398,27 +426,4 @@ QModelIndex OpcUaModel::indexForItem(TreeItem *item, int column) const
         return {};
 
     return createIndex(item->row(), column, item);
-}
-
-/*!
- * \brief Finds an item by node id.
- * \details
- * A recursive search is sufficient here because the browse tree is usually
- * expanded incrementally by the user.
- */
-TreeItem *OpcUaModel::findItemByNodeId(const QString &nodeId, TreeItem *start) const
-{
-    if (!start)
-        return nullptr;
-
-    if (start->nodeId() == nodeId)
-        return start;
-
-    for (int i = 0, size = start->childCount(); i < size; ++i) {
-        TreeItem *found = findItemByNodeId(nodeId, start->child(i));
-        if (found)
-            return found;
-    }
-
-    return nullptr;
 }

@@ -612,11 +612,11 @@ void OpcUaService::disconnectFromServer()
  * emitted to the GUI model. QOpcUaNode instances remain private to this
  * service and are deleted after the browse completes.
  */
-void OpcUaService::browseChildren(const QString &parentNodeId)
+void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId)
 {
     if (!isInObjectThread()) {
         QMetaObject::invokeMethod(this,
-                                  [this, parentNodeId]() { browseChildren(parentNodeId); },
+                                  [this, parentNodeId, requestId]() { browseChildren(parentNodeId, requestId); },
                                   Qt::QueuedConnection);
         return;
     }
@@ -628,14 +628,14 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
 
     if (!m_clientConnected || !m_client) {
         setLastError(QStringLiteral("Browse requires an active OPC UA connection."));
-        emit browseChildrenReady(effectiveParentNodeId, {}, false);
+        emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
         return;
     }
 
     QOpcUaNode *node = m_client->node(effectiveParentNodeId);
     if (!node) {
         setLastError(QStringLiteral("Failed to create node for %1").arg(effectiveParentNodeId));
-        emit browseChildrenReady(effectiveParentNodeId, {}, false);
+        emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
         return;
     }
 
@@ -647,8 +647,8 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
     connect(node,
             &QOpcUaNode::browseFinished,
             this,
-            [this, node, effectiveParentNodeId](const QList<QOpcUaReferenceDescription> &children,
-                                                QOpcUa::UaStatusCode statusCode) {
+            [this, node, effectiveParentNodeId, requestId](const QList<QOpcUaReferenceDescription> &children,
+                                                           QOpcUa::UaStatusCode statusCode) {
                 QList<OpcUaNodeData> snapshotChildren;
                 const bool success = statusCode == QOpcUa::UaStatusCode::Good;
                 if (success) {
@@ -667,7 +667,7 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
                                      .arg(effectiveParentNodeId,
                                           QOpcUa::statusToString(statusCode)));
                 }
-                emit browseChildrenReady(effectiveParentNodeId, snapshotChildren, success);
+                emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, success);
                 node->deleteLater();
             });
 
@@ -675,7 +675,7 @@ void OpcUaService::browseChildren(const QString &parentNodeId)
         setLastError(QStringLiteral("browseChildren() failed to dispatch for %1")
                          .arg(effectiveParentNodeId));
         node->deleteLater();
-        emit browseChildrenReady(effectiveParentNodeId, {}, false);
+        emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
     }
 }
 

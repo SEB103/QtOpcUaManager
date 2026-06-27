@@ -2,6 +2,8 @@
 #define OPCUAMODEL_H
 
 #include <QAbstractItemModel>
+#include <QHash>
+#include <QPersistentModelIndex>
 #include <memory>
 #include "core/opcuanodedata.h"
 #include "treeitem.h"
@@ -55,6 +57,7 @@ public:
 
     /*! Applies a child snapshot for \a parentNodeId. */
     void applyChildrenSnapshot(const QString &parentNodeId,
+                               quint64 requestId,
                                const QList<OpcUaNodeData> &children,
                                bool success = true);
 
@@ -86,20 +89,26 @@ signals:
     void autoMonitorChanged();
 
     /*! Requests lazy children for the given node id. */
-    void fetchChildrenRequested(const QString &parentNodeId);
+    void fetchChildrenRequested(const QString &parentNodeId, quint64 requestId);
 
 private:
+    struct PendingFetch
+    {
+        QString parentNodeId;
+        QPersistentModelIndex parentIndex;
+        bool root {false};
+    };
+
     /*! Returns the item for \a index. */
     TreeItem *itemFromIndex(const QModelIndex &index) const;
 
     /*! Returns the QModelIndex for \a item. */
     QModelIndex indexForItem(TreeItem *item, int column) const;
 
-    /*! Finds an item by node id. */
-    TreeItem *findItemByNodeId(const QString &nodeId, TreeItem *start) const;
-
 private:
     std::unique_ptr<TreeItem> mRootItem;
+    QHash<quint64, PendingFetch> m_pendingFetchRequests;
+    quint64 m_nextFetchRequestId {0};
     bool m_autoMonitor {false};
     bool m_connectionActive {false};
 };

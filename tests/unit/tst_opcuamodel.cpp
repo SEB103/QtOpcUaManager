@@ -3,6 +3,22 @@
 
 #include "models/opcuamodel.h"
 
+namespace {
+
+struct FetchRequest
+{
+    QString parentNodeId;
+    quint64 requestId {0};
+};
+
+FetchRequest takeFetchRequest(QSignalSpy &spy)
+{
+    const QList<QVariant> arguments = spy.takeFirst();
+    return {arguments.at(0).toString(), arguments.at(1).toULongLong()};
+}
+
+} // namespace
+
 class OpcUaModelTest : public QObject
 {
     Q_OBJECT
@@ -12,6 +28,7 @@ private slots:
     void connectionRequestsRootFolderBrowse();
     void successfulSnapshotPopulatesRows();
     void successfulEmptySnapshotMarksNodeAsLeaf();
+    void browseResultAppliesToRequestedDuplicateNode();
     void browseFailurePreservesRowsAndAllowsRetry();
     void disconnectClearsTree();
 };
@@ -32,13 +49,18 @@ void OpcUaModelTest::connectionRequestsRootFolderBrowse()
     model.setConnectionActive(true);
 
     QTRY_COMPARE(fetchSpy.count(), 1);
-    QCOMPARE(fetchSpy.takeFirst().constFirst().toString(), QStringLiteral("ns=0;i=84"));
+    const FetchRequest request = takeFetchRequest(fetchSpy);
+    QCOMPARE(request.parentNodeId, QStringLiteral("ns=0;i=84"));
+    QVERIFY(request.requestId > 0);
 }
 
 void OpcUaModelTest::successfulSnapshotPopulatesRows()
 {
     OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
     model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
 
     QList<OpcUaNodeData> children;
     children.push_back({QStringLiteral("ns=2;s=Machine"),
@@ -52,7 +74,7 @@ void OpcUaModelTest::successfulSnapshotPopulatesRows()
                         int(QOpcUa::NodeClass::Variable),
                         false});
 
-    model.applyChildrenSnapshot(QStringLiteral("ns=0;i=84"), children, true);
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
 
     QCOMPARE(model.rowCount(), 2);
     QCOMPARE(model.data(model.index(0, 0), OpcUaModel::NodeIdRole).toString(),
@@ -64,7 +86,10 @@ void OpcUaModelTest::successfulSnapshotPopulatesRows()
 void OpcUaModelTest::successfulEmptySnapshotMarksNodeAsLeaf()
 {
     OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
     model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
 
     QList<OpcUaNodeData> children;
     children.push_back({QStringLiteral("ns=2;s=Machine"),
@@ -72,15 +97,65 @@ void OpcUaModelTest::successfulEmptySnapshotMarksNodeAsLeaf()
                         QStringLiteral("Machine"),
                         int(QOpcUa::NodeClass::Object),
                         true});
-    model.applyChildrenSnapshot(QStringLiteral("ns=0;i=84"), children, true);
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
 
     const QModelIndex machineIndex = model.index(0, 0);
     QVERIFY(model.hasChildren(machineIndex));
+    model.fetchMore(machineIndex);
+    QCOMPARE(fetchSpy.count(), 1);
+    const FetchRequest machineRequest = takeFetchRequest(fetchSpy);
 
-    model.applyChildrenSnapshot(QStringLiteral("ns=2;s=Machine"), {}, true);
+    model.applyChildrenSnapshot(machineRequest.parentNodeId, machineRequest.requestId, {}, true);
 
     QVERIFY(!model.hasChildren(machineIndex));
     QVERIFY(!model.canFetchMore(machineIndex));
+}
+
+void OpcUaModelTest::browseResultAppliesToRequestedDuplicateNode()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> duplicateChildren;
+    duplicateChildren.push_back({QStringLiteral("ns=2;s=Shared"),
+                                 QStringLiteral("SharedA"),
+                                 QStringLiteral("Shared A"),
+                                 int(QOpcUa::NodeClass::Object),
+                                 true});
+    duplicateChildren.push_back({QStringLiteral("ns=2;s=Shared"),
+                                 QStringLiteral("SharedB"),
+                                 QStringLiteral("Shared B"),
+                                 int(QOpcUa::NodeClass::Object),
+                                 true});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId,
+                                rootRequest.requestId,
+                                duplicateChildren,
+                                true);
+
+    const QModelIndex firstSharedIndex = model.index(0, 0);
+    const QModelIndex secondSharedIndex = model.index(1, 0);
+    model.fetchMore(secondSharedIndex);
+    QCOMPARE(fetchSpy.count(), 1);
+    const FetchRequest secondRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> secondChildren;
+    secondChildren.push_back({QStringLiteral("ns=2;s=Shared.Child"),
+                              QStringLiteral("Child"),
+                              QStringLiteral("Child"),
+                              int(QOpcUa::NodeClass::Variable),
+                              false});
+    model.applyChildrenSnapshot(secondRequest.parentNodeId,
+                                secondRequest.requestId,
+                                secondChildren,
+                                true);
+
+    QCOMPARE(model.rowCount(firstSharedIndex), 0);
+    QCOMPARE(model.rowCount(secondSharedIndex), 1);
+    QCOMPARE(model.data(model.index(0, 0, secondSharedIndex), OpcUaModel::DisplayNameRole).toString(),
+             QStringLiteral("Child"));
 }
 
 void OpcUaModelTest::browseFailurePreservesRowsAndAllowsRetry()
@@ -89,7 +164,7 @@ void OpcUaModelTest::browseFailurePreservesRowsAndAllowsRetry()
     QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
     model.setConnectionActive(true);
     QTRY_COMPARE(fetchSpy.count(), 1);
-    fetchSpy.clear();
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
 
     QList<OpcUaNodeData> children;
     children.push_back({QStringLiteral("ns=2;s=Machine"),
@@ -97,15 +172,15 @@ void OpcUaModelTest::browseFailurePreservesRowsAndAllowsRetry()
                         QStringLiteral("Machine"),
                         int(QOpcUa::NodeClass::Object),
                         true});
-    model.applyChildrenSnapshot(QStringLiteral("ns=0;i=84"), children, true);
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
     QCOMPARE(model.rowCount(), 1);
 
     const QModelIndex machineIndex = model.index(0, 0);
     model.fetchMore(machineIndex);
     QCOMPARE(fetchSpy.count(), 1);
-    fetchSpy.clear();
+    const FetchRequest machineRequest = takeFetchRequest(fetchSpy);
 
-    model.applyChildrenSnapshot(QStringLiteral("ns=2;s=Machine"), {}, false);
+    model.applyChildrenSnapshot(machineRequest.parentNodeId, machineRequest.requestId, {}, false);
 
     QCOMPARE(model.rowCount(), 1);
     QVERIFY(model.canFetchMore(machineIndex));
@@ -116,9 +191,13 @@ void OpcUaModelTest::browseFailurePreservesRowsAndAllowsRetry()
 void OpcUaModelTest::disconnectClearsTree()
 {
     OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
     model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
     model.applyChildrenSnapshot(
-        QStringLiteral("ns=0;i=84"),
+        rootRequest.parentNodeId,
+        rootRequest.requestId,
         {{QStringLiteral("ns=2;s=Machine"),
           QStringLiteral("Machine"),
           QStringLiteral("Machine"),

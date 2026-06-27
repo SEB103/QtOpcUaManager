@@ -114,7 +114,7 @@ signals:
     void requestEndpointsForServerRequested(int serverIndex);
     void connectToEndpointRequested(int endpointIndex);
     void disconnectFromServerRequested();
-    void browseChildrenRequested(const QString &parentNodeId);
+    void browseChildrenRequested(const QString &parentNodeId, quint64 requestId);
 
 public slots:
     void applyAvailableBackends(const QStringList &backends);
@@ -128,6 +128,7 @@ public slots:
     void applyLastError(const QString &lastError);
     void applyAuthMode(int authMode);
     void applyBrowseChildren(const QString &parentNodeId,
+                             quint64 requestId,
                              const QList<OpcUaNodeData> &children,
                              bool success);
 

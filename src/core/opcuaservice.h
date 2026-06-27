@@ -56,7 +56,7 @@ public slots:
     void requestEndpointsForServer(int serverIndex);
     void connectToEndpoint(int endpointIndex);
     void disconnectFromServer();
-    void browseChildren(const QString &parentNodeId);
+    void browseChildren(const QString &parentNodeId, quint64 requestId);
 
 signals:
     void availableBackendsChanged(const QStringList &backends);
@@ -70,6 +70,7 @@ signals:
     void clientStateChanged(int clientState);
     void endpointUrlRewriteEnabledChanged(bool enabled);
     void browseChildrenReady(const QString &parentNodeId,
+                             quint64 requestId,
                              const QList<OpcUaNodeData> &children,
                              bool success);
 

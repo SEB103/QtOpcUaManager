@@ -315,9 +315,10 @@ void OpcUaManager::applyAuthMode(int authMode)
 }
 
 void OpcUaManager::applyBrowseChildren(const QString &parentNodeId,
+                                       quint64 requestId,
                                        const QList<OpcUaNodeData> &children,
                                        bool success)
 {
     if (m_treeModel)
-        m_treeModel->applyChildrenSnapshot(parentNodeId, children, success);
+        m_treeModel->applyChildrenSnapshot(parentNodeId, requestId, children, success);
 }
