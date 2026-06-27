@@ -1,7 +1,8 @@
 # QML tests
 
 `OpcUaManager.QmlSmoke` loads the `Base` QML module with a small mock
-`cppManagerOpcUa` context property and verifies that `BsMenuBar` can be created.
+`cppManagerOpcUa` context property and verifies that `BsMenuBar`,
+`BsOpcUaConnectionForm`, and `BsOpcUaBrowser` can be created.
 
 Run all tests from the build directory:
 

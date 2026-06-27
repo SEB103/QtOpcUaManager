@@ -28,6 +28,12 @@ qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )
 
+target_sources(tst_qml
+    PRIVATE
+        qml/tst_menubar.qml
+        qml/README.md
+)
+
 target_compile_definitions(tst_qml
     PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml"
 )
