@@ -18,7 +18,7 @@
 
 using namespace Qt::Literals::StringLiterals;
 
-/*! \brief Copies missing files and child directories from \a from to \a to. */
+/*! \internal \brief Copies missing files and child directories from \a from to \a to. */
 static bool copyDirRecursively(const QString &from, const QString &to)
 {
     const QDir srcDir(from);
@@ -46,7 +46,7 @@ static bool copyDirRecursively(const QString &from, const QString &to)
     return true;
 }
 
-/*! \brief Converts \a s into a safe token for stable OPC UA URN components. */
+/*! \internal \brief Converts \a s into a safe token for stable OPC UA URN components. */
 static QString sanitizeUrnToken(QString s)
 {
     s = s.trimmed();
@@ -66,6 +66,7 @@ static QString sanitizeUrnToken(QString s)
 }
 
 /*!
+ * \internal
  * \brief Loads or creates the stable application URI used by non-certificate authentication.
  * The generated URI is persisted in QSettings so servers can recognize
  * the same client application identity across restarts.
