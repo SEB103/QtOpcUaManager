@@ -5,12 +5,17 @@
 
 namespace {
 
+/*! Captures one lazy browse request emitted by OpcUaModel. */
 struct FetchRequest
 {
+    /*! Node id requested from the model. */
     QString parentNodeId;
+
+    /*! Request id used to correlate a later service result. */
     quint64 requestId {0};
 };
 
+/*! Removes and returns the oldest fetch request from \a spy. */
 FetchRequest takeFetchRequest(QSignalSpy &spy)
 {
     const QList<QVariant> arguments = spy.takeFirst();
@@ -19,17 +24,31 @@ FetchRequest takeFetchRequest(QSignalSpy &spy)
 
 } // namespace
 
+/*! Verifies OpcUaModel lazy browsing and snapshot application behavior. */
 class OpcUaModelTest : public QObject
 {
     Q_OBJECT
 
 private slots:
+    /*! Verifies that a disconnected model exposes no rows and cannot fetch. */
     void initialStateIsEmpty();
+
+    /*! Verifies that activating a connection requests the RootFolder browse. */
     void connectionRequestsRootFolderBrowse();
+
+    /*! Verifies that a successful root snapshot creates model rows. */
     void successfulSnapshotPopulatesRows();
+
+    /*! Verifies that an empty successful snapshot marks a node as fetched. */
     void successfulEmptySnapshotMarksNodeAsLeaf();
+
+    /*! Verifies that duplicate node ids are resolved by the original requested index. */
     void browseResultAppliesToRequestedDuplicateNode();
+
+    /*! Verifies that a failed browse keeps rows and allows retry. */
     void browseFailurePreservesRowsAndAllowsRetry();
+
+    /*! Verifies that disconnecting clears the snapshot tree. */
     void disconnectClearsTree();
 };
 

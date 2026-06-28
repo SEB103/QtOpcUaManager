@@ -2,13 +2,36 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
+/*!
+    \qmltype BsMenuBar
+    \inqmlmodule Base
+    \brief Provides the application menu bar and user action signals.
+*/
 MenuBar {
     id: appMenuBar
 
+    /*! Whether the menu should describe the current theme as dark. */
     property bool darkTheme: false
 
+    /*!
+        \qmlsignal BsMenuBar::quitRequested()
+        Emitted when the user selects the Quit menu item. The corresponding
+        handler is \c onQuitRequested.
+    */
     signal quitRequested()
+
+    /*!
+        \qmlsignal BsMenuBar::apiServerConnectionRequested()
+        Emitted when the user requests connect or disconnect from the OPC UA
+        menu. The corresponding handler is \c onApiServerConnectionRequested.
+    */
     signal apiServerConnectionRequested()
+
+    /*!
+        \qmlsignal BsMenuBar::themeToggleRequested()
+        Emitted when the user requests switching between light and dark themes.
+        The corresponding handler is \c onThemeToggleRequested.
+    */
     signal themeToggleRequested()
 
     Menu {

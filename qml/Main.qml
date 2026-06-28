@@ -3,6 +3,14 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import Base as Base
 
+/*!
+    \qmltype Main
+    \inqmlmodule OpcUaManager
+    \brief Provides the main application window.
+
+    The window owns the top-level Material theme state, hosts MainScreen, and
+    opens the OPC UA connection dialog from menu actions.
+*/
 ApplicationWindow {
     id: mainWindow
 
@@ -13,9 +21,7 @@ ApplicationWindow {
     visible: true
     title: qsTr("OPC UA Manager")
 
-    // Preserve the light/dark switch from the Qt 6.11 template, but apply it
-    // to the complete Material-styled application. The initial value follows
-    // the operating system; the View menu can override it for this session.
+    /*! Whether the application currently uses the dark Material theme. */
     property bool darkTheme: Application.styleHints.colorScheme === Qt.Dark
 
     Material.theme: darkTheme ? Material.Dark : Material.Light

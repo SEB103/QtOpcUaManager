@@ -2,6 +2,10 @@ import QtQuick
 import QtTest
 import Base
 
+/*!
+    \qmltype tst_menubar
+    \brief Hosts QML smoke tests for reusable Base components.
+*/
 Item {
     id: root
 
@@ -32,9 +36,11 @@ Item {
     TestCase {
         id: testCase
 
+        /*! Smoke test case for menu, connection form, and browser component creation. */
         name: "QmlComponentSmoke"
         when: windowShown
 
+        /*! Verifies that BsMenuBar can be created and its theme property is writable. */
         function test_menuBarCreationAndThemeProperty() {
             const menuBar = createTemporaryObject(menuBarComponent, root);
             verify(menuBar !== null);
@@ -43,6 +49,7 @@ Item {
             compare(menuBar.darkTheme, true);
         }
 
+        /*! Verifies that BsOpcUaConnectionForm can be created with its default state. */
         function test_connectionFormCreation() {
             const connectionForm = createTemporaryObject(connectionFormComponent, root);
             verify(connectionForm !== null);
@@ -50,6 +57,7 @@ Item {
             verify(connectionForm.implicitWidth > 0);
         }
 
+        /*! Verifies that BsOpcUaBrowser can be created with an explicit size. */
         function test_browserCreation() {
             const browser = createTemporaryObject(browserComponent, root);
             verify(browser !== null);

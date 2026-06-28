@@ -18,6 +18,7 @@
 
 using namespace Qt::Literals::StringLiterals;
 
+/*! \brief Copies missing files and child directories from \a from to \a to. */
 static bool copyDirRecursively(const QString &from, const QString &to)
 {
     const QDir srcDir(from);
@@ -45,6 +46,7 @@ static bool copyDirRecursively(const QString &from, const QString &to)
     return true;
 }
 
+/*! \brief Converts \a s into a safe token for stable OPC UA URN components. */
 static QString sanitizeUrnToken(QString s)
 {
     s = s.trimmed();
@@ -63,6 +65,11 @@ static QString sanitizeUrnToken(QString s)
     return s;
 }
 
+/*!
+ * \brief Loads or creates the stable application URI used by non-certificate authentication.
+ * The generated URI is persisted in QSettings so servers can recognize
+ * the same client application identity across restarts.
+ */
 static QString loadOrCreateStableApplicationUri()
 {
     QSettings settings;
@@ -99,7 +106,7 @@ static QString loadOrCreateStableApplicationUri()
 
 /*!
  * \brief Creates the OPC UA service.
- * \details The object is expected to be moved to the OPC UA worker thread
+ * The object is expected to be moved to the OPC UA worker thread
  * before initialization. All Qt OPC UA operations remain asynchronous and
  * report results through signals.
  */
@@ -111,7 +118,7 @@ OpcUaService::OpcUaService(const QString &initialUrl, QObject *parent)
 
 /*!
  * \brief Releases OPC UA runtime objects owned by the service.
- * \details Timers, QOpcUaClient, QOpcUaProvider, and protocol helper objects
+ * Timers, QOpcUaClient, QOpcUaProvider, and protocol helper objects
  * are created and destroyed in the same thread as the service.
  */
 OpcUaService::~OpcUaService()
@@ -148,7 +155,7 @@ bool OpcUaService::isInObjectThread() const
 
 /*!
  * \brief Initializes backend discovery, PKI paths, timers, and authentication.
- * \details This method is idempotent. It selects the first available Qt OPC UA
+ * This method is idempotent. It selects the first available Qt OPC UA
  * backend but delays QOpcUaClient creation until an operation needs it.
  */
 void OpcUaService::initialize()
@@ -211,7 +218,7 @@ void OpcUaService::initialize()
 
 /*!
  * \brief Selects a Qt OPC UA backend.
- * \details Changing the backend tears down the current client and clears
+ * Changing the backend tears down the current client and clears
  * pending discovery/endpoint requests before a new client is created.
  */
 void OpcUaService::setBackend(const QString &backend)
@@ -343,7 +350,7 @@ void OpcUaService::setEndpointUrlRewriteEnabled(bool enabled)
 
 /*!
  * \brief Starts asynchronous OPC UA server discovery for \a hostOrUrl.
- * \details The service keeps a timeout around FindServers because some
+ * The service keeps a timeout around FindServers because some
  * backends or server configurations dispatch the request without later
  * emitting findServersFinished. Endpoint lookup remains disabled until an
  * actual FindServers result is received and published.
@@ -422,7 +429,7 @@ void OpcUaService::discoverServers(const QString &hostOrUrl)
 
 /*!
  * \brief Starts asynchronous GetEndpoints for \a serverUrl.
- * \details Endpoint results are cached by discovery URL and authentication
+ * Endpoint results are cached by discovery URL and authentication
  * mode so repeated requests can update the UI without another network round
  * trip when the same endpoint is still valid.
  */
@@ -608,7 +615,7 @@ void OpcUaService::disconnectFromServer()
 
 /*!
  * \brief Browses direct children for \a parentNodeId.
- * \details The result is converted into OpcUaNodeData snapshots before being
+ * The result is converted into OpcUaNodeData snapshots before being
  * emitted to the GUI model. QOpcUaNode instances remain private to this
  * service and are deleted after the browse completes.
  */
@@ -679,6 +686,11 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
     }
 }
 
+/*!
+ * \brief Normalizes a host or URL input into an OPC UA discovery URL.
+ * Missing schemes are treated as \c opc.tcp and missing ports default
+ * to \c 4840, matching the common local OPC UA endpoint convention.
+ */
 QUrl OpcUaService::normalizeDiscoveryUrl(const QString &hostOrUrl)
 {
     QString s = hostOrUrl.trimmed();
@@ -694,6 +706,12 @@ QUrl OpcUaService::normalizeDiscoveryUrl(const QString &hostOrUrl)
     return url;
 }
 
+/*!
+ * \brief Prepares the writable OPC UA PKI directory layout.
+ * The application-bundled \c pki directory is copied once as initial
+ * material, while runtime trust and certificate state live under the writable
+ * application data directory.
+ */
 void OpcUaService::setupPkiConfiguration()
 {
     const QString pkiSource = QCoreApplication::applicationDirPath() + QLatin1String("/pki");
@@ -1016,7 +1034,7 @@ bool OpcUaService::endpointIsNoSecurity(const QOpcUaEndpointDescription &ep)
 
 /*!
  * \brief Chooses the preferred endpoint from \a endpoints.
- * \details Anonymous no-security endpoints are preferred for the default UI
+ * Anonymous no-security endpoints are preferred for the default UI
  * flow; otherwise the first endpoint compatible with the selected
  * authentication mode is selected.
  */
@@ -1054,7 +1072,7 @@ QString OpcUaService::endpointAuthModesToString(const QOpcUaEndpointDescription 
 
 /*!
  * \brief Rewrites an endpoint URL host/port to match the discovery URL.
- * \details Some servers advertise host names that are not reachable from the
+ * Some servers advertise host names that are not reachable from the
  * current client. Preserving the selected discovery host keeps local direct
  * connections practical.
  */
@@ -1090,7 +1108,7 @@ void OpcUaService::invalidateEndpointCache()
 
 /*!
  * \brief Creates and wires the QOpcUaClient if it does not already exist.
- * \details This is the client used for discovery, endpoint lookup, connect,
+ * This is the client used for discovery, endpoint lookup, connect,
  * and browse operations.
  */
 void OpcUaService::createClient()
@@ -1172,7 +1190,7 @@ void OpcUaService::createClient()
 
 /*!
  * \brief Applies the asynchronous FindServers result.
- * \details Server descriptions are converted into display rows and matching
+ * Server descriptions are converted into display rows and matching
  * candidate URLs. Stale callbacks are ignored, and failed or empty results
  * leave the server list empty so endpoint lookup stays disabled.
  */
@@ -1251,7 +1269,7 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
 
 /*!
  * \brief Applies the asynchronous GetEndpoints result.
- * \details The endpoint list is patched, sorted by the current authentication
+ * The endpoint list is patched, sorted by the current authentication
  * preference, cached, and exposed as display text for QML.
  */
 void OpcUaService::getEndpointsComplete(const QList<QOpcUaEndpointDescription> &endpoints,

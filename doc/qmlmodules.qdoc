@@ -1,0 +1,9 @@
+/*!
+    \qmlmodule OpcUaManager
+    \brief Contains the application-level QML entry points.
+*/
+
+/*!
+    \qmlmodule Base
+    \brief Contains reusable visual controls for the OPC UA manager UI.
+*/

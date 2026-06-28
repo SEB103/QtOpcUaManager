@@ -1,0 +1,160 @@
+option(QDOC_DOCUMENTATION_IN_HEADERS "Let QDoc parse documentation from C++ headers" OFF)
+
+set(OPCUAMANAGER_QDOC_SOURCE_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/doc/opcuamanager.qdocconf")
+set(OPCUAMANAGER_QDOC_GENERATED_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/doc/opcuamanager-generated.qdocconf")
+set(OPCUAMANAGER_QDOC_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doc/qdoc/html")
+set(OPCUAMANAGER_QCH_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doc/qch")
+set(OPCUAMANAGER_QDOC_QHP_FILE "${OPCUAMANAGER_QDOC_OUTPUT_DIR}/OpcUaManager.qhp")
+set(OPCUAMANAGER_QDOC_QCH_FILE "${OPCUAMANAGER_QCH_OUTPUT_DIR}/OpcUaManager.qch")
+set(OPCUAMANAGER_DOXYGEN_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile")
+set(OPCUAMANAGER_DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doc/doxygen")
+set(OPCUAMANAGER_DOXYGEN_HTML_DIR "${OPCUAMANAGER_DOXYGEN_OUTPUT_DIR}/html")
+set(OPCUAMANAGER_DOXYGEN_QCH_FILE "${OPCUAMANAGER_QCH_OUTPUT_DIR}/OpcUaManagerDoxygen.qch")
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc")
+
+if(QDOC_DOCUMENTATION_IN_HEADERS)
+    set(OPCUAMANAGER_QDOC_DOCUMENTATION_IN_HEADERS_VALUE "true")
+else()
+    set(OPCUAMANAGER_QDOC_DOCUMENTATION_IN_HEADERS_VALUE "false")
+endif()
+
+file(TO_CMAKE_PATH "${OPCUAMANAGER_QDOC_SOURCE_CONFIG}" OPCUAMANAGER_QDOC_SOURCE_CONFIG_QDOC)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/doc" OPCUAMANAGER_QDOC_SOURCE_DOC_DIR)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/app" OPCUAMANAGER_QDOC_SOURCE_APP_DIR)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" OPCUAMANAGER_QDOC_SOURCE_SRC_DIR)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" OPCUAMANAGER_QDOC_SOURCE_QML_DIR)
+file(WRITE "${OPCUAMANAGER_QDOC_GENERATED_CONFIG}"
+    "include(${OPCUAMANAGER_QDOC_SOURCE_CONFIG_QDOC})\n"
+    "headerdirs = ${OPCUAMANAGER_QDOC_SOURCE_APP_DIR} ${OPCUAMANAGER_QDOC_SOURCE_SRC_DIR}\n"
+    "sourcedirs = ${OPCUAMANAGER_QDOC_SOURCE_DOC_DIR} ${OPCUAMANAGER_QDOC_SOURCE_APP_DIR} ${OPCUAMANAGER_QDOC_SOURCE_SRC_DIR} ${OPCUAMANAGER_QDOC_SOURCE_QML_DIR}\n"
+    "includepaths = ${OPCUAMANAGER_QDOC_SOURCE_APP_DIR} ${OPCUAMANAGER_QDOC_SOURCE_SRC_DIR}\n"
+    "documentationinheaders = ${OPCUAMANAGER_QDOC_DOCUMENTATION_IN_HEADERS_VALUE}\n"
+    "qhp.projects = OpcUaManager\n"
+    "qhp.OpcUaManager.file = OpcUaManager.qhp\n"
+    "qhp.OpcUaManager.namespace = org.opcuamanager.docs\n"
+    "qhp.OpcUaManager.virtualFolder = doc\n"
+    "qhp.OpcUaManager.indexTitle = OpcUaManager\n"
+    "qhp.OpcUaManager.filterAttributes = OpcUaManager ${PROJECT_VERSION}\n"
+    "qhp.OpcUaManager.customFilters.OpcUaManager.name = OpcUaManager\n"
+    "qhp.OpcUaManager.customFilters.OpcUaManager.filterAttributes = OpcUaManager ${PROJECT_VERSION}\n"
+)
+
+set(OPCUAMANAGER_QDOC_HINTS)
+if(DEFINED Qt6_DIR)
+    list(APPEND OPCUAMANAGER_QDOC_HINTS "${Qt6_DIR}/../../../bin")
+endif()
+if(DEFINED ENV{QTDIR})
+    list(APPEND OPCUAMANAGER_QDOC_HINTS "$ENV{QTDIR}/bin")
+endif()
+
+find_program(OPCUAMANAGER_QDOC_EXECUTABLE
+    NAMES qdoc qdoc.exe
+    HINTS ${OPCUAMANAGER_QDOC_HINTS}
+)
+
+find_program(OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE
+    NAMES qhelpgenerator qhelpgenerator.exe
+    HINTS ${OPCUAMANAGER_QDOC_HINTS}
+)
+
+set(OPCUAMANAGER_QDOC_INDEX_ARGS)
+if(DEFINED Qt6_DIR AND DEFINED Qt6_VERSION)
+    get_filename_component(OPCUAMANAGER_QT_KIT_DIR "${Qt6_DIR}/../../.." ABSOLUTE)
+    get_filename_component(OPCUAMANAGER_QT_VERSION_DIR "${OPCUAMANAGER_QT_KIT_DIR}/.." ABSOLUTE)
+    get_filename_component(OPCUAMANAGER_QT_ROOT_DIR "${OPCUAMANAGER_QT_VERSION_DIR}/.." ABSOLUTE)
+    set(OPCUAMANAGER_QDOC_INDEX_DIR "${OPCUAMANAGER_QT_ROOT_DIR}/Docs/Qt-${Qt6_VERSION}")
+    if(EXISTS "${OPCUAMANAGER_QDOC_INDEX_DIR}")
+        list(APPEND OPCUAMANAGER_QDOC_INDEX_ARGS -indexdir "${OPCUAMANAGER_QDOC_INDEX_DIR}")
+    endif()
+endif()
+
+if(OPCUAMANAGER_QDOC_EXECUTABLE AND OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE)
+    add_custom_target(docs-qdoc
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${OPCUAMANAGER_QDOC_OUTPUT_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${OPCUAMANAGER_QDOC_OUTPUT_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${OPCUAMANAGER_QCH_OUTPUT_DIR}"
+        COMMAND "${OPCUAMANAGER_QDOC_EXECUTABLE}"
+            -outputdir "${OPCUAMANAGER_QDOC_OUTPUT_DIR}"
+            ${OPCUAMANAGER_QDOC_INDEX_ARGS}
+            "${OPCUAMANAGER_QDOC_GENERATED_CONFIG}"
+        COMMAND "${OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE}"
+            "${OPCUAMANAGER_QDOC_QHP_FILE}"
+            -o "${OPCUAMANAGER_QDOC_QCH_FILE}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/doc"
+        COMMENT "Generating OpcUaManager QDoc HTML and QCH documentation"
+        VERBATIM
+    )
+else()
+    if(NOT OPCUAMANAGER_QDOC_EXECUTABLE)
+        message(STATUS "QDoc executable not found; docs-qdoc target will report this when invoked.")
+    endif()
+    if(NOT OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE)
+        message(STATUS "qhelpgenerator executable not found; docs-qdoc target will report this when invoked.")
+    endif()
+    add_custom_target(docs-qdoc
+        COMMAND "${CMAKE_COMMAND}" -E echo "QDoc or qhelpgenerator executable not found; cannot generate QDoc HTML and QCH documentation."
+        COMMAND "${CMAKE_COMMAND}" -E false
+        COMMENT "QDoc or qhelpgenerator is unavailable"
+        VERBATIM
+    )
+endif()
+
+find_package(Doxygen QUIET)
+
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/app" OPCUAMANAGER_DOXYGEN_INPUT_APP)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" OPCUAMANAGER_DOXYGEN_INPUT_SRC)
+file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests" OPCUAMANAGER_DOXYGEN_INPUT_TESTS)
+file(TO_CMAKE_PATH "${OPCUAMANAGER_DOXYGEN_OUTPUT_DIR}" OPCUAMANAGER_DOXYGEN_OUTPUT_DIR_DOXYGEN)
+file(TO_CMAKE_PATH "${OPCUAMANAGER_DOXYGEN_QCH_FILE}" OPCUAMANAGER_DOXYGEN_QCH_FILE_DOXYGEN)
+file(TO_CMAKE_PATH "${OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE}" OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE_DOXYGEN)
+
+file(WRITE "${OPCUAMANAGER_DOXYGEN_CONFIG}"
+    "PROJECT_NAME = \"${PROJECT_NAME}\"\n"
+    "PROJECT_NUMBER = \"${PROJECT_VERSION}\"\n"
+    "OUTPUT_DIRECTORY = \"${OPCUAMANAGER_DOXYGEN_OUTPUT_DIR_DOXYGEN}\"\n"
+    "GENERATE_HTML = YES\n"
+    "GENERATE_QHP = YES\n"
+    "QCH_FILE = \"${OPCUAMANAGER_DOXYGEN_QCH_FILE_DOXYGEN}\"\n"
+    "QHP_NAMESPACE = org.opcuamanager.doxygen\n"
+    "QHP_VIRTUAL_FOLDER = doc\n"
+    "QHP_CUST_FILTER_NAME = OpcUaManagerDoxygen\n"
+    "QHP_CUST_FILTER_ATTRS = OpcUaManager ${PROJECT_VERSION} Doxygen\n"
+    "QHG_LOCATION = \"${OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE_DOXYGEN}\"\n"
+    "GENERATE_LATEX = NO\n"
+    "INPUT = \"${OPCUAMANAGER_DOXYGEN_INPUT_APP}\" \"${OPCUAMANAGER_DOXYGEN_INPUT_SRC}\" \"${OPCUAMANAGER_DOXYGEN_INPUT_TESTS}\"\n"
+    "RECURSIVE = YES\n"
+    "FILE_PATTERNS = *.h *.hpp\n"
+    "EXCLUDE_PATTERNS = *.cpp *.qml *.js *.qdoc *.qdocconf\n"
+    "QUIET = YES\n"
+)
+
+if(DOXYGEN_FOUND AND OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE)
+    add_custom_target(docs-doxygen
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${OPCUAMANAGER_DOXYGEN_OUTPUT_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${OPCUAMANAGER_DOXYGEN_OUTPUT_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${OPCUAMANAGER_QCH_OUTPUT_DIR}"
+        COMMAND "${DOXYGEN_EXECUTABLE}" "${OPCUAMANAGER_DOXYGEN_CONFIG}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Generating OpcUaManager Doxygen HTML and QCH documentation"
+        VERBATIM
+    )
+else()
+    if(NOT DOXYGEN_FOUND)
+        message(STATUS "Doxygen executable not found; docs-doxygen target will report this when invoked.")
+    endif()
+    if(NOT OPCUAMANAGER_QHELPGENERATOR_EXECUTABLE)
+        message(STATUS "qhelpgenerator executable not found; docs-doxygen target will report this when invoked.")
+    endif()
+    add_custom_target(docs-doxygen
+        COMMAND "${CMAKE_COMMAND}" -E echo "Doxygen or qhelpgenerator executable not found; cannot generate Doxygen HTML and QCH documentation."
+        COMMAND "${CMAKE_COMMAND}" -E false
+        COMMENT "Doxygen or qhelpgenerator is unavailable"
+        VERBATIM
+    )
+endif()
+
+add_custom_target(docs
+    DEPENDS docs-qdoc
+    COMMENT "Generating default OpcUaManager documentation"
+)

@@ -8,7 +8,7 @@
 /*!
  * \struct OpcUaNodeData
  * \brief Immutable snapshot of one OPC UA node for transfer into the GUI model.
- * \details The OPC UA service emits lists of this value type after asynchronous
+ * The OPC UA service emits lists of this value type after asynchronous
  * browse requests. OpcUaModel consumes those snapshots without exposing
  * QOpcUaNode instances or other protocol objects to QML.
  */
@@ -30,7 +30,10 @@ struct OpcUaNodeData
     bool hasChildren {false};
 };
 
+/*! Registers one OPC UA node snapshot for QVariant and queued signal delivery. */
 Q_DECLARE_METATYPE(OpcUaNodeData)
+
+/*! Registers lists of OPC UA node snapshots for QVariant and queued signal delivery. */
 Q_DECLARE_METATYPE(QList<OpcUaNodeData>)
 
 #endif // OPCUANODEDATA_H

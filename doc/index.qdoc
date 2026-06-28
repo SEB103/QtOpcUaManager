@@ -1,0 +1,18 @@
+/*!
+    \page index.html
+    \title OpcUaManager Documentation
+
+    OpcUaManager is a Qt-based OPC UA client and address-space browser.
+
+    The application exposes a QML-facing C++ facade, a GUI-thread tree model,
+    and a worker-thread OPC UA service. The generated documentation covers the
+    application source, reusable QML components, and tests that document expected
+    behavior.
+
+    \section1 Reference
+
+    \list
+        \li C++ API: \l AppEngine, OpcUaManager, \l OpcUaModel, \l OpcUaNodeData, and \l TreeItem.
+        \li QML API: \l Main, \l MainScreen, \l BsMenuBar, \l BsOpcUaBrowser, and \l BsOpcUaConnectionForm.
+    \endlist
+*/

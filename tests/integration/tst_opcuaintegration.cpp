@@ -7,11 +7,19 @@
 
 #include <memory>
 
+/*!
+ * \brief Exercises Qt OPC UA endpoint discovery against an external server.
+ *
+ * The test is skipped unless \c OPCUAMANAGER_TEST_SERVER_URL is set. It is an
+ * integration check for the local Qt OPC UA backend rather than a deterministic
+ * unit test.
+ */
 class OpcUaIntegrationTest : public QObject
 {
     Q_OBJECT
 
 private slots:
+    /*! Requests endpoints from the server configured by \c OPCUAMANAGER_TEST_SERVER_URL. */
     void requestEndpointsFromExternalServer();
 };
 

@@ -38,6 +38,7 @@ qt_standard_project_setup(
 
 include(CTest)
 include(GNUInstallDirs)
+include(cmake/OpcUaManagerDocs.cmake)
 
 # Keep all generated QML module metadata under one predictable build-tree root.
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")

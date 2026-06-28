@@ -3,14 +3,28 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 
+/*!
+    \qmltype BsOpcUaConnectionForm
+    \inqmlmodule Base
+    \brief Provides OPC UA discovery, authentication, endpoint, and connect controls.
+
+    The form sends commands to the \c cppManagerOpcUa context object and mirrors
+    its busy, connected, endpoint, and error state in the UI.
+*/
 Rectangle {
     id: root
 
     implicitWidth: 900
     implicitHeight: contentColumn.implicitHeight + 20
 
+    /*! Local validation error shown before sending invalid authentication input. */
     property string validationError: ""
 
+    /*!
+        Applies the currently selected authentication mode to \c cppManagerOpcUa.
+        Returns \c true when the selected input is valid and the request was
+        forwarded; otherwise stores a validation message and returns \c false.
+    */
     function applyAuthentication() {
         root.validationError = "";
         switch (authenticationComboBox.currentIndex) {
@@ -33,6 +47,7 @@ Rectangle {
         }
     }
 
+    /*! Returns the status text that matches the current manager operation state. */
     function operationText() {
         switch (cppManagerOpcUa.operationState) {
         case 1:

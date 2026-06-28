@@ -14,21 +14,25 @@ class OpcUaModel;
 /*!
  * \class TreeItem
  *
- * GUI-thread tree node used by OpcUaModel.
+ * \brief GUI-thread tree node used by OpcUaModel.
  *
- * \details
  * The item stores only immutable snapshot data received from OpcUaService and
  * never owns live backend objects such as QOpcUaNode. Lazy loading is modeled
- * locally through \see FetchState and the \see hasChildren hint received from
+ * locally through FetchState and the hasChildren hint received from
  * the service.
  */
 class TreeItem
 {
 public:
+    /*! Lazy child-loading state for a GUI-thread tree node. */
     enum class FetchState {
+        /*! Children were not requested yet. */
         NotFetched = 0,
+        /*! A browse request is currently pending. */
         Fetching,
+        /*! Children were fetched successfully or the node is known to be a leaf. */
         Fetched,
+        /*! The last browse request failed and may be retried. */
         Error
     };
 
@@ -117,21 +121,34 @@ public:
     void replaceChildren(std::vector<std::unique_ptr<TreeItem>> children);
 
 private:
+    /*! Non-owning model pointer used for model-owned TreeItem operations. */
     OpcUaModel *m_model {nullptr};
+    /*! Non-owning parent item pointer; children are owned by \c m_children. */
     TreeItem *m_parentItem {nullptr};
 
+    /*! Owned child items in row order. */
     std::vector<std::unique_ptr<TreeItem>> m_children;
 
+    /*! OPC UA node id string used for follow-up browse requests. */
     QString m_nodeId;
+    /*! Browse name reported by the server. */
     QString m_browseName;
+    /*! Display name shown by the model. */
     QString m_displayName;
+    /*! Integer value of QOpcUa::NodeClass. */
     int m_nodeClass {0};
+    /*! Current value text shown by the browser. */
     QString m_valueString;
+    /*! Current data type text shown by the browser. */
     QString m_dataTypeString;
+    /*! Description text shown by the browser. */
     QString m_description;
+    /*! Whether the service reported that the node may have children. */
     bool m_hasChildren {false};
+    /*! Local GUI snapshot of monitoring state. */
     bool m_monitoringEnabled {false};
 
+    /*! Current lazy-fetch state. */
     FetchState m_fetchState {FetchState::NotFetched};
 };
 

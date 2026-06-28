@@ -1,0 +1,30 @@
+project = OpcUaManager
+description = OPC UA client and address-space browser
+version = 0.1.0
+
+outputdir = html
+outputformats = HTML
+
+sourceencoding = UTF-8
+
+headerdirs += \
+    ../app \
+    ../src
+
+sourcedirs += \
+    . \
+    ../qml
+
+includepaths += \
+    ../app \
+    ../src
+
+depends += \
+    qtcore \
+    qtgui \
+    qtqml \
+    qtquick \
+    qtquickcontrols \
+    qtopcua
+
+navigation.landingpage = index.html

@@ -30,7 +30,6 @@ void OpcUaModel::setAutoMonitor(bool enabled)
 
 /*!
  * \brief Applies the current connection state.
- * \details
  * A live session creates an empty logical root item and triggers an initial
  * lazy browse request for the RootFolder. A disconnected session resets the
  * entire GUI-thread tree.
@@ -62,7 +61,6 @@ void OpcUaModel::setConnectionActive(bool active)
 
 /*!
  * \brief Applies a child snapshot for \a parentNodeId.
- * \details
  * The service emits immutable node lists. The model converts those lists into
  * GUI-thread TreeItem instances and replaces the current children of the
  * matching parent item.
@@ -163,7 +161,6 @@ bool OpcUaModel::monitoringEnabledAt(const QModelIndex &index) const
 
 /*!
  * \brief Sets monitoring at \a index.
- * \details
  * The snapshot model only mirrors the local monitoring flag for UI purposes.
  * Real subscription changes should be implemented as explicit service commands
  * if needed later.
@@ -371,9 +368,8 @@ bool OpcUaModel::canFetchMore(const QModelIndex &parent) const
 
 /*!
  * \brief Requests more children for \a parent.
- * \details
  * The model does not browse directly. Instead it marks the GUI-thread node as
- * fetching and emits \see fetchChildrenRequested so that OpcUaManager can
+ * fetching and emits fetchChildrenRequested so that OpcUaManager can
  * forward the request to OpcUaService.
  */
 void OpcUaModel::fetchMore(const QModelIndex &parent)

@@ -3,6 +3,14 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 
+/*!
+    \qmltype BsOpcUaBrowser
+    \inqmlmodule Base
+    \brief Displays the OPC UA connection form and address-space tree.
+
+    The component reads \c cppManagerOpcUa.treeModel from the QML context and
+    shows a TreeView only while the OPC UA session is connected.
+*/
 Item {
     id: root
 

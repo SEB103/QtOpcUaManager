@@ -5,7 +5,6 @@
 
 /*!
  * \brief Creates the invisible root item.
- * \details
  * The root item is a pure GUI-thread container. It represents the logical
  * RootFolder browse point and is never exposed directly to QML.
  */
@@ -20,7 +19,6 @@ TreeItem::TreeItem(OpcUaModel *model)
 
 /*!
  * \brief Creates a visible child item from snapshot data.
- * \details
  * The item copies immutable browse metadata received from OpcUaService.
  * It does not allocate QOpcUaNode or any other live backend object.
  */
@@ -88,7 +86,6 @@ int TreeItem::row() const
 
 /*!
  * \brief Returns the column display data.
- * \details
  * The GUI model keeps the same basic browser layout as before:
  * column 0 = name, column 1 = value, column 2 = type/class, column 3 = node id.
  * Value and type strings stay empty in this snapshot-only version until a
@@ -140,7 +137,6 @@ QString TreeItem::iconName() const
 
 /*!
  * \brief Returns whether the node supports monitoring.
- * \details
  * In the snapshot-based model monitoring is currently only advertised for
  * variable nodes. Real subscription logic remains service-owned and can be
  * wired later through explicit service commands.
@@ -177,7 +173,6 @@ void TreeItem::setFetchState(FetchState state)
 
 /*!
  * \brief Replaces all current children with \a children.
- * \details
  * Ownership stays entirely inside the GUI-thread model. The service only
  * provides the raw snapshot list from which these child items were built.
  */

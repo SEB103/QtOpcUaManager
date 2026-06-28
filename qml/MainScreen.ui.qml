@@ -3,6 +3,11 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import Base as Base
 
+/*!
+    \qmltype MainScreen
+    \inqmlmodule OpcUaManager
+    \brief Composes the main menu and OPC UA browser area.
+*/
 Pane {
     id: main
 
@@ -10,7 +15,10 @@ Pane {
     height: 800
     padding: 0
 
+    /*! Exposes the menu bar so Main can connect to its public signals. */
     property alias menuBar: menuBar
+
+    /*! Whether child controls should follow the dark theme state. */
     property bool darkTheme: false
 
     Base.BsMenuBar {

@@ -29,6 +29,7 @@ QFile  g_logFile;
 QMutex g_logMutex;
 bool   g_logInitAttempted = false;
 
+/*! \brief Extracts a compact method name from a Qt logging context. */
 QString formatContextFunction(const QMessageLogContext& context)
 {
     const QString functionInfo = context.function ? QString::fromUtf8(context.function) : QString();
@@ -42,6 +43,7 @@ QString formatContextFunction(const QMessageLogContext& context)
 }
 
 
+/*! \brief Returns the textual log level for \a type. */
 QString messageTypeName(QtMsgType type)
 {
     switch (type) {
@@ -54,6 +56,7 @@ QString messageTypeName(QtMsgType type)
     return QStringLiteral("UNKNOWN");
 }
 
+/*! \brief Opens the release log file while \c g_logMutex is held. */
 bool ensureLogFileOpenLocked()
 {
     if (g_logFile.isOpen())
@@ -72,6 +75,7 @@ bool ensureLogFileOpenLocked()
     return g_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
 }
 
+/*! \brief Appends one formatted \a line to the release log file. */
 void appendLogLineToFile(const QString& line)
 {
     QMutexLocker locker(&g_logMutex);
@@ -82,6 +86,7 @@ void appendLogLineToFile(const QString& line)
     }
 }
 
+/*! \brief Writes Qt log messages to the application log and forwards them to the previous handler. */
 void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
     if (msg.startsWith(QLatin1String("Model size of")))
@@ -106,7 +111,7 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, 
 
 /*!
  * \brief Creates the QML engine and registers the C++ objects used by QML.
- * \details The OPC UA facade remains in the GUI thread while the service owns
+ * The OPC UA facade remains in the GUI thread while the service owns
  * Qt OPC UA runtime objects in a dedicated worker thread.
  */
 AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
@@ -183,7 +188,7 @@ AppEngine::~AppEngine()
 
 /*!
  * \brief Initializes the OPC UA backend service once.
- * \return \c true when initialization was performed or had already been
+ * Returns \c true when initialization was performed or had already been
  * requested; \c false when the service object is missing.
  */
 bool AppEngine::startOpcUaBackend()

@@ -78,9 +78,10 @@ AppCore::~AppCore() {}
  * use writeSettings()/readSettings()/removeSettings(). If settings already exist, the function
  * does nothing and returns \c false.
  *
- * \param appName The base filename of the INI file (typically qApp->applicationName()).
- * \param iniFileDir Base directory for the "ini" folder.
- * \return \c true if QSettings was created, \c false if it already existed.
+ * The \a appName parameter is the base filename of the INI file, typically
+ * qApp->applicationName(). The \a iniFileDir parameter is the base directory
+ * for the \c ini folder. Returns \c true if QSettings was created, or \c false
+ * if it already existed.
  */
 bool AppCore::createSettings(const QString& appName, const QString& iniFileDir)
 {
@@ -101,10 +102,9 @@ bool AppCore::createSettings(const QString& appName, const QString& iniFileDir)
 
 /*! \brief Writes a setting value under \a group and optional \a subdir.
  *
- * The storage structure is:
- * - \a group is mapped to QSettings::beginGroup(group).
- * - \a subdir is mapped to a nested QSettings group (beginGroup(subdir)).
- * - \a name is the key inside the final group.
+ * The storage structure maps \a group to a QSettings group, maps \a subdir to
+ * an optional nested group, and stores \a name as the key inside the final
+ * group.
  *
  * Example:
  * \code
@@ -178,12 +178,10 @@ unsigned int AppCore::randint(unsigned int min, unsigned int max)
 
 /*! \brief Reads a setting under \a group and optional \a subdir.
  *
- * The preferred lookup order is:
- * 1) New-style groups: \c group/subdir/name
- * 2) Legacy key (compat): \c group + "/subdir/name"
+ * The preferred lookup order is the new-style \c group/subdir/name group path
+ * first and the legacy \c group + "/subdir/name" key second.
  *
- * \param defaultValue Returned if the key does not exist.
- * \return The stored value or \a defaultValue.
+ * Returns the stored value, or \a defaultValue when the key does not exist.
  */
 QVariant AppCore::readSettings(const QVariant& defaultValue, const QString& name, const QString& group, const QString& subdir) const
 {

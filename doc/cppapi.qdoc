@@ -1,0 +1,46 @@
+/*!
+    \module OpcUaManager
+    \brief Contains the C++ application, QML facade, model, and OPC UA service APIs.
+*/
+
+/*!
+    \class AppCore
+    \inmodule OpcUaManager
+    \brief QGuiApplication subclass with settings and logging helpers.
+*/
+
+/*!
+    \class AppEngine
+    \inmodule OpcUaManager
+    \brief QQmlApplicationEngine subclass that wires QML to the OPC UA runtime.
+*/
+
+/*!
+    \class OpcUaManager
+    \inmodule OpcUaManager
+    \brief GUI-thread facade exposed to QML for OPC UA operations.
+*/
+
+/*!
+    \class OpcUaService
+    \inmodule OpcUaManager
+    \brief Worker-thread backend that owns Qt OPC UA runtime objects.
+*/
+
+/*!
+    \class OpcUaModel
+    \inmodule OpcUaManager
+    \brief GUI-thread tree model for OPC UA address-space snapshots.
+*/
+
+/*!
+    \class TreeItem
+    \inmodule OpcUaManager
+    \brief Internal tree node used by OpcUaModel.
+*/
+
+/*!
+    \struct OpcUaNodeData
+    \inmodule OpcUaManager
+    \brief Value snapshot of one OPC UA node transferred from the worker service.
+*/
