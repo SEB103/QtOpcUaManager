@@ -86,6 +86,7 @@ int TreeItem::row() const
 
 /*!
  * \brief Returns the column display data.
+ * \param column The column index (0-based).
  * The GUI model keeps the same basic browser layout as before:
  * column 0 = name, column 1 = value, column 2 = type/class, column 3 = node id.
  * Value and type strings stay empty in this snapshot-only version until a
@@ -165,6 +166,7 @@ void TreeItem::markFetching()
 
 /*!
  * \brief Applies a new fetch state.
+ * \param state The new fetch state.
  */
 void TreeItem::setFetchState(FetchState state)
 {

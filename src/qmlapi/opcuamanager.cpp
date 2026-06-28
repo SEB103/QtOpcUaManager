@@ -4,6 +4,66 @@
 #include "core/opcuaservice.h"
 #include "opcuamanager.h"
 
+/*!
+ * \property OpcUaManager::opcUaBackend
+ * \brief Available Qt OPC UA backend plugin names.
+ */
+
+/*!
+ * \property OpcUaManager::backend
+ * \brief Currently selected Qt OPC UA backend plugin name.
+ */
+
+/*!
+ * \property OpcUaManager::servers
+ * \brief Display rows for discovered OPC UA servers.
+ */
+
+/*!
+ * \property OpcUaManager::endpoints
+ * \brief Display rows for endpoints returned by the selected server.
+ */
+
+/*!
+ * \property OpcUaManager::connected
+ * \brief Whether an OPC UA session is currently connected.
+ */
+
+/*!
+ * \property OpcUaManager::busy
+ * \brief Whether discovery, endpoint lookup, connect, or disconnect is active.
+ */
+
+/*!
+ * \property OpcUaManager::operationState
+ * \brief Current operation state as an OpcUaManager::OperationState integer.
+ */
+
+/*!
+ * \property OpcUaManager::clientState
+ * \brief Current QOpcUaClient state as an OpcUaManager::ClientState integer.
+ */
+
+/*!
+ * \property OpcUaManager::endpointUrlRewriteEnabled
+ * \brief Whether advertised endpoint URLs are rewritten to the discovery host and port.
+ */
+
+/*!
+ * \property OpcUaManager::treeModel
+ * \brief Tree model exposed to QML for address-space browsing; owned by this manager.
+ */
+
+/*!
+ * \property OpcUaManager::lastError
+ * \brief Last user-visible OPC UA error text; empty when no error is active.
+ */
+
+/*!
+ * \property OpcUaManager::authMode
+ * \brief Current QOpcUaUserTokenPolicy::TokenType as an integer for QML controls.
+ */
+
 OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     : QObject(parent)
     , m_initialUrl(initialUrl)
@@ -212,7 +272,10 @@ void OpcUaManager::attachService(OpcUaService *service)
     emit initializeRequested();
 }
 
-/*! \brief Mirrors backend plugin names from the worker service. */
+/*!
+ * \brief Mirrors backend plugin names from the worker service.
+ * \param backends The available backend plugin names.
+ */
 void OpcUaManager::applyAvailableBackends(const QStringList &backends)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -223,7 +286,10 @@ void OpcUaManager::applyAvailableBackends(const QStringList &backends)
     emit opcUaBackendChanged();
 }
 
-/*! \brief Mirrors the selected backend from the worker service. */
+/*!
+ * \brief Mirrors the selected backend from the worker service.
+ * \param backend The backend plugin name.
+ */
 void OpcUaManager::applyBackend(const QString &backend)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -234,7 +300,10 @@ void OpcUaManager::applyBackend(const QString &backend)
     emit backendChanged();
 }
 
-/*! \brief Mirrors discovered server display rows from the worker service. */
+/*!
+ * \brief Mirrors discovered server display rows from the worker service.
+ * \param servers List of server display strings.
+ */
 void OpcUaManager::applyServers(const QStringList &servers)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -245,7 +314,10 @@ void OpcUaManager::applyServers(const QStringList &servers)
     emit serversChanged();
 }
 
-/*! \brief Mirrors endpoint display rows from the worker service. */
+/*!
+ * \brief Mirrors endpoint display rows from the worker service.
+ * \param endpoints List of endpoint display strings.
+ */
 void OpcUaManager::applyEndpoints(const QStringList &endpoints)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -256,7 +328,10 @@ void OpcUaManager::applyEndpoints(const QStringList &endpoints)
     emit endpointsChanged();
 }
 
-/*! \brief Mirrors connection state and updates the tree model activation state. */
+/*!
+ * \brief Mirrors connection state and updates the tree model activation state.
+ * \param connected Whether the service is connected.
+ */
 void OpcUaManager::applyConnected(bool connected)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -270,7 +345,10 @@ void OpcUaManager::applyConnected(bool connected)
     emit connectedChanged();
 }
 
-/*! \brief Mirrors operation state and emits busyChanged() when the derived busy value changes. */
+/*!
+ * \brief Mirrors operation state and emits busyChanged() when the derived busy value changes.
+ * \param operationState The current operation state as an integer.
+ */
 void OpcUaManager::applyOperationState(int operationState)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -286,7 +364,10 @@ void OpcUaManager::applyOperationState(int operationState)
         emit busyChanged();
 }
 
-/*! \brief Mirrors the underlying client state from the worker service. */
+/*!
+ * \brief Mirrors the underlying client state from the worker service.
+ * \param clientState The current client state as an integer.
+ */
 void OpcUaManager::applyClientState(int clientState)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -297,7 +378,10 @@ void OpcUaManager::applyClientState(int clientState)
     emit clientStateChanged();
 }
 
-/*! \brief Mirrors endpoint URL rewrite state from the worker service. */
+/*!
+ * \brief Mirrors endpoint URL rewrite state from the worker service.
+ * \param enabled Whether endpoint URL rewriting is enabled.
+ */
 void OpcUaManager::applyEndpointUrlRewriteEnabled(bool enabled)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -308,7 +392,10 @@ void OpcUaManager::applyEndpointUrlRewriteEnabled(bool enabled)
     emit endpointUrlRewriteEnabledChanged();
 }
 
-/*! \brief Mirrors the last user-visible error text from the worker service. */
+/*!
+ * \brief Mirrors the last user-visible error text from the worker service.
+ * \param lastError The error text.
+ */
 void OpcUaManager::applyLastError(const QString &lastError)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -319,7 +406,10 @@ void OpcUaManager::applyLastError(const QString &lastError)
     emit lastErrorChanged();
 }
 
-/*! \brief Mirrors the authentication mode from the worker service. */
+/*!
+ * \brief Mirrors the authentication mode from the worker service.
+ * \param authMode The authentication mode as an integer.
+ */
 void OpcUaManager::applyAuthMode(int authMode)
 {
     QMutexLocker locker(&m_stateMutex);
@@ -330,7 +420,13 @@ void OpcUaManager::applyAuthMode(int authMode)
     emit authModeChanged();
 }
 
-/*! \brief Forwards browse results from the worker service into the GUI tree model. */
+/*!
+ * \brief Forwards browse results from the worker service into the GUI tree model.
+ * \param parentNodeId The parent node identifier.
+ * \param requestId The request identifier.
+ * \param children List of child node data.
+ * \param success Whether the browse operation succeeded.
+ */
 void OpcUaManager::applyBrowseChildren(const QString &parentNodeId,
                                        quint64 requestId,
                                        const QList<OpcUaNodeData> &children,

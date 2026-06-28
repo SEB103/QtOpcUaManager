@@ -225,6 +225,7 @@ void OpcUaService::initialize()
 
 /*!
  * \brief Selects a Qt OPC UA backend.
+ * \param backend The backend plugin name to select.
  * Changing the backend tears down the current client and clears
  * pending discovery/endpoint requests before a new client is created.
  */
@@ -285,6 +286,8 @@ void OpcUaService::setAnonymousAuthentication()
 
 /*!
  * \brief Configures username/password authentication.
+ * \param userName The user name sent to username/password endpoints.
+ * \param password The password sent with \a userName.
  */
 void OpcUaService::setUsernameAuthentication(const QString &userName, const QString &password)
 {
@@ -336,6 +339,7 @@ void OpcUaService::setCertificateAuthentication()
 
 /*!
  * \brief Stores the password used when the configured private key is encrypted.
+ * \param password The private-key password to use for certificate authentication.
  */
 void OpcUaService::setCertificatePrivateKeyPassword(const QString &password)
 {
@@ -344,6 +348,7 @@ void OpcUaService::setCertificatePrivateKeyPassword(const QString &password)
 
 /*!
  * \brief Enables the optional endpoint host and port rewrite workaround.
+ * \param enabled Whether endpoint URL rewriting should be enabled.
  */
 void OpcUaService::setEndpointUrlRewriteEnabled(bool enabled)
 {
@@ -522,6 +527,7 @@ void OpcUaService::requestEndpoints(const QString &serverUrl)
 
 /*!
  * \brief Starts endpoint discovery for a server selected by UI index.
+ * \param serverIndex The index in the current discovered server list.
  */
 void OpcUaService::requestEndpointsForServer(int serverIndex)
 {
@@ -539,6 +545,7 @@ void OpcUaService::requestEndpointsForServer(int serverIndex)
 
 /*!
  * \brief Connects to the selected endpoint or disconnects an active session.
+ * \param endpointIndex The index in the current endpoint list.
  */
 void OpcUaService::connectToEndpoint(int endpointIndex)
 {
@@ -622,6 +629,7 @@ void OpcUaService::disconnectFromServer()
 
 /*!
  * \brief Browses direct children for \a parentNodeId.
+ * \param requestId The GUI model request identifier echoed in browseChildrenReady().
  * The result is converted into OpcUaNodeData snapshots before being
  * emitted to the GUI model. QOpcUaNode instances remain private to this
  * service and are deleted after the browse completes.

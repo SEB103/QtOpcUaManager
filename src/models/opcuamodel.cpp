@@ -4,7 +4,13 @@
 using namespace Qt::Literals::StringLiterals;
 
 /*!
+ * \property OpcUaModel::autoMonitor
+ * \brief Whether newly discovered monitorable nodes should be treated as auto-monitored.
+ */
+
+/*!
  * \brief Creates the model.
+ * \param parent Optional QObject parent.
  */
 OpcUaModel::OpcUaModel(QObject *parent)
     : QAbstractItemModel(parent)
@@ -18,6 +24,7 @@ OpcUaModel::~OpcUaModel() = default;
 
 /*!
  * \brief Sets automatic monitoring.
+ * \param enabled Whether automatic monitoring should be enabled.
  */
 void OpcUaModel::setAutoMonitor(bool enabled)
 {
@@ -30,6 +37,7 @@ void OpcUaModel::setAutoMonitor(bool enabled)
 
 /*!
  * \brief Applies the current connection state.
+ * \param active Whether the service has an active connection.
  * A live session creates an empty logical root item and triggers an initial
  * lazy browse request for the RootFolder. A disconnected session resets the
  * entire GUI-thread tree.
@@ -61,6 +69,9 @@ void OpcUaModel::setConnectionActive(bool active)
 
 /*!
  * \brief Applies a child snapshot for \a parentNodeId.
+ * \param requestId The request identifier emitted by fetchChildrenRequested().
+ * \param children The immutable child node snapshots to apply.
+ * \param success Whether the browse operation succeeded.
  * The service emits immutable node lists. The model converts those lists into
  * GUI-thread TreeItem instances and replaces the current children of the
  * matching parent item.
@@ -161,6 +172,7 @@ bool OpcUaModel::monitoringEnabledAt(const QModelIndex &index) const
 
 /*!
  * \brief Sets monitoring at \a index.
+ * \param enabled Whether monitoring should be marked enabled in the GUI snapshot.
  * The snapshot model only mirrors the local monitoring flag for UI purposes.
  * Real subscription changes should be implemented as explicit service commands
  * if needed later.
@@ -180,6 +192,7 @@ void OpcUaModel::setMonitoringEnabledAt(const QModelIndex &index, bool enabled)
 
 /*!
  * \brief Returns model data for \a role.
+ * \param index The model index whose data is requested.
  */
 QVariant OpcUaModel::data(const QModelIndex &index, int role) const
 {
@@ -215,6 +228,9 @@ QVariant OpcUaModel::data(const QModelIndex &index, int role) const
 
 /*!
  * \brief Returns the header data.
+ * \param section The header section index.
+ * \param orientation The requested header orientation.
+ * \param role The data role requested for the header.
  */
 QVariant OpcUaModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -235,6 +251,7 @@ QVariant OpcUaModel::headerData(int section, Qt::Orientation orientation, int ro
 
 /*!
  * \brief Returns the model index for \a row and \a column.
+ * \param parent The parent model index.
  */
 QModelIndex OpcUaModel::index(int row, int column, const QModelIndex &parent) const
 {
@@ -260,6 +277,7 @@ QModelIndex OpcUaModel::index(int row, int column, const QModelIndex &parent) co
 
 /*!
  * \brief Returns the parent model index.
+ * \param index The child index whose parent is requested.
  */
 QModelIndex OpcUaModel::parent(const QModelIndex &index) const
 {
@@ -279,6 +297,7 @@ QModelIndex OpcUaModel::parent(const QModelIndex &index) const
 
 /*!
  * \brief Returns the row count.
+ * \param parent The parent index whose child row count is requested.
  */
 int OpcUaModel::rowCount(const QModelIndex &parent) const
 {
@@ -297,6 +316,7 @@ int OpcUaModel::rowCount(const QModelIndex &parent) const
 
 /*!
  * \brief Returns the column count.
+ * \param parent The parent index; ignored because the model has a fixed column count.
  */
 int OpcUaModel::columnCount(const QModelIndex &parent) const
 {

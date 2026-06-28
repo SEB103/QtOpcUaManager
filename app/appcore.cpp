@@ -60,6 +60,8 @@ void leaveGroups(QSettings* s, const std::pair<bool, bool>& entered)
 } // namespace
 
 /*! \brief Constructs AppCore.
+ * \param argc Command-line argument count passed to QGuiApplication.
+ * \param argv Command-line argument vector passed to QGuiApplication.
  *
  * AppCore is a thin wrapper around QGuiApplication. The settings object (QSettings) is created
  * lazily via createSettings().
@@ -108,6 +110,7 @@ bool AppCore::createSettings(const QString& appName, const QString& iniFileDir)
 }
 
 /*! \brief Writes a setting value under \a group and optional \a subdir.
+ * \param value The value to store.
  *
  * The storage structure maps \a group to a QSettings group, maps \a subdir to
  * an optional nested group, and stores \a name as the key inside the final
@@ -184,6 +187,7 @@ unsigned int AppCore::randint(unsigned int min, unsigned int max)
 }
 
 /*! \brief Reads a setting under \a group and optional \a subdir.
+ * \param name The setting key inside the selected group path.
  *
  * The preferred lookup order is the new-style \c group/subdir/name group path
  * first and the legacy \c group + "/subdir/name" key second.
@@ -215,6 +219,9 @@ QVariant AppCore::readSettings(const QVariant& defaultValue, const QString& name
 }
 
 /*! \brief Reads a setting; if missing, stores \a defaultValue and returns it.
+ * \param name The setting key inside the selected group path.
+ * \param group The top-level settings group.
+ * \param subdir The optional nested settings group.
  *
  * This is a convenience method for "ensure a value exists" logic.
  * It checks both the new-style (group/subdir/name) and the legacy location.
