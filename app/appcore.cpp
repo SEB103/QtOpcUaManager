@@ -11,7 +11,9 @@
 
 namespace {
 
-/*! \internal \brief Returns the legacy key format used by older versions of this helper.
+/*!
+ * \internal
+ * \brief Returns the legacy key format used by older versions of this helper.
  *
  * Historically, writeSettings()/readSettings() stored keys inside \a group with a leading
  * slash, e.g. "/name" or "/subdir/name". Newer code prefers QSettings groups for nesting.
@@ -23,7 +25,9 @@ QString legacyKey(const QString& name, const QString& subdir)
     return QStringLiteral("/") + subdir + QStringLiteral("/") + name;
 }
 
-/*! \internal \brief Enters \a group and optional \a subdir as QSettings groups.
+/*!
+ * \internal
+ * \brief Enters \a group and optional \a subdir as QSettings groups.
  *
  * The returned pair indicates whether group/subdir were actually entered, so the caller can
  * safely unwind with endGroup().
@@ -41,7 +45,10 @@ std::pair<bool, bool> enterGroups(QSettings* s, const QString& group, const QStr
     return {groupEntered, subdirEntered};
 }
 
-/*! \internal \brief Leaves groups previously entered via enterGroups(). */
+/*!
+ * \internal
+ * \brief Leaves groups previously entered via enterGroups().
+ */
 void leaveGroups(QSettings* s, const std::pair<bool, bool>& entered)
 {
     if (entered.second)

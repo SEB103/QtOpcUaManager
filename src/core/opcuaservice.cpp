@@ -18,7 +18,10 @@
 
 using namespace Qt::Literals::StringLiterals;
 
-/*! \internal \brief Copies missing files and child directories from \a from to \a to. */
+/*!
+ * \internal
+ * \brief Copies missing files and child directories from \a from to \a to.
+ */
 static bool copyDirRecursively(const QString &from, const QString &to)
 {
     const QDir srcDir(from);
@@ -46,7 +49,10 @@ static bool copyDirRecursively(const QString &from, const QString &to)
     return true;
 }
 
-/*! \internal \brief Converts \a s into a safe token for stable OPC UA URN components. */
+/*!
+ * \internal
+ * \brief Converts \a s into a safe token for stable OPC UA URN components.
+ */
 static QString sanitizeUrnToken(QString s)
 {
     s = s.trimmed();

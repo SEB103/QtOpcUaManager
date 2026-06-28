@@ -5,17 +5,29 @@
 
 namespace {
 
-/*! \internal Captures one lazy browse request emitted by OpcUaModel. */
+/*!
+ * \internal
+ * \brief Captures one lazy browse request emitted by OpcUaModel.
+ */
 struct FetchRequest
 {
-    /*! \internal Node id requested from the model. */
+    /*!
+     * \internal
+     * \brief Node id requested from the model.
+     */
     QString parentNodeId;
 
-    /*! \internal Request id used to correlate a later service result. */
+    /*!
+     * \internal
+     * \brief Request id used to correlate a later service result.
+     */
     quint64 requestId {0};
 };
 
-/*! \internal Removes and returns the oldest fetch request from \a spy. */
+/*!
+ * \internal
+ * \brief Removes and returns the oldest fetch request from \a spy.
+ */
 FetchRequest takeFetchRequest(QSignalSpy &spy)
 {
     const QList<QVariant> arguments = spy.takeFirst();

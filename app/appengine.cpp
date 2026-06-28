@@ -29,7 +29,10 @@ QFile  g_logFile;
 QMutex g_logMutex;
 bool   g_logInitAttempted = false;
 
-/*! \internal \brief Extracts a compact method name from a Qt logging context. */
+/*!
+ * \internal
+ * \brief Extracts a compact method name from a Qt logging context.
+ */
 QString formatContextFunction(const QMessageLogContext& context)
 {
     const QString functionInfo = context.function ? QString::fromUtf8(context.function) : QString();
@@ -43,7 +46,10 @@ QString formatContextFunction(const QMessageLogContext& context)
 }
 
 
-/*! \internal \brief Returns the textual log level for \a type. */
+/*!
+ * \internal
+ * \brief Returns the textual log level for \a type.
+ */
 QString messageTypeName(QtMsgType type)
 {
     switch (type) {
@@ -56,7 +62,10 @@ QString messageTypeName(QtMsgType type)
     return QStringLiteral("UNKNOWN");
 }
 
-/*! \internal \brief Opens the release log file while \c g_logMutex is held. */
+/*!
+ * \internal
+ * \brief Opens the release log file while \c g_logMutex is held.
+ */
 bool ensureLogFileOpenLocked()
 {
     if (g_logFile.isOpen())
@@ -75,7 +84,10 @@ bool ensureLogFileOpenLocked()
     return g_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
 }
 
-/*! \internal \brief Appends one formatted \a line to the release log file. */
+/*!
+ * \internal
+ * \brief Appends one formatted \a line to the release log file.
+ */
 void appendLogLineToFile(const QString& line)
 {
     QMutexLocker locker(&g_logMutex);
@@ -86,7 +98,10 @@ void appendLogLineToFile(const QString& line)
     }
 }
 
-/*! \internal \brief Writes Qt log messages to the application log and forwards them to the previous handler. */
+/*!
+ * \internal
+ * \brief Writes Qt log messages to the application log and forwards them to the previous handler.
+ */
 void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
     if (msg.startsWith(QLatin1String("Model size of")))
