@@ -19,6 +19,7 @@ find_package(Qt6 6.11 REQUIRED COMPONENTS
     Qml
     Quick
     QuickControls2
+    Sql
 )
 
 # Fix the Qt6::OpcUa target so that Windows Debug builds use
@@ -80,6 +81,7 @@ target_link_libraries(appOpcUaManager
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickControls2
+        Qt6::Sql
 )
 
 # Ensure statically linked QML plugins are retained and imported correctly.
@@ -125,6 +127,17 @@ add_custom_command(TARGET appOpcUaManager POST_BUILD
     COMMENT "Copying the OPC UA PKI directory"
 )
 
+# Seed the runtime SQLite database next to the executable from the source-tree
+# default in db/, but never overwrite an existing runtime database so that user
+# data survives rebuilds.
+add_custom_command(TARGET appOpcUaManager POST_BUILD
+    COMMAND "${CMAKE_COMMAND}"
+        -D "SEED_FILE=${CMAKE_CURRENT_SOURCE_DIR}/db/opcua_nodes.db"
+        -D "DEST_DIR=$<TARGET_FILE_DIR:appOpcUaManager>/db"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CopyDatabaseSeed.cmake"
+    COMMENT "Seeding the runtime OPC UA node database"
+)
+
 if(WIN32 AND OPCUAMANAGER_COPY_WINDOWS_RUNTIME)
     # Configure copying of the Qt OPC UA backend and OpenSSL runtime
     # libraries to the application output directory on Windows.
@@ -145,6 +158,11 @@ install(TARGETS appOpcUaManager
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/pki/"
     DESTINATION "${CMAKE_INSTALL_BINDIR}/pki"
+)
+
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/db/"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/db"
 )
 
 qt_generate_deploy_qml_app_script(

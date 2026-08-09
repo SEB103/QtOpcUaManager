@@ -6,10 +6,17 @@ target_sources(OpcUaCore
         core/opcuanodedata.h
         core/opcuaservice.cpp
         core/opcuaservice.h
+        core/opcuavaluedata.h
+        models/attributesmodel.cpp
+        models/attributesmodel.h
+        models/dataaccessmodel.cpp
+        models/dataaccessmodel.h
         models/opcuamodel.cpp
         models/opcuamodel.h
         models/treeitem.cpp
         models/treeitem.h
+        persistence/nodedatabase.cpp
+        persistence/nodedatabase.h
 )
 
 target_include_directories(OpcUaCore
@@ -22,6 +29,7 @@ target_link_libraries(OpcUaCore
         Qt6::Core
         Qt6::Network
         Qt6::OpcUa
+        Qt6::Sql
 )
 
 # C++ facade exposed to QML as the cppManagerOpcUa context property.

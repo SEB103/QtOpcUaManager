@@ -1,6 +1,7 @@
 #include "opcuaservice.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -8,7 +9,10 @@
 #include <QHostInfo>
 #include <QMetaEnum>
 #include <QMetaObject>
+#include <QOpcUaLocalizedText>
+#include <QOpcUaMonitoringParameters>
 #include <QOpcUaNode>
+#include <QOpcUaQualifiedName>
 #include <QPointer>
 #include <QSettings>
 #include <QStandardPaths>
@@ -47,6 +51,71 @@ static bool copyDirRecursively(const QString &from, const QString &to)
         }
     }
     return true;
+}
+
+/*!
+ * \internal
+ * \brief Returns a human-readable type name for the OPC UA value \a value.
+ *
+ * Qt OPC UA maps server values to native QVariant types, so the QVariant type is
+ * a good proxy for the displayed data type. Empty variants yield an empty string.
+ */
+static QString opcUaValueTypeName(const QVariant &value)
+{
+    if (!value.isValid())
+        return {};
+
+    switch (value.typeId()) {
+    case QMetaType::QString: return QStringLiteral("String");
+    case QMetaType::Bool: return QStringLiteral("Boolean");
+    case QMetaType::Double: return QStringLiteral("Double");
+    case QMetaType::Float: return QStringLiteral("Float");
+    case QMetaType::Int: return QStringLiteral("Int32");
+    case QMetaType::UInt: return QStringLiteral("UInt32");
+    case QMetaType::LongLong: return QStringLiteral("Int64");
+    case QMetaType::ULongLong: return QStringLiteral("UInt64");
+    case QMetaType::Short: return QStringLiteral("Int16");
+    case QMetaType::UShort: return QStringLiteral("UInt16");
+    case QMetaType::SChar: return QStringLiteral("SByte");
+    case QMetaType::UChar: return QStringLiteral("Byte");
+    case QMetaType::QDateTime: return QStringLiteral("DateTime");
+    default: return QString::fromLatin1(value.typeName());
+    }
+}
+
+/*!
+ * \internal
+ * \brief Formats the OPC UA value \a value as display text.
+ *
+ * Scalar values use QVariant string conversion. Array values are joined with
+ * commas so the table can show a compact representation on a single line.
+ */
+static QString formatOpcUaValue(const QVariant &value)
+{
+    if (!value.isValid())
+        return {};
+
+    if (value.typeId() != QMetaType::QString && value.canConvert<QVariantList>()) {
+        const QVariantList list = value.toList();
+        if (!list.isEmpty()) {
+            QStringList parts;
+            parts.reserve(list.size());
+            for (const QVariant &element : list)
+                parts.push_back(element.toString());
+            return parts.join(QStringLiteral(", "));
+        }
+    }
+
+    return value.toString();
+}
+
+/*!
+ * \internal
+ * \brief Formats \a dateTime as ISO text, or an empty string when invalid.
+ */
+static QString formatTimestamp(const QDateTime &dateTime)
+{
+    return dateTime.isValid() ? dateTime.toString(Qt::ISODateWithMs) : QString();
 }
 
 /*!
@@ -699,6 +768,254 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
         node->deleteLater();
         emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
     }
+}
+
+/*!
+ * \brief Reads the main attributes of \a nodeId for GUI request \a requestId.
+ *
+ * A transient QOpcUaNode reads a fixed attribute set and, once the results are
+ * cached, an OpcUaAttributeData snapshot is emitted to the GUI thread. The node
+ * is released afterwards so no protocol object leaves this service.
+ */
+void OpcUaService::readNodeAttributes(const QString &nodeId, quint64 requestId)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this,
+                                  [this, nodeId, requestId]() { readNodeAttributes(nodeId, requestId); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+
+    if (!m_clientConnected || !m_client) {
+        emit nodeAttributesReady(requestId, {}, false);
+        return;
+    }
+
+    QOpcUaNode *node = m_client->node(nodeId);
+    if (!node) {
+        emit nodeAttributesReady(requestId, {}, false);
+        return;
+    }
+
+    if (node->thread() != thread())
+        node->moveToThread(thread());
+    node->setParent(this);
+
+    connect(node, &QOpcUaNode::attributeRead, this,
+            [this, node, nodeId, requestId](const QOpcUa::NodeAttributes &attributes) {
+                Q_UNUSED(attributes)
+                OpcUaAttributeData data;
+                data.nodeId = nodeId;
+
+                const QVariant nodeClassValue = node->attribute(QOpcUa::NodeAttribute::NodeClass);
+                data.nodeClass = nodeClassValue.toInt();
+                const QMetaEnum nodeClassEnum = QMetaEnum::fromType<QOpcUa::NodeClass>();
+                const char *nodeClassName = nodeClassEnum.valueToKey(data.nodeClass);
+                data.nodeClassName = nodeClassName ? QString::fromLatin1(nodeClassName)
+                                                   : QStringLiteral("Undefined");
+
+                const QVariant browseName = node->attribute(QOpcUa::NodeAttribute::BrowseName);
+                if (browseName.canConvert<QOpcUaQualifiedName>())
+                    data.browseName = browseName.value<QOpcUaQualifiedName>().name();
+
+                const QVariant displayName = node->attribute(QOpcUa::NodeAttribute::DisplayName);
+                if (displayName.canConvert<QOpcUaLocalizedText>())
+                    data.displayName = displayName.value<QOpcUaLocalizedText>().text();
+
+                const QVariant description = node->attribute(QOpcUa::NodeAttribute::Description);
+                if (description.canConvert<QOpcUaLocalizedText>())
+                    data.description = description.value<QOpcUaLocalizedText>().text();
+
+                const QVariant value = node->attribute(QOpcUa::NodeAttribute::Value);
+                data.value = formatOpcUaValue(value);
+                data.dataType = opcUaValueTypeName(value);
+                data.sourceTimestamp =
+                    formatTimestamp(node->sourceTimestamp(QOpcUa::NodeAttribute::Value));
+                data.serverTimestamp =
+                    formatTimestamp(node->serverTimestamp(QOpcUa::NodeAttribute::Value));
+                data.statusCode = QOpcUa::statusToString(
+                    node->attributeError(QOpcUa::NodeAttribute::Value));
+
+                emit nodeAttributesReady(requestId, data, true);
+                node->deleteLater();
+            });
+
+    const QOpcUa::NodeAttributes attributesToRead =
+        QOpcUa::NodeAttribute::NodeClass | QOpcUa::NodeAttribute::BrowseName
+        | QOpcUa::NodeAttribute::DisplayName | QOpcUa::NodeAttribute::Description
+        | QOpcUa::NodeAttribute::Value | QOpcUa::NodeAttribute::DataType;
+
+    if (!node->readAttributes(attributesToRead)) {
+        emit nodeAttributesReady(requestId, {}, false);
+        node->deleteLater();
+    }
+}
+
+/*!
+ * \brief Starts value-attribute monitoring for \a nodeId.
+ *
+ * The monitored QOpcUaNode is kept alive in this service and reused for writes.
+ * Duplicate requests for an already monitored node are ignored. Each data change
+ * is converted into an OpcUaValueUpdate and emitted to the GUI thread.
+ */
+void OpcUaService::subscribeNode(const QString &nodeId)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this,
+                                  [this, nodeId]() { subscribeNode(nodeId); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+
+    if (nodeId.isEmpty() || m_monitoredNodes.contains(nodeId))
+        return;
+
+    if (!m_clientConnected || !m_client)
+        return;
+
+    QOpcUaNode *node = m_client->node(nodeId);
+    if (!node)
+        return;
+
+    if (node->thread() != thread())
+        node->moveToThread(thread());
+    node->setParent(this);
+    m_monitoredNodes.insert(nodeId, node);
+
+    connect(node, &QOpcUaNode::dataChangeOccurred, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute, const QVariant &value) {
+                Q_UNUSED(attribute)
+                Q_UNUSED(value)
+                emit monitoredValueChanged(buildValueUpdate(nodeId, node));
+            });
+
+    node->enableMonitoring(QOpcUa::NodeAttribute::Value,
+                           QOpcUaMonitoringParameters(m_monitoringIntervalMs));
+}
+
+/*!
+ * \brief Stops value-attribute monitoring for \a nodeId.
+ */
+void OpcUaService::unsubscribeNode(const QString &nodeId)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this,
+                                  [this, nodeId]() { unsubscribeNode(nodeId); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+
+    QOpcUaNode *node = m_monitoredNodes.take(nodeId);
+    if (!node)
+        return;
+
+    node->disconnect(this);
+    node->disableMonitoring(QOpcUa::NodeAttribute::Value);
+    node->deleteLater();
+}
+
+/*!
+ * \brief Writes \a value to the value attribute of \a nodeId.
+ *
+ * When the node is currently monitored, the incoming value is converted to the
+ * type of the last observed value so that string input from the UI is written
+ * with the correct OPC UA type. The updated value is reported through the active
+ * subscription.
+ */
+void OpcUaService::writeNodeValue(const QString &nodeId, const QVariant &value)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this,
+                                  [this, nodeId, value]() { writeNodeValue(nodeId, value); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+
+    if (!m_clientConnected || !m_client) {
+        emit writeCompleted(nodeId, false,
+                            QStringLiteral("Write requires an active OPC UA connection."));
+        return;
+    }
+
+    QOpcUaNode *monitoredNode = m_monitoredNodes.value(nodeId, nullptr);
+    QOpcUaNode *node = monitoredNode ? monitoredNode : m_client->node(nodeId);
+    const bool transientNode = monitoredNode == nullptr;
+    if (!node) {
+        emit writeCompleted(nodeId, false,
+                            QStringLiteral("Failed to create node for %1").arg(nodeId));
+        return;
+    }
+
+    if (transientNode) {
+        if (node->thread() != thread())
+            node->moveToThread(thread());
+        node->setParent(this);
+    }
+
+    QVariant converted = value;
+    if (monitoredNode) {
+        const QVariant current = monitoredNode->attribute(QOpcUa::NodeAttribute::Value);
+        if (current.isValid()) {
+            QVariant candidate = value;
+            if (candidate.convert(current.metaType()))
+                converted = candidate;
+        }
+    }
+
+    connect(node, &QOpcUaNode::attributeWritten, this,
+            [this, node, nodeId, transientNode](QOpcUa::NodeAttribute attribute,
+                                                QOpcUa::UaStatusCode statusCode) {
+                if (attribute != QOpcUa::NodeAttribute::Value)
+                    return;
+                const bool success = statusCode == QOpcUa::UaStatusCode::Good;
+                emit writeCompleted(nodeId, success,
+                                    success ? QString() : QOpcUa::statusToString(statusCode));
+                if (transientNode)
+                    node->deleteLater();
+                else
+                    node->disconnect(node, &QOpcUaNode::attributeWritten, this, nullptr);
+            });
+
+    if (!node->writeValueAttribute(converted)) {
+        emit writeCompleted(nodeId, false,
+                            QStringLiteral("writeValueAttribute() failed to dispatch for %1")
+                                .arg(nodeId));
+        if (transientNode)
+            node->deleteLater();
+    }
+}
+
+/*!
+ * \brief Stops all active monitored-node subscriptions and releases their nodes.
+ */
+void OpcUaService::clearMonitoredNodes()
+{
+    for (QOpcUaNode *node : std::as_const(m_monitoredNodes)) {
+        if (!node)
+            continue;
+        node->disconnect(this);
+        node->deleteLater();
+    }
+    m_monitoredNodes.clear();
+}
+
+/*!
+ * \brief Builds a value-attribute update snapshot for \a nodeId from \a node.
+ */
+OpcUaValueUpdate OpcUaService::buildValueUpdate(const QString &nodeId, QOpcUaNode *node) const
+{
+    OpcUaValueUpdate update;
+    update.nodeId = nodeId;
+    if (!node)
+        return update;
+
+    const QVariant value = node->attribute(QOpcUa::NodeAttribute::Value);
+    update.value = formatOpcUaValue(value);
+    update.dataType = opcUaValueTypeName(value);
+    update.sourceTimestamp = formatTimestamp(node->sourceTimestamp(QOpcUa::NodeAttribute::Value));
+    update.serverTimestamp = formatTimestamp(node->serverTimestamp(QOpcUa::NodeAttribute::Value));
+    update.statusCode = QOpcUa::statusToString(node->attributeError(QOpcUa::NodeAttribute::Value));
+    return update;
 }
 
 /*!
@@ -1402,6 +1719,7 @@ void OpcUaService::onClientDisconnected()
     m_clientConnected = false;
     setOperationState(OperationState::Idle);
     emit connectedChanged(m_clientConnected);
+    clearMonitoredNodes();
     if (m_client) {
         disconnect(m_client,
                    &QOpcUaClient::namespaceArrayUpdated,

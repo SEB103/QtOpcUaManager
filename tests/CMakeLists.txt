@@ -12,6 +12,30 @@ target_link_libraries(tst_opcuamodel
 
 add_test(NAME OpcUaModel.Unit COMMAND tst_opcuamodel)
 
+qt_add_executable(tst_nodedatabase
+    unit/tst_nodedatabase.cpp
+)
+
+target_link_libraries(tst_nodedatabase
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME NodeDatabase.Unit COMMAND tst_nodedatabase)
+
+qt_add_executable(tst_dataaccessmodel
+    unit/tst_dataaccessmodel.cpp
+)
+
+target_link_libraries(tst_dataaccessmodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME DataAccessModel.Unit COMMAND tst_dataaccessmodel)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )

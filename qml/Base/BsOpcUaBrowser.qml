@@ -1,15 +1,16 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
-import QtQuick.Layouts
 
 /*!
     \qmltype BsOpcUaBrowser
     \inqmlmodule Base
-    \brief Displays the OPC UA connection form and address-space tree.
+    \brief Hosts the two-zone OPC UA browsing area.
 
-    The component reads \c cppManagerOpcUa.treeModel from the QML context and
-    shows a TreeView only while the OPC UA session is connected.
+    The component splits its area into a resizable left \l BsAddressSpaceTree
+    panel, a center \l BsNodeDataView table, and a right \l BsNodeAttributes
+    panel. Connecting to a server is handled separately through the application
+    menu dialog.
 */
 Item {
     id: root
@@ -17,67 +18,44 @@ Item {
     width: 1600
     height: 900
 
-    ColumnLayout {
+    SplitView {
         anchors.fill: parent
-        anchors.margins: 10
-        spacing: 10
+        anchors.margins: 8
+        orientation: Qt.Horizontal
 
-        BsOpcUaConnectionForm {
-            id: connectionForm
+        handle: Rectangle {
+            implicitWidth: 8
+            color: "transparent"
 
-            Layout.preferredHeight: implicitHeight
-            Layout.fillWidth: true
+            Rectangle {
+                anchors.centerIn: parent
+                width: SplitHandle.pressed ? 3 : 2
+                height: parent.height
+                radius: 1
+                color: SplitHandle.pressed
+                       ? Material.accent
+                       : SplitHandle.hovered
+                         ? Qt.lighter(Material.dividerColor, 1.6)
+                         : Material.dividerColor
+            }
         }
 
-        Rectangle {
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            color: Material.background
-            radius: 6
-            border.color: Material.primary
-            border.width: 2
+        BsAddressSpaceTree {
+            SplitView.preferredWidth: 340
+            SplitView.minimumWidth: 220
+            SplitView.fillHeight: true
+        }
 
-            Label {
-                anchors.centerIn: parent
-                visible: !cppManagerOpcUa.connected
-                text: qsTr("Connect to an OPC UA endpoint to browse the address space.")
-                color: Material.foreground
-                opacity: 0.7
-            }
+        BsNodeDataView {
+            SplitView.fillWidth: true
+            SplitView.minimumWidth: 220
+            SplitView.fillHeight: true
+        }
 
-            TreeView {
-                id: treeView
-
-                anchors.fill: parent
-                anchors.margins: 10
-                visible: cppManagerOpcUa.connected
-                clip: true
-                model: cppManagerOpcUa.treeModel
-
-                delegate: TreeViewDelegate {
-                    contentItem: Row {
-                        spacing: 8
-
-                        Label {
-                            text: displayName
-                            width: 300
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            text: nodeClassName
-                            width: 140
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            text: nodeId
-                            width: Math.max(240, treeView.width - 480)
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-            }
+        BsNodeAttributes {
+            SplitView.preferredWidth: 320
+            SplitView.minimumWidth: 240
+            SplitView.fillHeight: true
         }
     }
 }

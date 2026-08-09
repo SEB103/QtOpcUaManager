@@ -15,9 +15,12 @@
 #include <QQmlContext>
 
 #include "qmlapi/opcuamanager.h"
+#include "models/attributesmodel.h"
+#include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
 #include "core/opcuaservice.h"
 #include "core/opcuanodedata.h"
+#include "core/opcuavaluedata.h"
 
 #include "appengine.h"
 
@@ -136,11 +139,15 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
 {
     qRegisterMetaType<OpcUaNodeData>("OpcUaNodeData");
     qRegisterMetaType<QList<OpcUaNodeData>>("QList<OpcUaNodeData>");
+    qRegisterMetaType<OpcUaValueUpdate>("OpcUaValueUpdate");
+    qRegisterMetaType<OpcUaAttributeData>("OpcUaAttributeData");
 
     qmlRegisterUncreatableType<AppEngine>("Cpp.AppEngine", 1, 0, "AppEngine", QStringLiteral("AppEngine is a subclass of QQmlApplicationEngine and should not be created in QML."));
     rootContext()->setContextProperty("cppAppEngine", this);
     qmlRegisterUncreatableType<OpcUaManager>("Cpp.OpcUaManager", 1, 0, "OpcUaManager", QStringLiteral("OpcUaManager should not be created in QML."));
     qmlRegisterUncreatableType<OpcUaModel>("Cpp.OpcUaManager", 1, 0, "OpcUaModel", QStringLiteral("OpcUaModel is exposed by OpcUaManager::treeModel."));
+    qmlRegisterUncreatableType<DataAccessModel>("Cpp.OpcUaManager", 1, 0, "DataAccessModel", QStringLiteral("DataAccessModel is exposed by OpcUaManager::dataModel."));
+    qmlRegisterUncreatableType<AttributesModel>("Cpp.OpcUaManager", 1, 0, "AttributesModel", QStringLiteral("AttributesModel is exposed by OpcUaManager::attributesModel."));
     rootContext()->setContextProperty("cppManagerOpcUa", m_opcUaManager);
 
 #ifdef QT_NO_DEBUG

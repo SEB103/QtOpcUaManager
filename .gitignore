@@ -17,6 +17,9 @@
 *.user.*
 .qtcreator/
 
+# VS Code workspace state (machine-specific paths)
+.vscode/
+
 # CMake-generated files
 CMakeCache.txt
 CMakeFiles/

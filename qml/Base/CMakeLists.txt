@@ -5,7 +5,10 @@ qt_add_qml_module(Base
     URI Base
     CLASS_NAME BasePlugin
     QML_FILES
+        BsAddressSpaceTree.qml
         BsMenuBar.qml
+        BsNodeAttributes.qml
+        BsNodeDataView.qml
         BsOpcUaBrowser.qml
         BsOpcUaConnectionForm.qml
 )

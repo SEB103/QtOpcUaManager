@@ -4,9 +4,14 @@
 #include <QMutex>
 #include <QObject>
 #include <QStringList>
+#include <memory>
 
 #include "core/opcuanodedata.h"
+#include "core/opcuavaluedata.h"
+#include "models/attributesmodel.h"
+#include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
+#include "persistence/nodedatabase.h"
 
 class OpcUaService;
 
@@ -53,6 +58,12 @@ class OpcUaManager : public QObject
 
     /** Tree model exposed to QML for address-space browsing; owned by this manager. */
     Q_PROPERTY(OpcUaModel *treeModel READ treeModel CONSTANT)
+
+    /** Data Access View table model exposed to QML; owned by this manager. */
+    Q_PROPERTY(DataAccessModel *dataModel READ dataModel CONSTANT)
+
+    /** Attributes panel model exposed to QML; owned by this manager. */
+    Q_PROPERTY(AttributesModel *attributesModel READ attributesModel CONSTANT)
 
     /** Last user-visible OPC UA error text; empty when no error is active. */
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
@@ -125,6 +136,12 @@ public:
     /** Returns the owned address-space tree model exposed to QML. */
     OpcUaModel *treeModel() const;
 
+    /** Returns the owned Data Access View table model exposed to QML. */
+    DataAccessModel *dataModel() const;
+
+    /** Returns the owned Attributes panel model exposed to QML. */
+    AttributesModel *attributesModel() const;
+
     /** Returns the last user-visible error text. */
     QString lastError() const;
 
@@ -163,6 +180,21 @@ public:
 
     /** Requests disconnection from the current server. */
     Q_INVOKABLE void disconnectFromServer();
+
+    /**
+     * Adds or removes the node at the tree \a treeIndex from the Data Access View
+     * and the persistent database, and starts or stops its live subscription.
+     */
+    Q_INVOKABLE void setNodeMonitored(const QModelIndex &treeIndex, bool on);
+
+    /** Removes the Data Access View row at \a row from the table and the database. */
+    Q_INVOKABLE void removeNode(int row);
+
+    /** Requests the attributes of the node at the tree \a treeIndex for the panel. */
+    Q_INVOKABLE void requestAttributes(const QModelIndex &treeIndex);
+
+    /** Writes \a value to the node backing the Data Access View row at \a row. */
+    Q_INVOKABLE void writeValue(int row, const QVariant &value);
 
     /** Attaches the worker-thread \a service and wires queued cross-thread signals. */
     void attachService(OpcUaService *service);
@@ -217,6 +249,14 @@ signals:
     void disconnectFromServerRequested();
     /** Requests browsing children of \a parentNodeId for the model request \a requestId. */
     void browseChildrenRequested(const QString &parentNodeId, quint64 requestId);
+    /** Requests reading attributes of \a nodeId for the panel request \a requestId. */
+    void readAttributesRequested(const QString &nodeId, quint64 requestId);
+    /** Requests starting a value subscription for \a nodeId on the worker service. */
+    void subscribeNodeRequested(const QString &nodeId);
+    /** Requests stopping the value subscription for \a nodeId on the worker service. */
+    void unsubscribeNodeRequested(const QString &nodeId);
+    /** Requests writing \a value to \a nodeId on the worker service. */
+    void writeValueRequested(const QString &nodeId, const QVariant &value);
 
 public slots:
     /** Applies available backend plugin names received from the worker service. */
@@ -244,8 +284,16 @@ public slots:
                              quint64 requestId,
                              const QList<OpcUaNodeData> &children,
                              bool success);
+    /** Applies node attributes for \a requestId to the Attributes panel model. */
+    void applyNodeAttributes(quint64 requestId, const OpcUaAttributeData &data, bool success);
+    /** Applies a live value \a update to the Data Access View table model. */
+    void applyMonitoredValue(const OpcUaValueUpdate &update);
+    /** Applies a write result for \a nodeId, surfacing \a error when the write failed. */
+    void applyWriteCompleted(const QString &nodeId, bool success, const QString &error);
 
 private:
+    /** Builds a slash-separated browse path for \a treeIndex from its ancestors. */
+    QString buildNodePath(const QModelIndex &treeIndex) const;
     /** Protects state mirrored from queued worker-service signals. */
     mutable QMutex m_stateMutex;
 
@@ -284,6 +332,24 @@ private:
 
     /** Owned GUI-thread model exposed to QML. */
     OpcUaModel *m_treeModel {nullptr};
+
+    /** Owned Data Access View table model exposed to QML. */
+    DataAccessModel *m_dataModel {nullptr};
+
+    /** Owned Attributes panel model exposed to QML. */
+    AttributesModel *m_attributesModel {nullptr};
+
+    /** Owned persistent store for monitored nodes. */
+    std::unique_ptr<NodeDatabase> m_nodeDatabase;
+
+    /** Server identity string used for new Data Access View rows and DB scoping. */
+    QString m_currentServer;
+
+    /** Monotonic id used to correlate and de-duplicate attribute read results. */
+    quint64 m_nextAttributeRequestId {0};
+
+    /** Attribute request id whose result is still relevant for the panel. */
+    quint64 m_pendingAttributeRequestId {0};
 
     /** Non-owning worker-service pointer used only for attachment identity checks. */
     OpcUaService *m_service {nullptr};

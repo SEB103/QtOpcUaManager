@@ -1,6 +1,7 @@
 #ifndef OPCUASERVICE_H
 #define OPCUASERVICE_H
 
+#include <QHash>
 #include <QObject>
 #include <QList>
 #include <QOpcUaApplicationDescription>
@@ -20,6 +21,9 @@
 #include <QVariantMap>
 
 #include "opcuanodedata.h"
+#include "opcuavaluedata.h"
+
+class QOpcUaNode;
 
 /**
  * Worker-thread OPC UA service behind OpcUaManager.
@@ -78,6 +82,14 @@ public slots:
     void disconnectFromServer();
     /** Browses direct children of \a parentNodeId for GUI model request \a requestId. */
     void browseChildren(const QString &parentNodeId, quint64 requestId);
+    /** Reads the main attributes of \a nodeId for GUI request \a requestId. */
+    void readNodeAttributes(const QString &nodeId, quint64 requestId);
+    /** Starts value-attribute monitoring for \a nodeId. */
+    void subscribeNode(const QString &nodeId);
+    /** Stops value-attribute monitoring for \a nodeId. */
+    void unsubscribeNode(const QString &nodeId);
+    /** Writes \a value to the value attribute of \a nodeId. */
+    void writeNodeValue(const QString &nodeId, const QVariant &value);
 
 signals:
     /** Emitted when available backend plugin names change. */
@@ -105,6 +117,12 @@ signals:
                              quint64 requestId,
                              const QList<OpcUaNodeData> &children,
                              bool success);
+    /** Emitted when the attributes requested for \a requestId are ready. */
+    void nodeAttributesReady(quint64 requestId, const OpcUaAttributeData &data, bool success);
+    /** Emitted when a monitored node reports a new value. */
+    void monitoredValueChanged(const OpcUaValueUpdate &update);
+    /** Emitted when a write to \a nodeId finishes; \a error is set on failure. */
+    void writeCompleted(const QString &nodeId, bool success, const QString &error);
 
 private slots:
     /** Applies a FindServers result for \a requestUrl. */
@@ -176,6 +194,10 @@ private:
     void createClient();
     /** Returns whether the current call runs in this service object's thread. */
     bool isInObjectThread() const;
+    /** Stops all active monitored-node subscriptions and releases their nodes. */
+    void clearMonitoredNodes();
+    /** Builds a value-attribute update snapshot for \a nodeId from \a node. */
+    OpcUaValueUpdate buildValueUpdate(const QString &nodeId, QOpcUaNode *node) const;
 
     /** Whether initialize() has completed successfully. */
     bool m_initialized {false};
@@ -249,6 +271,10 @@ private:
     int m_findServersRequestTimeoutMs {5000};
     /** GetEndpoints timeout in milliseconds. */
     int m_endpointsRequestTimeoutMs {5000};
+    /** Active monitored nodes keyed by node id; owned and kept alive while monitoring. */
+    QHash<QString, QOpcUaNode *> m_monitoredNodes;
+    /** Publishing/sampling interval applied to new monitored items, in milliseconds. */
+    double m_monitoringIntervalMs {250.0};
 };
 
 #endif // OPCUASERVICE_H

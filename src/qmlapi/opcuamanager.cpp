@@ -1,4 +1,6 @@
+#include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QMutexLocker>
 
 #include "core/opcuaservice.h"
@@ -68,10 +70,31 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     : QObject(parent)
     , m_initialUrl(initialUrl)
     , m_treeModel(new OpcUaModel(this))
+    , m_dataModel(new DataAccessModel(this))
+    , m_attributesModel(new AttributesModel(this))
+    , m_nodeDatabase(std::make_unique<NodeDatabase>())
 {
+    // The database ships in a db/ folder next to the executable so that monitored
+    // nodes persist across runs. It is created on first use if it does not exist.
+    const QString databasePath =
+        QCoreApplication::applicationDirPath() + QLatin1String("/db/opcua_nodes.db");
+    if (m_nodeDatabase->open(databasePath))
+        m_dataModel->setRecords(m_nodeDatabase->loadAll());
+    else
+        qWarning() << "OpcUaManager: failed to open node database at" << databasePath;
 }
 
 OpcUaManager::~OpcUaManager() = default;
+
+/*!
+ * \property OpcUaManager::dataModel
+ * \brief Data Access View table model exposed to QML; owned by this manager.
+ */
+
+/*!
+ * \property OpcUaManager::attributesModel
+ * \brief Attributes panel model exposed to QML; owned by this manager.
+ */
 
 QStringList OpcUaManager::opcUaBackend() const
 {
@@ -132,6 +155,16 @@ OpcUaModel *OpcUaManager::treeModel() const
     return m_treeModel;
 }
 
+DataAccessModel *OpcUaManager::dataModel() const
+{
+    return m_dataModel;
+}
+
+AttributesModel *OpcUaManager::attributesModel() const
+{
+    return m_attributesModel;
+}
+
 QString OpcUaManager::lastError() const
 {
     QMutexLocker locker(&m_stateMutex);
@@ -184,12 +217,19 @@ void OpcUaManager::discoverServers(const QString &hostOrUrl)
 void OpcUaManager::requestEndpoints(const QString &serverUrl)
 {
     qInfo() << "OpcUaManager requestEndpoints requested:" << serverUrl;
+    if (!serverUrl.trimmed().isEmpty())
+        m_currentServer = serverUrl.trimmed();
     emit requestEndpointsRequested(serverUrl);
 }
 
 void OpcUaManager::requestEndpointsForServer(int serverIndex)
 {
     qInfo() << "OpcUaManager requestEndpointsForServer requested. index:" << serverIndex;
+    QMutexLocker locker(&m_stateMutex);
+    const QString server = m_servers.value(serverIndex);
+    locker.unlock();
+    if (!server.isEmpty())
+        m_currentServer = server;
     emit requestEndpointsForServerRequested(serverIndex);
 }
 
@@ -203,6 +243,120 @@ void OpcUaManager::disconnectFromServer()
 {
     qInfo() << "OpcUaManager disconnectFromServer requested.";
     emit disconnectFromServerRequested();
+}
+
+/*!
+ * \brief Builds a slash-separated browse path for \a treeIndex from its ancestors.
+ *
+ * The path is composed from the display names of the node and its ancestors, so
+ * the Data Access View can show where a monitored node lives in the address space.
+ */
+QString OpcUaManager::buildNodePath(const QModelIndex &treeIndex) const
+{
+    if (!m_treeModel || !treeIndex.isValid())
+        return {};
+
+    QStringList segments;
+    for (QModelIndex index = treeIndex; index.isValid(); index = index.parent()) {
+        const QString name = m_treeModel->data(index, OpcUaModel::DisplayNameRole).toString();
+        if (!name.isEmpty())
+            segments.prepend(name);
+    }
+    return segments.join(QLatin1Char('/'));
+}
+
+/*!
+ * \brief Adds or removes the node at \a treeIndex from the Data Access View.
+ * \param on Whether the node should be monitored and persisted.
+ *
+ * Adding inserts the node into the database and the table and starts a live
+ * subscription when connected. Removing reverses all three steps.
+ */
+void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
+{
+    if (!m_treeModel || !treeIndex.isValid())
+        return;
+
+    const QString nodeId = m_treeModel->nodeIdAt(treeIndex);
+    if (nodeId.isEmpty())
+        return;
+
+    const QString server = m_currentServer.isEmpty() ? m_initialUrl : m_currentServer;
+
+    if (on) {
+        MonitoredNodeRecord record;
+        record.server = server;
+        record.nodeId = nodeId;
+        record.nodePath = buildNodePath(treeIndex);
+        record.displayName = m_treeModel->data(treeIndex, OpcUaModel::DisplayNameRole).toString();
+        record.dataType = m_treeModel->data(treeIndex, OpcUaModel::DataTypeRole).toString();
+
+        if (m_nodeDatabase)
+            m_nodeDatabase->insert(record);
+        m_dataModel->addRow(record);
+        m_treeModel->setMonitoringEnabledAt(treeIndex, true);
+        if (connected())
+            emit subscribeNodeRequested(nodeId);
+    } else {
+        if (m_nodeDatabase)
+            m_nodeDatabase->remove(server, nodeId);
+        const int row = m_dataModel->rowCount();
+        for (int i = 0; i < row; ++i) {
+            if (m_dataModel->nodeIdAt(i) == nodeId) {
+                m_dataModel->removeAt(i);
+                break;
+            }
+        }
+        m_treeModel->setMonitoringEnabledAt(treeIndex, false);
+        emit unsubscribeNodeRequested(nodeId);
+    }
+}
+
+/*!
+ * \brief Removes the Data Access View row at \a row from the table and database.
+ */
+void OpcUaManager::removeNode(int row)
+{
+    const QString nodeId = m_dataModel->nodeIdAt(row);
+    if (nodeId.isEmpty())
+        return;
+
+    const QString server = m_dataModel->serverAt(row);
+    if (m_nodeDatabase)
+        m_nodeDatabase->remove(server, nodeId);
+    m_dataModel->removeAt(row);
+    emit unsubscribeNodeRequested(nodeId);
+}
+
+/*!
+ * \brief Requests the attributes of the node at \a treeIndex for the panel.
+ *
+ * Only the most recent request is applied; earlier in-flight results are ignored
+ * so that fast selection changes do not show stale attributes.
+ */
+void OpcUaManager::requestAttributes(const QModelIndex &treeIndex)
+{
+    if (!m_treeModel || !treeIndex.isValid())
+        return;
+
+    const QString nodeId = m_treeModel->nodeIdAt(treeIndex);
+    if (nodeId.isEmpty())
+        return;
+
+    m_pendingAttributeRequestId = ++m_nextAttributeRequestId;
+    emit readAttributesRequested(nodeId, m_pendingAttributeRequestId);
+}
+
+/*!
+ * \brief Writes \a value to the node backing the Data Access View row at \a row.
+ */
+void OpcUaManager::writeValue(int row, const QVariant &value)
+{
+    const QString nodeId = m_dataModel->nodeIdAt(row);
+    if (nodeId.isEmpty())
+        return;
+
+    emit writeValueRequested(nodeId, value);
 }
 
 /*!
@@ -268,6 +422,22 @@ void OpcUaManager::attachService(OpcUaService *service)
             this, &OpcUaManager::applyBrowseChildren, Qt::QueuedConnection);
     connect(m_treeModel, &OpcUaModel::fetchChildrenRequested,
             this, &OpcUaManager::browseChildrenRequested, Qt::QueuedConnection);
+
+    connect(this, &OpcUaManager::readAttributesRequested,
+            service, &OpcUaService::readNodeAttributes, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::subscribeNodeRequested,
+            service, &OpcUaService::subscribeNode, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::unsubscribeNodeRequested,
+            service, &OpcUaService::unsubscribeNode, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::writeValueRequested,
+            service, &OpcUaService::writeNodeValue, Qt::QueuedConnection);
+
+    connect(service, &OpcUaService::nodeAttributesReady,
+            this, &OpcUaManager::applyNodeAttributes, Qt::QueuedConnection);
+    connect(service, &OpcUaService::monitoredValueChanged,
+            this, &OpcUaManager::applyMonitoredValue, Qt::QueuedConnection);
+    connect(service, &OpcUaService::writeCompleted,
+            this, &OpcUaManager::applyWriteCompleted, Qt::QueuedConnection);
 
     emit initializeRequested();
 }
@@ -342,6 +512,21 @@ void OpcUaManager::applyConnected(bool connected)
 
     if (m_treeModel)
         m_treeModel->setConnectionActive(connected);
+
+    if (connected) {
+        // Re-establish subscriptions for every persisted monitored node so the
+        // Data Access View resumes updating after a (re)connect.
+        const int rows = m_dataModel->rowCount();
+        for (int i = 0; i < rows; ++i) {
+            const QString nodeId = m_dataModel->nodeIdAt(i);
+            if (!nodeId.isEmpty())
+                emit subscribeNodeRequested(nodeId);
+        }
+    } else {
+        m_dataModel->clearValues();
+        m_attributesModel->clear();
+    }
+
     emit connectedChanged();
 }
 
@@ -434,4 +619,49 @@ void OpcUaManager::applyBrowseChildren(const QString &parentNodeId,
 {
     if (m_treeModel)
         m_treeModel->applyChildrenSnapshot(parentNodeId, requestId, children, success);
+}
+
+/*!
+ * \brief Applies node attributes for \a requestId to the Attributes panel model.
+ * \param data The attribute snapshot read from the server.
+ * \param success Whether the read succeeded.
+ *
+ * Stale results from superseded requests are ignored so the panel always shows
+ * the attributes of the most recently selected node.
+ */
+void OpcUaManager::applyNodeAttributes(quint64 requestId,
+                                       const OpcUaAttributeData &data,
+                                       bool success)
+{
+    if (requestId != m_pendingAttributeRequestId)
+        return;
+
+    if (success)
+        m_attributesModel->setAttributes(data);
+    else
+        m_attributesModel->clear();
+}
+
+/*!
+ * \brief Applies a live value \a update to the Data Access View table model.
+ */
+void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
+{
+    m_dataModel->updateValue(update);
+}
+
+/*!
+ * \brief Applies a write result for \a nodeId, surfacing \a error when it failed.
+ * \param success Whether the write succeeded.
+ *
+ * Successful writes are reflected through the active subscription, so only
+ * failures need to update the user-visible error text.
+ */
+void OpcUaManager::applyWriteCompleted(const QString &nodeId, bool success, const QString &error)
+{
+    if (success)
+        return;
+
+    qWarning() << "OpcUaManager: write failed for" << nodeId << ":" << error;
+    applyLastError(error);
 }
