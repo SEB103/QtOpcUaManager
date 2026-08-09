@@ -1,5 +1,6 @@
 /*!
     \module OpcUaManager
+    \title OpcUaManager C++ Classes
     \brief Contains the C++ application, QML facade, model, and OPC UA service APIs.
 */
 

@@ -1,9 +1,11 @@
 /*!
     \qmlmodule OpcUaManager
+    \title OpcUaManager QML Types
     \brief Contains the application-level QML entry points.
 */
 
 /*!
     \qmlmodule Base
+    \title Base QML Types
     \brief Contains reusable visual controls for the OPC UA manager UI.
 */

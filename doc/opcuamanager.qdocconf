@@ -5,6 +5,9 @@ version = 0.1.0
 outputdir = html
 outputformats = HTML
 
+HTML.headerstyles += \
+    "  <link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline-dark.css\" />\n"
+
 sourceencoding = UTF-8
 
 headerdirs += \
@@ -27,4 +30,25 @@ depends += \
     qtquickcontrols \
     qtopcua
 
-navigation.landingpage = index.html
+qhp.OpcUaManager.subprojects = manual classes qmltypes
+
+qhp.OpcUaManager.subprojects.classes.title = C++ Classes
+qhp.OpcUaManager.subprojects.classes.indexTitle = OpcUaManager C++ Classes
+qhp.OpcUaManager.subprojects.classes.selectors = class function namespace fake:headerfile
+qhp.OpcUaManager.subprojects.classes.sortPages = true
+
+qhp.OpcUaManager.subprojects.qmltypes.title = QML Types
+qhp.OpcUaManager.subprojects.qmltypes.indexTitle = OpcUaManager QML Types
+qhp.OpcUaManager.subprojects.qmltypes.selectors = qmltype
+qhp.OpcUaManager.subprojects.qmltypes.sortPages = true
+
+qhp.OpcUaManager.subprojects.manual.title = OpcUaManager
+qhp.OpcUaManager.subprojects.manual.indexTitle = OpcUaManager Documentation
+qhp.OpcUaManager.subprojects.manual.type = manual
+
+navigation.landingpage = "OpcUaManager Documentation"
+navigation.cppclassespage = "OpcUaManager C++ Classes"
+navigation.qmltypespage = "OpcUaManager QML Types"
+
+warninglimit = 0
+reportmissingalttextforimages = true

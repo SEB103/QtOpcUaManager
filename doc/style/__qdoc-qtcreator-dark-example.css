@@ -1,0 +1,253 @@
+:root {
+    --qt-bg: #1e1f22;
+    --qt-panel: #25272b;
+    --qt-panel-alt: #2b2d31;
+    --qt-border: #3c3f44;
+    --qt-text: #d7d7d7;
+    --qt-muted: #a6a6a6;
+    --qt-heading: #f0f0f0;
+    --qt-link: #1ec974;
+    --qt-link-hover: #41cd52;
+    --qt-accent: #41cd52;
+    --qt-code-bg: #151619;
+    --qt-code-text: #dcdcdc;
+    --qt-table-header: #30333a;
+    --qt-table-row: #24262a;
+    --qt-table-row-alt: #202226;
+    --qt-selection: #264f78;
+}
+
+html,
+body {
+    background: var(--qt-bg) !important;
+    color: var(--qt-text) !important;
+}
+
+body {
+    font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif;
+    line-height: 1.55;
+    margin: 0 auto;
+    max-width: 1180px;
+    padding: 32px 42px;
+}
+
+a,
+a:link,
+a:visited {
+    color: var(--qt-link) !important;
+    text-decoration: none;
+}
+
+a:hover,
+a:focus,
+a:visited:hover {
+    color: var(--qt-link-hover) !important;
+    text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--qt-heading) !important;
+    border-color: var(--qt-border) !important;
+    font-weight: 600;
+}
+
+h1.title,
+h1 {
+    border-bottom: 1px solid var(--qt-border);
+    margin-top: 0.3em;
+    padding-bottom: 0.35em;
+}
+
+h2 {
+    border-bottom: 1px solid var(--qt-border);
+    padding-bottom: 0.25em;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--qt-border);
+}
+
+p,
+li,
+dd,
+dt,
+td,
+th {
+    color: var(--qt-text) !important;
+}
+
+ul.breadcrumb {
+    background: var(--qt-panel);
+    border: 1px solid var(--qt-border);
+    border-radius: 6px;
+    color: var(--qt-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    list-style: none;
+    margin: 0 0 1.5em;
+    padding: 0.65em 0.85em;
+}
+
+ul.breadcrumb li {
+    color: var(--qt-muted) !important;
+}
+
+ul.breadcrumb li:not(:last-child)::after {
+    color: var(--qt-border);
+    content: "/";
+    margin-left: 0.35em;
+}
+
+.descr,
+.contents,
+.content,
+.main,
+.wrapper,
+.container,
+.section,
+.qmlitem,
+.cppitem,
+.fn,
+.memItemLeft,
+.memItemRight {
+    background-color: transparent !important;
+    color: var(--qt-text) !important;
+}
+
+.subtitle,
+.small-subtitle,
+.brief,
+.summary,
+.details,
+.status,
+.since,
+.obsolete {
+    color: var(--qt-muted) !important;
+}
+
+code,
+tt,
+pre,
+.preprocessor,
+.highlightedCode,
+.qmlcode,
+.cppcode {
+    background: var(--qt-code-bg) !important;
+    color: var(--qt-code-text) !important;
+    border-color: var(--qt-border) !important;
+}
+
+code,
+tt {
+    border: 1px solid rgba(60, 63, 68, 0.75);
+    border-radius: 4px;
+    padding: 0.1em 0.28em;
+}
+
+pre,
+.highlightedCode,
+.qmlcode,
+.cppcode {
+    border: 1px solid var(--qt-border);
+    border-radius: 6px;
+    overflow-x: auto;
+    padding: 1em;
+}
+
+table {
+    background: var(--qt-panel) !important;
+    border-collapse: collapse;
+    color: var(--qt-text) !important;
+    margin: 1em 0;
+}
+
+th {
+    background: var(--qt-table-header) !important;
+    color: var(--qt-heading) !important;
+    font-weight: 600;
+}
+
+td,
+th {
+    border: 1px solid var(--qt-border) !important;
+    padding: 0.45em 0.65em;
+}
+
+tr {
+    background: var(--qt-table-row) !important;
+}
+
+tr:nth-child(even) {
+    background: var(--qt-table-row-alt) !important;
+}
+
+.name,
+.type,
+.qmlreadonly,
+.qmlattachedproperty,
+.qmlproperty,
+.cppfunction,
+.qmlmethod,
+.qmlsignal {
+    color: var(--qt-text) !important;
+}
+
+span.keyword,
+.keyword,
+.operator {
+    color: var(--qt-accent) !important;
+}
+
+span.string,
+.string {
+    color: #ce9178 !important;
+}
+
+span.comment,
+.comment {
+    color: #6a9955 !important;
+}
+
+span.number,
+.number {
+    color: #b5cea8 !important;
+}
+
+blockquote,
+.note,
+.warning,
+.important {
+    background: var(--qt-panel-alt) !important;
+    border: 1px solid var(--qt-border) !important;
+    border-left: 4px solid var(--qt-accent) !important;
+    border-radius: 4px;
+    color: var(--qt-text) !important;
+    padding: 0.75em 1em;
+}
+
+img {
+    background: transparent;
+}
+
+::selection {
+    background: var(--qt-selection);
+    color: #ffffff;
+}
+
+@media (max-width: 760px) {
+    body {
+        padding: 20px 18px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+}
