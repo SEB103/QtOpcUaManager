@@ -45,8 +45,7 @@ Rectangle {
     readonly property int rowHeight: 30
 
     color: Material.background
-    radius: 6
-    border.color: Material.primary
+    border.color: Material.dividerColor
     border.width: 1
     clip: true
 
@@ -67,7 +66,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            color: "transparent"
+            color: Qt.lighter(Material.background, 1.3)
 
             Label {
                 anchors.left: parent.left
@@ -108,6 +107,7 @@ Rectangle {
                 id: horizontalScroll
 
                 anchors.fill: parent
+                anchors.margins: 4
                 contentWidth: root.totalWidth
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick

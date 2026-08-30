@@ -210,7 +210,7 @@ QVariant OpcUaModel::data(const QModelIndex &index, int role) const
     case NodeClassRole: return item->nodeClass();
     case NodeClassNameRole: return item->nodeClassName();
     case ValueRole: return item->valueString();
-    case DataTypeRole: return item->dataTypeString();
+    case DataTypeRole: return item->dataTypeName();
     case DescriptionRole: return item->description();
     case IconNameRole: return item->iconName();
     case CanMonitorRole: return item->supportsMonitoring();

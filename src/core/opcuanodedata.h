@@ -27,6 +27,27 @@ struct OpcUaNodeData
 
     /** Whether the node should be treated as expandable by the GUI model. */
     bool hasChildren {false};
+
+    /**
+     * Node id of the node's TypeDefinition, captured from the browse reference.
+     * Used to tell a FolderType object (ns=0;i=61) apart from a structured
+     * object. Empty when the reference carried no type definition.
+     */
+    QString typeDefinitionId;
+
+    /**
+     * Node id of the variable's DataType attribute (e.g. "ns=0;i=6").
+     * Filled by a follow-up attribute read for Variable nodes only; empty
+     * otherwise or until the read completes.
+     */
+    QString dataTypeId;
+
+    /**
+     * OPC UA ValueRank of a variable node (OPC UA part 3). A value of -1 means
+     * scalar; 0 or a positive value indicates an array. Defaults to the
+     * scalar/unknown sentinel used until the attribute read completes.
+     */
+    int valueRank {-1};
 };
 
 /** Registers one OPC UA node snapshot for QVariant and queued signal delivery. */

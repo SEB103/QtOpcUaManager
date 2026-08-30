@@ -9,16 +9,24 @@
 #include <QHostInfo>
 #include <QMetaEnum>
 #include <QMetaObject>
+#include <QOpcUaExtensionObject>
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaMonitoringParameters>
 #include <QOpcUaNode>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaReadItem>
+#include <QOpcUaReadResult>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 #include <QPointer>
+#include <QSet>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QThread>
 #include <QUuid>
 #include <algorithm>
+#include <memory>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -751,6 +759,10 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                         child.displayName = ref.displayName().text();
                         child.nodeClass = int(ref.nodeClass());
                         child.hasChildren = ref.nodeClass() != QOpcUa::NodeClass::Method;
+                        // The TypeDefinition distinguishes a FolderType object from a
+                        // structured object and is available from the browse reference
+                        // without an extra request.
+                        child.typeDefinitionId = ref.typeDefinition().nodeId();
                         snapshotChildren.push_back(child);
                     }
                 } else {
@@ -758,8 +770,84 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                                      .arg(effectiveParentNodeId,
                                           QOpcUa::statusToString(statusCode)));
                 }
-                emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, success);
+
+                // The browse node is only needed for the browse itself; the follow-up
+                // DataType/ValueRank enrichment uses the client-level batch read API.
                 node->deleteLater();
+
+                if (!success) {
+                    emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, false);
+                    return;
+                }
+
+                // Collect the variable children whose DataType/ValueRank we still need
+                // to resolve the concrete data-type and scalar/array icon.
+                QList<QOpcUaReadItem> readItems;
+                QSet<QString> variableNodeIds;
+                for (const auto &child : std::as_const(snapshotChildren)) {
+                    if (child.nodeClass != int(QOpcUa::NodeClass::Variable))
+                        continue;
+                    variableNodeIds.insert(child.nodeId);
+                    readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::DataType));
+                    readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::ValueRank));
+                }
+
+                if (variableNodeIds.isEmpty() || !m_client) {
+                    emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
+                    return;
+                }
+
+                // One batched Read service call resolves DataType and ValueRank for all
+                // variable children at once. A self-disconnecting connection keeps the
+                // result correlated to this browse: readNodeAttributesFinished is a
+                // client-wide signal, so the read is claimed only when the reported node
+                // id set matches the variables requested here.
+                auto connection = std::make_shared<QMetaObject::Connection>();
+                *connection = connect(
+                    m_client,
+                    &QOpcUaClient::readNodeAttributesFinished,
+                    this,
+                    [this, connection, effectiveParentNodeId, requestId, snapshotChildren, variableNodeIds](
+                        const QList<QOpcUaReadResult> &results,
+                        QOpcUa::UaStatusCode serviceResult) mutable {
+                        QSet<QString> resultNodeIds;
+                        for (const auto &result : results)
+                            resultNodeIds.insert(result.nodeId());
+                        if (resultNodeIds != variableNodeIds)
+                            return; // Belongs to a different in-flight browse; keep waiting.
+
+                        QObject::disconnect(*connection);
+
+                        if (serviceResult == QOpcUa::UaStatusCode::Good) {
+                            QHash<QString, QString> dataTypeById;
+                            QHash<QString, int> valueRankById;
+                            for (const auto &result : results) {
+                                if (result.statusCode() != QOpcUa::UaStatusCode::Good)
+                                    continue;
+                                if (result.attribute() == QOpcUa::NodeAttribute::DataType)
+                                    dataTypeById.insert(result.nodeId(), result.value().toString());
+                                else if (result.attribute() == QOpcUa::NodeAttribute::ValueRank)
+                                    valueRankById.insert(result.nodeId(), result.value().toInt());
+                            }
+                            for (auto &child : snapshotChildren) {
+                                const auto typeIt = dataTypeById.constFind(child.nodeId);
+                                if (typeIt != dataTypeById.constEnd())
+                                    child.dataTypeId = typeIt.value();
+                                const auto rankIt = valueRankById.constFind(child.nodeId);
+                                if (rankIt != valueRankById.constEnd())
+                                    child.valueRank = rankIt.value();
+                            }
+                        }
+
+                        emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
+                    });
+
+                if (!m_client->readNodeAttributes(readItems)) {
+                    // Enrichment could not be dispatched; still deliver the browse result
+                    // so the tree populates. Affected variables fall back to a generic icon.
+                    QObject::disconnect(*connection);
+                    emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
+                }
             });
 
     if (!node->browseChildren()) {

@@ -1,7 +1,90 @@
+#include <QHash>
 #include <QMetaEnum>
 
 #include "treeitem.h"
 #include "opcuamodel.h"
+
+namespace {
+
+/*!
+ * \internal
+ * \brief Coarse data-type category used to choose a variable icon.
+ */
+enum class DataTypeCategory {
+    Unknown,
+    Boolean,
+    SignedInteger,
+    UnsignedInteger,
+    Real,
+    String,
+    DateTime,
+    ByteString,
+    Structured
+};
+
+/*!
+ * \internal
+ * \brief IEC-style type name plus coarse category for a DataType node id.
+ */
+struct DataTypeInfo
+{
+    QString name;
+    DataTypeCategory category {DataTypeCategory::Unknown};
+};
+
+/*!
+ * \internal
+ * \brief Resolves an OPC UA DataType node id into an IEC name and category.
+ *
+ * Namespace-0 ids follow the OPC UA Part 6 built-in type numbering. The
+ * CODESYS vendor namespace additionally exposes IEC 61131 aliases
+ * (BYTE/UINT/UDINT/TIME/STRING/DATE_AND_TIME); the vendor namespace index is
+ * assumed to be 3, matching the reference server. Any other resolvable,
+ * non built-in type id is reported as a structured/custom type, which is
+ * enough to select a struct icon. An empty or unresolved id yields Unknown.
+ */
+DataTypeInfo resolveDataType(const QString &dataTypeId)
+{
+    static const QHash<QString, DataTypeInfo> table = {
+        {QStringLiteral("ns=0;i=1"),  {QStringLiteral("BOOL"),          DataTypeCategory::Boolean}},
+        {QStringLiteral("ns=0;i=2"),  {QStringLiteral("SINT"),          DataTypeCategory::SignedInteger}},
+        {QStringLiteral("ns=0;i=3"),  {QStringLiteral("BYTE"),          DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=0;i=4"),  {QStringLiteral("INT"),           DataTypeCategory::SignedInteger}},
+        {QStringLiteral("ns=0;i=5"),  {QStringLiteral("UINT"),          DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=0;i=6"),  {QStringLiteral("DINT"),          DataTypeCategory::SignedInteger}},
+        {QStringLiteral("ns=0;i=7"),  {QStringLiteral("UDINT"),         DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=0;i=8"),  {QStringLiteral("LINT"),          DataTypeCategory::SignedInteger}},
+        {QStringLiteral("ns=0;i=9"),  {QStringLiteral("ULINT"),         DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=0;i=10"), {QStringLiteral("REAL"),          DataTypeCategory::Real}},
+        {QStringLiteral("ns=0;i=11"), {QStringLiteral("LREAL"),         DataTypeCategory::Real}},
+        {QStringLiteral("ns=0;i=12"), {QStringLiteral("STRING"),        DataTypeCategory::String}},
+        {QStringLiteral("ns=0;i=13"), {QStringLiteral("DATE_AND_TIME"), DataTypeCategory::DateTime}},
+        {QStringLiteral("ns=0;i=15"), {QStringLiteral("BYTES"),         DataTypeCategory::ByteString}},
+        {QStringLiteral("ns=0;i=21"), {QStringLiteral("STRING"),        DataTypeCategory::String}},
+        {QStringLiteral("ns=0;i=22"), {QStringLiteral("STRUCT"),        DataTypeCategory::Structured}},
+        {QStringLiteral("ns=3;i=3001"), {QStringLiteral("BYTE"),          DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=3;i=3002"), {QStringLiteral("UINT"),          DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=3;i=3003"), {QStringLiteral("UDINT"),         DataTypeCategory::UnsignedInteger}},
+        {QStringLiteral("ns=3;i=3005"), {QStringLiteral("TIME"),          DataTypeCategory::DateTime}},
+        {QStringLiteral("ns=3;i=3007"), {QStringLiteral("DATE_AND_TIME"), DataTypeCategory::DateTime}},
+        {QStringLiteral("ns=3;i=3013"), {QStringLiteral("STRING"),        DataTypeCategory::String}},
+    };
+
+    const auto it = table.constFind(dataTypeId);
+    if (it != table.constEnd())
+        return it.value();
+
+    if (dataTypeId.isEmpty())
+        return {};
+
+    // Any other resolvable, non built-in type is treated as structured/custom.
+    if (!dataTypeId.startsWith(QStringLiteral("ns=0;")))
+        return {QString(), DataTypeCategory::Structured};
+
+    return {};
+}
+
+} // namespace
 
 /*!
  * \brief Creates the invisible root item.
@@ -29,6 +112,9 @@ TreeItem::TreeItem(const OpcUaNodeData &data, OpcUaModel *model, TreeItem *paren
     , m_browseName(data.browseName)
     , m_displayName(data.displayName)
     , m_nodeClass(data.nodeClass)
+    , m_typeDefinitionId(data.typeDefinitionId)
+    , m_dataTypeId(data.dataTypeId)
+    , m_valueRank(data.valueRank)
     , m_hasChildren(data.hasChildren)
 {
 }
@@ -119,21 +205,84 @@ QString TreeItem::nodeClassName() const
 }
 
 /*!
- * \brief Returns the icon name.
+ * \brief Returns whether the node is an Object of the standard FolderType.
+ * FolderType is the well-known node ns=0;i=61. Objects of any other type
+ * definition are reported as structured objects instead of folders.
+ */
+bool TreeItem::isFolder() const
+{
+    return QOpcUa::NodeClass(m_nodeClass) == QOpcUa::NodeClass::Object
+        && m_typeDefinitionId == QStringLiteral("ns=0;i=61");
+}
+
+/*!
+ * \brief Returns whether the node is a variable whose value is an array.
+ * ValueRank follows OPC UA Part 3: -1 is scalar, while 0 (one-or-more
+ * dimensions) or any positive rank denotes an array.
+ */
+bool TreeItem::isArray() const
+{
+    return QOpcUa::NodeClass(m_nodeClass) == QOpcUa::NodeClass::Variable
+        && m_valueRank >= 0;
+}
+
+/*!
+ * \brief Returns the IEC-style data-type name for a variable node.
+ */
+QString TreeItem::dataTypeName() const
+{
+    if (QOpcUa::NodeClass(m_nodeClass) != QOpcUa::NodeClass::Variable)
+        return {};
+    return resolveDataType(m_dataTypeId).name;
+}
+
+/*!
+ * \brief Returns the icon key used by the QML tree.
+ * The key encodes the node kind (folder, object, method, type nodes) and, for
+ * variables, the value shape (array) or the resolved data-type category. The
+ * QML delegate maps the key to a glyph and a tint color.
  */
 QString TreeItem::iconName() const
 {
     switch (QOpcUa::NodeClass(m_nodeClass)) {
-    case QOpcUa::NodeClass::Object: return QStringLiteral("object");
-    case QOpcUa::NodeClass::Variable: return QStringLiteral("variable");
-    case QOpcUa::NodeClass::Method: return QStringLiteral("method");
-    case QOpcUa::NodeClass::ObjectType: return QStringLiteral("objectType");
-    case QOpcUa::NodeClass::VariableType: return QStringLiteral("variableType");
-    case QOpcUa::NodeClass::DataType: return QStringLiteral("dataType");
-    case QOpcUa::NodeClass::ReferenceType: return QStringLiteral("referenceType");
-    case QOpcUa::NodeClass::View: return QStringLiteral("view");
-    default: return QStringLiteral("node");
+    case QOpcUa::NodeClass::Object:
+        return isFolder() ? QStringLiteral("folder") : QStringLiteral("object");
+    case QOpcUa::NodeClass::Method:
+        return QStringLiteral("method");
+    case QOpcUa::NodeClass::ObjectType:
+        return QStringLiteral("objectType");
+    case QOpcUa::NodeClass::VariableType:
+        return QStringLiteral("variableType");
+    case QOpcUa::NodeClass::DataType:
+        return QStringLiteral("dataType");
+    case QOpcUa::NodeClass::ReferenceType:
+        return QStringLiteral("referenceType");
+    case QOpcUa::NodeClass::View:
+        return QStringLiteral("view");
+    case QOpcUa::NodeClass::Variable:
+        break;
+    default:
+        return QStringLiteral("node");
     }
+
+    // Variable nodes: an array marker takes precedence, otherwise the icon is
+    // chosen from the resolved data-type category.
+    if (isArray())
+        return QStringLiteral("array");
+
+    switch (resolveDataType(m_dataTypeId).category) {
+    case DataTypeCategory::Boolean:         return QStringLiteral("var-bool");
+    case DataTypeCategory::SignedInteger:   return QStringLiteral("var-int");
+    case DataTypeCategory::UnsignedInteger: return QStringLiteral("var-uint");
+    case DataTypeCategory::Real:            return QStringLiteral("var-real");
+    case DataTypeCategory::String:          return QStringLiteral("var-string");
+    case DataTypeCategory::DateTime:        return QStringLiteral("var-time");
+    case DataTypeCategory::Structured:      return QStringLiteral("var-struct");
+    case DataTypeCategory::ByteString:
+    case DataTypeCategory::Unknown:
+        break;
+    }
+    return QStringLiteral("var-generic");
 }
 
 /*!

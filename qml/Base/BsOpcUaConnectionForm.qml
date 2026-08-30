@@ -64,9 +64,8 @@ Rectangle {
     }
 
     color: Material.background
-    radius: 6
-    border.color: Material.primary
-    border.width: 2
+    border.color: Material.dividerColor
+    border.width: 1
 
     ColumnLayout {
         id: contentColumn

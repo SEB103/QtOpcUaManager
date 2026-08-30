@@ -20,6 +20,7 @@ find_package(Qt6 6.11 REQUIRED COMPONENTS
     Quick
     QuickControls2
     Sql
+    Svg
 )
 
 # Fix the Qt6::OpcUa target so that Windows Debug builds use
@@ -82,6 +83,7 @@ target_link_libraries(appOpcUaManager
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
+        Qt6::Svg
 )
 
 # Ensure statically linked QML plugins are retained and imported correctly.

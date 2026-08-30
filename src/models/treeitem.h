@@ -88,7 +88,20 @@ public:
     /** Returns the description text. */
     QString description() const { return m_description; }
 
-    /** Returns the icon name. */
+    /** Returns whether the node is an Object of the standard FolderType. */
+    bool isFolder() const;
+
+    /** Returns whether the node is a variable whose value is an array. */
+    bool isArray() const;
+
+    /**
+     * Returns a human-readable OPC UA/IEC data-type name for a variable node
+     * (for example "BOOL", "INT", "STRING"), or an empty string when the type
+     * is unknown or the node is not a variable.
+     */
+    QString dataTypeName() const;
+
+    /** Returns the icon key used by the QML tree to pick a glyph and tint. */
     QString iconName() const;
 
     /** Returns whether the node supports monitoring. */
@@ -135,6 +148,12 @@ private:
     QString m_displayName;
     /** Integer value of QOpcUa::NodeClass. */
     int m_nodeClass {0};
+    /** Node id of the node's TypeDefinition (used to detect FolderType objects). */
+    QString m_typeDefinitionId;
+    /** Node id of a variable's DataType attribute, e.g. "ns=0;i=6"; empty if unknown. */
+    QString m_dataTypeId;
+    /** OPC UA ValueRank of a variable: -1 scalar, 0 or positive means array. */
+    int m_valueRank {-1};
     /** Current value text shown by the browser. */
     QString m_valueString;
     /** Current data type text shown by the browser. */

@@ -19,26 +19,35 @@ Rectangle {
     property int rowHeight: 32
 
     /*!
-        Returns the badge color for the numeric QOpcUa::NodeClass \a nodeClass.
-        Unknown or undefined classes fall back to a neutral grey.
+        Returns the icon resource for the model \a key (the \c iconName role).
+        The key encodes the node kind and, for variables, the data-type category.
+        Each SVG already carries its own VS Code Material-style fill color, so no
+        runtime tinting is needed. Unknown keys fall back to the generic glyph.
     */
-    function badgeColor(nodeClass) {
-        switch (nodeClass) {
-        case 1: return Material.color(Material.Blue)       // Object
-        case 2: return Material.color(Material.Amber)      // Variable
-        case 4: return Material.color(Material.Purple)     // Method
-        case 8: return Material.color(Material.Teal)       // ObjectType
-        case 16: return Material.color(Material.Cyan)      // VariableType
-        case 32: return Material.color(Material.Green)     // DataType
-        case 64: return Material.color(Material.Orange)    // ReferenceType
-        case 128: return Material.color(Material.LightBlue) // View
-        default: return Material.color(Material.Grey)
+    function iconSource(key) {
+        switch (key) {
+        case "folder": return "qrc:/images/svg/folder.svg"
+        case "object": return "qrc:/images/svg/deployed_code.svg"
+        case "method": return "qrc:/images/svg/function.svg"
+        case "objectType": return "qrc:/images/svg/category.svg"
+        case "variableType": return "qrc:/images/svg/category_cyan.svg"
+        case "dataType":
+        case "var-struct": return "qrc:/images/svg/data_object.svg"
+        case "referenceType": return "qrc:/images/svg/share.svg"
+        case "view": return "qrc:/images/svg/visibility.svg"
+        case "array": return "qrc:/images/svg/data_array.svg"
+        case "var-bool": return "qrc:/images/svg/toggle_on.svg"
+        case "var-int": return "qrc:/images/svg/tag.svg"
+        case "var-uint": return "qrc:/images/svg/tag_indigo.svg"
+        case "var-real": return "qrc:/images/svg/tag_cyan.svg"
+        case "var-string": return "qrc:/images/svg/text_fields.svg"
+        case "var-time": return "qrc:/images/svg/schedule.svg"
+        default: return "qrc:/images/svg/variable.svg"
         }
     }
 
     color: Material.background
-    radius: 6
-    border.color: Material.primary
+    border.color: Material.dividerColor
     border.width: 1
     clip: true
 
@@ -49,7 +58,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            color: "transparent"
+            color: Qt.lighter(Material.background, 1.3)
 
             Label {
                 anchors.left: parent.left
@@ -117,12 +126,17 @@ Rectangle {
                     contentItem: RowLayout {
                         spacing: 8
 
-                        Rectangle {
+                        // Node/type icon: a colored SVG picked from the icon key.
+                        // The fill color is baked into each SVG (VS Code Material style).
+                        Image {
                             Layout.alignment: Qt.AlignVCenter
-                            Layout.preferredWidth: 10
-                            Layout.preferredHeight: 10
-                            radius: 3
-                            color: root.badgeColor(nodeClass)
+                            Layout.preferredWidth: 18
+                            Layout.preferredHeight: 18
+                            source: root.iconSource(iconName)
+                            sourceSize.width: 18
+                            sourceSize.height: 18
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
 
                         Label {
