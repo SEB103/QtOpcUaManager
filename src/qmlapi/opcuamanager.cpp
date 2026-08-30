@@ -2,9 +2,31 @@
 #include <QDebug>
 #include <QDir>
 #include <QMutexLocker>
+#include <QSettings>
 
 #include "core/opcuaservice.h"
+#include "models/structuredvalueformatter.h"
 #include "opcuamanager.h"
+
+namespace {
+
+/*!
+ * \internal
+ * \brief QSettings key storing the persisted structured-value output format.
+ */
+constexpr auto kValueFormatSettingsKey = "view/valueFormat";
+
+/*!
+ * \internal
+ * \brief Maps an OpcUaManager::ValueFormat to the formatter output format.
+ */
+StructuredValueFormatter::Format toFormatterFormat(OpcUaManager::ValueFormat format)
+{
+    return format == OpcUaManager::FormatXml ? StructuredValueFormatter::Format::Xml
+                                             : StructuredValueFormatter::Format::Json;
+}
+
+} // namespace
 
 /*!
  * \property OpcUaManager::opcUaBackend
@@ -82,6 +104,11 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
         m_dataModel->setRecords(m_nodeDatabase->loadAll());
     else
         qWarning() << "OpcUaManager: failed to open node database at" << databasePath;
+
+    // Restore the structured-value output format chosen in a previous session.
+    const int storedFormat =
+        QSettings().value(QLatin1String(kValueFormatSettingsKey), FormatJson).toInt();
+    m_valueFormat = storedFormat == FormatXml ? FormatXml : FormatJson;
 }
 
 OpcUaManager::~OpcUaManager() = default;
@@ -343,8 +370,70 @@ void OpcUaManager::requestAttributes(const QModelIndex &treeIndex)
     if (nodeId.isEmpty())
         return;
 
-    m_pendingAttributeRequestId = ++m_nextAttributeRequestId;
-    emit readAttributesRequested(nodeId, m_pendingAttributeRequestId);
+    const quint64 requestId = ++m_nextAttributeRequestId;
+    m_pendingAttributeRequestId = requestId;
+    m_pendingStructuredRequestId = requestId;
+    m_selectedNodeId = nodeId;
+    emit readAttributesRequested(nodeId, requestId);
+    emit readStructuredValueRequested(nodeId, requestId);
+}
+
+/*!
+ * \brief Returns the current structured-value output format.
+ */
+OpcUaManager::ValueFormat OpcUaManager::valueFormat() const
+{
+    return m_valueFormat;
+}
+
+/*!
+ * \brief Returns the formatted structured value text for the selected node.
+ */
+QString OpcUaManager::structuredValueText() const
+{
+    return m_structuredValueText;
+}
+
+/*!
+ * \brief Returns whether a renderable structured value is available for the panel.
+ */
+bool OpcUaManager::structuredValueAvailable() const
+{
+    return m_structuredValueAvailable;
+}
+
+/*!
+ * \brief Sets the structured-value output \a format and re-renders the cached value.
+ *
+ * The choice is persisted so it is restored on the next run. When a decoded value
+ * is cached it is re-rendered immediately in the new format.
+ */
+void OpcUaManager::setValueFormat(ValueFormat format)
+{
+    if (format == m_valueFormat)
+        return;
+
+    m_valueFormat = format;
+    QSettings().setValue(QLatin1String(kValueFormatSettingsKey), static_cast<int>(format));
+    emit valueFormatChanged();
+
+    if (m_structuredValueAvailable) {
+        m_structuredValueText =
+            StructuredValueFormatter::format(m_structuredValueRoot, toFormatterFormat(m_valueFormat));
+        emit structuredValueChanged();
+    }
+}
+
+/*!
+ * \brief Re-reads and re-decodes the structured value of the last selected node.
+ */
+void OpcUaManager::refreshStructuredValue()
+{
+    if (m_selectedNodeId.isEmpty())
+        return;
+
+    m_pendingStructuredRequestId = ++m_nextAttributeRequestId;
+    emit readStructuredValueRequested(m_selectedNodeId, m_pendingStructuredRequestId);
 }
 
 /*!
@@ -425,6 +514,8 @@ void OpcUaManager::attachService(OpcUaService *service)
 
     connect(this, &OpcUaManager::readAttributesRequested,
             service, &OpcUaService::readNodeAttributes, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::readStructuredValueRequested,
+            service, &OpcUaService::readStructuredValue, Qt::QueuedConnection);
     connect(this, &OpcUaManager::subscribeNodeRequested,
             service, &OpcUaService::subscribeNode, Qt::QueuedConnection);
     connect(this, &OpcUaManager::unsubscribeNodeRequested,
@@ -434,6 +525,8 @@ void OpcUaManager::attachService(OpcUaService *service)
 
     connect(service, &OpcUaService::nodeAttributesReady,
             this, &OpcUaManager::applyNodeAttributes, Qt::QueuedConnection);
+    connect(service, &OpcUaService::structuredValueReady,
+            this, &OpcUaManager::applyStructuredValue, Qt::QueuedConnection);
     connect(service, &OpcUaService::monitoredValueChanged,
             this, &OpcUaManager::applyMonitoredValue, Qt::QueuedConnection);
     connect(service, &OpcUaService::writeCompleted,
@@ -640,6 +733,36 @@ void OpcUaManager::applyNodeAttributes(quint64 requestId,
         m_attributesModel->setAttributes(data);
     else
         m_attributesModel->clear();
+}
+
+/*!
+ * \brief Applies the decoded value tree for \a requestId and \a nodeId to the View panel.
+ * \param root The decoded value tree read from the server.
+ * \param success Whether the read and decode succeeded.
+ *
+ * Stale results from superseded requests are ignored. The tree is cached so the
+ * text can be re-rendered when the output format changes. A value is considered
+ * available when it is a structure or array, or a scalar with a valid value, so
+ * that non-variable nodes (folders and objects) leave the panel empty.
+ */
+void OpcUaManager::applyStructuredValue(quint64 requestId,
+                                        const QString &nodeId,
+                                        const OpcUaValueTreeNode &root,
+                                        bool success)
+{
+    Q_UNUSED(nodeId)
+    if (requestId != m_pendingStructuredRequestId)
+        return;
+
+    const bool hasContent = success
+        && (root.kind != OpcUaValueTreeNode::Kind::Scalar || root.scalarValue.isValid());
+
+    m_structuredValueRoot = root;
+    m_structuredValueAvailable = hasContent;
+    m_structuredValueText = hasContent
+        ? StructuredValueFormatter::format(root, toFormatterFormat(m_valueFormat))
+        : QString();
+    emit structuredValueChanged();
 }
 
 /*!

@@ -940,6 +940,140 @@ void OpcUaService::readNodeAttributes(const QString &nodeId, quint64 requestId)
 }
 
 /*!
+ * \brief Recursively decodes \a value into a value tree node named \a name.
+ *
+ * Detection order is array, then structure, then scalar. Arrays iterate their
+ * elements; structures use the generic struct handler to decode an extension
+ * object and iterate the fields declared by the structure definition, so nested
+ * arrays of structures, structures of arrays, and structures of structures are
+ * reconstructed by recursion. When a structured value cannot be decoded (for
+ * example the handler has not finished initializing), the node degrades to a
+ * scalar text node with \c decodeError set.
+ *
+ * \param name Field name for a structure member, or empty for arrays and root.
+ * \param value The raw value read from the server.
+ * \param dataTypeId DataType node id guiding structure/type-name resolution.
+ * \param valueRank OPC UA ValueRank; a value of 1 or more forces array handling.
+ */
+OpcUaValueTreeNode OpcUaService::buildValueTree(const QString &name,
+                                                const QVariant &value,
+                                                const QString &dataTypeId,
+                                                int valueRank) const
+{
+    OpcUaValueTreeNode node;
+    node.name = name;
+    node.typeId = dataTypeId;
+    node.valueRank = valueRank;
+
+    const bool handlerReady = m_genericStructHandler && m_genericStructHandler->initialized();
+
+    // Array: an explicit array ValueRank, or a list-like value that is not a string.
+    const bool looksLikeArray = value.isValid() && value.typeId() != QMetaType::QString
+        && value.canConvert<QVariantList>();
+    if (valueRank >= 1 || looksLikeArray) {
+        node.kind = OpcUaValueTreeNode::Kind::Array;
+        const QVariantList list = value.toList();
+        node.children.reserve(list.size());
+        for (const QVariant &element : list)
+            node.children.push_back(buildValueTree(QString(), element, dataTypeId, -1));
+
+        if (handlerReady && !dataTypeId.isEmpty())
+            node.typeName = m_genericStructHandler->typeNameForTypeId(dataTypeId);
+        if (node.typeName.isEmpty() && !node.children.isEmpty())
+            node.typeName = node.children.first().typeName;
+        return node;
+    }
+
+    // Structure: an extension object the generic struct handler can decode.
+    if (handlerReady && value.canConvert<QOpcUaExtensionObject>()) {
+        const QOpcUaExtensionObject extensionObject = value.value<QOpcUaExtensionObject>();
+        const std::optional<QOpcUaGenericStructValue> decoded =
+            m_genericStructHandler->decode(extensionObject);
+        if (decoded) {
+            const QOpcUaGenericStructValue &structValue = *decoded;
+            node.kind = OpcUaValueTreeNode::Kind::Struct;
+            node.typeName = structValue.typeName();
+
+            const QHash<QString, QVariant> fieldValues = structValue.fields();
+            const QList<QOpcUaStructureField> fields = structValue.structureDefinition().fields();
+            node.children.reserve(fields.size());
+            for (const QOpcUaStructureField &field : fields) {
+                node.children.push_back(buildValueTree(field.name(),
+                                                       fieldValues.value(field.name()),
+                                                       field.dataType(),
+                                                       field.valueRank()));
+            }
+            return node;
+        }
+        // Decoding failed; degrade to a scalar text node with an error marker.
+        node.decodeError = true;
+    }
+
+    // Scalar, or an undecodable value rendered as text.
+    node.kind = OpcUaValueTreeNode::Kind::Scalar;
+    node.scalarValue = value;
+    node.scalarText = formatOpcUaValue(value);
+    node.typeName = opcUaValueTypeName(value);
+    if (node.typeName.isEmpty() && handlerReady && !dataTypeId.isEmpty())
+        node.typeName = m_genericStructHandler->typeNameForTypeId(dataTypeId);
+    return node;
+}
+
+/*!
+ * \brief Reads and decodes the value of \a nodeId for GUI request \a requestId.
+ *
+ * A transient QOpcUaNode reads the Value, DataType, and ValueRank attributes. The
+ * value is decoded into an OpcUaValueTreeNode tree and emitted to the GUI thread.
+ * The node is released afterwards so no protocol object leaves this service.
+ */
+void OpcUaService::readStructuredValue(const QString &nodeId, quint64 requestId)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this,
+                                  [this, nodeId, requestId]() { readStructuredValue(nodeId, requestId); },
+                                  Qt::QueuedConnection);
+        return;
+    }
+
+    if (!m_clientConnected || !m_client) {
+        emit structuredValueReady(requestId, nodeId, {}, false);
+        return;
+    }
+
+    QOpcUaNode *node = m_client->node(nodeId);
+    if (!node) {
+        emit structuredValueReady(requestId, nodeId, {}, false);
+        return;
+    }
+
+    if (node->thread() != thread())
+        node->moveToThread(thread());
+    node->setParent(this);
+
+    connect(node, &QOpcUaNode::attributeRead, this,
+            [this, node, nodeId, requestId](const QOpcUa::NodeAttributes &attributes) {
+                Q_UNUSED(attributes)
+                const QVariant value = node->attribute(QOpcUa::NodeAttribute::Value);
+                const QString dataTypeId =
+                    node->attribute(QOpcUa::NodeAttribute::DataType).toString();
+                const QVariant valueRankValue = node->attribute(QOpcUa::NodeAttribute::ValueRank);
+                const int valueRank = valueRankValue.isValid() ? valueRankValue.toInt() : -1;
+
+                const OpcUaValueTreeNode root = buildValueTree(QString(), value, dataTypeId, valueRank);
+                emit structuredValueReady(requestId, nodeId, root, true);
+                node->deleteLater();
+            });
+
+    const QOpcUa::NodeAttributes attributesToRead = QOpcUa::NodeAttribute::Value
+        | QOpcUa::NodeAttribute::DataType | QOpcUa::NodeAttribute::ValueRank;
+
+    if (!node->readAttributes(attributesToRead)) {
+        emit structuredValueReady(requestId, nodeId, {}, false);
+        node->deleteLater();
+    }
+}
+
+/*!
  * \brief Starts value-attribute monitoring for \a nodeId.
  *
  * The monitored QOpcUaNode is kept alive in this service and reused for writes.

@@ -21,6 +21,7 @@
 #include "core/opcuaservice.h"
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
+#include "core/opcuavaluetree.h"
 
 #include "appengine.h"
 
@@ -141,6 +142,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qRegisterMetaType<QList<OpcUaNodeData>>("QList<OpcUaNodeData>");
     qRegisterMetaType<OpcUaValueUpdate>("OpcUaValueUpdate");
     qRegisterMetaType<OpcUaAttributeData>("OpcUaAttributeData");
+    qRegisterMetaType<OpcUaValueTreeNode>("OpcUaValueTreeNode");
 
     qmlRegisterUncreatableType<AppEngine>("Cpp.AppEngine", 1, 0, "AppEngine", QStringLiteral("AppEngine is a subclass of QQmlApplicationEngine and should not be created in QML."));
     rootContext()->setContextProperty("cppAppEngine", this);

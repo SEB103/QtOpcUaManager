@@ -36,6 +36,18 @@ target_link_libraries(tst_dataaccessmodel
 
 add_test(NAME DataAccessModel.Unit COMMAND tst_dataaccessmodel)
 
+qt_add_executable(tst_structuredvalueformatter
+    unit/tst_structuredvalueformatter.cpp
+)
+
+target_link_libraries(tst_structuredvalueformatter
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME StructuredValueFormatter.Unit COMMAND tst_structuredvalueformatter)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )

@@ -7,12 +7,15 @@ target_sources(OpcUaCore
         core/opcuaservice.cpp
         core/opcuaservice.h
         core/opcuavaluedata.h
+        core/opcuavaluetree.h
         models/attributesmodel.cpp
         models/attributesmodel.h
         models/dataaccessmodel.cpp
         models/dataaccessmodel.h
         models/opcuamodel.cpp
         models/opcuamodel.h
+        models/structuredvalueformatter.cpp
+        models/structuredvalueformatter.h
         models/treeitem.cpp
         models/treeitem.h
         persistence/nodedatabase.cpp

@@ -22,6 +22,7 @@
 
 #include "opcuanodedata.h"
 #include "opcuavaluedata.h"
+#include "opcuavaluetree.h"
 
 class QOpcUaNode;
 
@@ -84,6 +85,8 @@ public slots:
     void browseChildren(const QString &parentNodeId, quint64 requestId);
     /** Reads the main attributes of \a nodeId for GUI request \a requestId. */
     void readNodeAttributes(const QString &nodeId, quint64 requestId);
+    /** Reads and decodes the value of \a nodeId into a structured tree for GUI request \a requestId. */
+    void readStructuredValue(const QString &nodeId, quint64 requestId);
     /** Starts value-attribute monitoring for \a nodeId. */
     void subscribeNode(const QString &nodeId);
     /** Stops value-attribute monitoring for \a nodeId. */
@@ -119,6 +122,11 @@ signals:
                              bool success);
     /** Emitted when the attributes requested for \a requestId are ready. */
     void nodeAttributesReady(quint64 requestId, const OpcUaAttributeData &data, bool success);
+    /** Emitted when the decoded value tree for \a nodeId and \a requestId is ready. */
+    void structuredValueReady(quint64 requestId,
+                              const QString &nodeId,
+                              const OpcUaValueTreeNode &root,
+                              bool success);
     /** Emitted when a monitored node reports a new value. */
     void monitoredValueChanged(const OpcUaValueUpdate &update);
     /** Emitted when a write to \a nodeId finishes; \a error is set on failure. */
@@ -198,6 +206,15 @@ private:
     void clearMonitoredNodes();
     /** Builds a value-attribute update snapshot for \a nodeId from \a node. */
     OpcUaValueUpdate buildValueUpdate(const QString &nodeId, QOpcUaNode *node) const;
+    /**
+     * Recursively decodes \a value into a value tree node named \a name.
+     * \a dataTypeId and \a valueRank are the field's DataType node id and
+     * ValueRank when known; they guide array and structure detection.
+     */
+    OpcUaValueTreeNode buildValueTree(const QString &name,
+                                      const QVariant &value,
+                                      const QString &dataTypeId,
+                                      int valueRank) const;
 
     /** Whether initialize() has completed successfully. */
     bool m_initialized {false};

@@ -89,6 +89,34 @@ MenuBar {
         MenuSeparator {}
 
         Menu {
+            title: qsTr("&Value Format")
+
+            ActionGroup {
+                id: valueFormatGroup
+                exclusive: true
+            }
+
+            // Values mirror OpcUaManager::ValueFormat (FormatJson = 0, FormatXml = 1).
+            MenuItem {
+                text: qsTr("JSON")
+                checkable: true
+                ActionGroup.group: valueFormatGroup
+                checked: cppManagerOpcUa.valueFormat === 0
+                onTriggered: cppManagerOpcUa.valueFormat = 0
+            }
+
+            MenuItem {
+                text: qsTr("XML")
+                checkable: true
+                ActionGroup.group: valueFormatGroup
+                checked: cppManagerOpcUa.valueFormat === 1
+                onTriggered: cppManagerOpcUa.valueFormat = 1
+            }
+        }
+
+        MenuSeparator {}
+
+        Menu {
             title: qsTr("&Toolbars")
             enabled: false
 

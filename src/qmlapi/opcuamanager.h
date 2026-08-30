@@ -8,6 +8,7 @@
 
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
+#include "core/opcuavaluetree.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
@@ -71,6 +72,18 @@ class OpcUaManager : public QObject
     /** Current QOpcUaUserTokenPolicy::TokenType as an integer for QML controls. */
     Q_PROPERTY(int authMode READ authMode NOTIFY authModeChanged)
 
+    /** Output format used to render the structured value of the selected node. */
+    Q_PROPERTY(ValueFormat valueFormat READ valueFormat WRITE setValueFormat
+                   NOTIFY valueFormatChanged)
+
+    /** Formatted structured value text (JSON or XML) for the selected node. */
+    Q_PROPERTY(QString structuredValueText READ structuredValueText
+                   NOTIFY structuredValueChanged)
+
+    /** Whether the selected node exposes a renderable structured or scalar value. */
+    Q_PROPERTY(bool structuredValueAvailable READ structuredValueAvailable
+                   NOTIFY structuredValueChanged)
+
 public:
     /** Operation state values exposed to QML. */
     enum OperationState {
@@ -99,6 +112,15 @@ public:
         ClientClosing
     };
     Q_ENUM(ClientState)
+
+    /** Structured-value output format selectable from the View menu. */
+    enum ValueFormat {
+        /** Render structured values as JSON. */
+        FormatJson = 0,
+        /** Render structured values as XML. */
+        FormatXml
+    };
+    Q_ENUM(ValueFormat)
 
     /** Creates a GUI-thread facade using \a initialUrl as the default discovery URL. */
     explicit OpcUaManager(const QString &initialUrl = QString(), QObject *parent = nullptr);
@@ -148,6 +170,18 @@ public:
     /** Returns the current authentication token mode as an integer. */
     int authMode() const;
 
+    /** Returns the current structured-value output format. */
+    ValueFormat valueFormat() const;
+
+    /** Returns the formatted structured value text for the selected node. */
+    QString structuredValueText() const;
+
+    /** Returns whether a renderable structured value is available for the panel. */
+    bool structuredValueAvailable() const;
+
+    /** Sets the structured-value output \a format and re-renders the cached value. */
+    void setValueFormat(ValueFormat format);
+
     /** Requests backend selection on the worker service. */
     void setBackend(const QString &backend);
 
@@ -193,6 +227,9 @@ public:
     /** Requests the attributes of the node at the tree \a treeIndex for the panel. */
     Q_INVOKABLE void requestAttributes(const QModelIndex &treeIndex);
 
+    /** Re-reads and re-decodes the structured value of the last selected node. */
+    Q_INVOKABLE void refreshStructuredValue();
+
     /** Writes \a value to the node backing the Data Access View row at \a row. */
     Q_INVOKABLE void writeValue(int row, const QVariant &value);
 
@@ -222,6 +259,10 @@ signals:
     void lastErrorChanged();
     /** Emitted when the authentication token mode changes. */
     void authModeChanged();
+    /** Emitted when the structured-value output format changes. */
+    void valueFormatChanged();
+    /** Emitted when the structured value text or its availability changes. */
+    void structuredValueChanged();
 
     /** Requests worker-service initialization. */
     void initializeRequested();
@@ -251,6 +292,8 @@ signals:
     void browseChildrenRequested(const QString &parentNodeId, quint64 requestId);
     /** Requests reading attributes of \a nodeId for the panel request \a requestId. */
     void readAttributesRequested(const QString &nodeId, quint64 requestId);
+    /** Requests reading the structured value of \a nodeId for panel request \a requestId. */
+    void readStructuredValueRequested(const QString &nodeId, quint64 requestId);
     /** Requests starting a value subscription for \a nodeId on the worker service. */
     void subscribeNodeRequested(const QString &nodeId);
     /** Requests stopping the value subscription for \a nodeId on the worker service. */
@@ -286,6 +329,11 @@ public slots:
                              bool success);
     /** Applies node attributes for \a requestId to the Attributes panel model. */
     void applyNodeAttributes(quint64 requestId, const OpcUaAttributeData &data, bool success);
+    /** Applies the decoded value tree for \a requestId and \a nodeId to the View panel. */
+    void applyStructuredValue(quint64 requestId,
+                              const QString &nodeId,
+                              const OpcUaValueTreeNode &root,
+                              bool success);
     /** Applies a live value \a update to the Data Access View table model. */
     void applyMonitoredValue(const OpcUaValueUpdate &update);
     /** Applies a write result for \a nodeId, surfacing \a error when the write failed. */
@@ -350,6 +398,24 @@ private:
 
     /** Attribute request id whose result is still relevant for the panel. */
     quint64 m_pendingAttributeRequestId {0};
+
+    /** Structured-value request id whose result is still relevant for the panel. */
+    quint64 m_pendingStructuredRequestId {0};
+
+    /** Node id of the last selected node, used by refreshStructuredValue(). */
+    QString m_selectedNodeId;
+
+    /** Current structured-value output format. */
+    ValueFormat m_valueFormat {FormatJson};
+
+    /** Cached decoded value tree of the selected node, kept for re-rendering. */
+    OpcUaValueTreeNode m_structuredValueRoot;
+
+    /** Formatted structured value text shown in the View panel. */
+    QString m_structuredValueText;
+
+    /** Whether a renderable structured value is currently available. */
+    bool m_structuredValueAvailable {false};
 
     /** Non-owning worker-service pointer used only for attachment identity checks. */
     OpcUaService *m_service {nullptr};
