@@ -44,6 +44,8 @@ target_sources(OpcUaQmlApi
     PRIVATE
         qmlapi/opcuamanager.cpp
         qmlapi/opcuamanager.h
+        qmlapi/structuredvaluehighlighter.cpp
+        qmlapi/structuredvaluehighlighter.h
 )
 
 target_include_directories(OpcUaQmlApi
@@ -55,4 +57,6 @@ target_link_libraries(OpcUaQmlApi
     PUBLIC
         OpcUaCore
         Qt6::Core
+        Qt6::Gui
+        Qt6::Quick
 )

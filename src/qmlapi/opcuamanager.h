@@ -3,6 +3,7 @@
 
 #include <QMutex>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
 #include <memory>
 
@@ -15,6 +16,8 @@
 #include "persistence/nodedatabase.h"
 
 class OpcUaService;
+class QQuickTextDocument;
+class StructuredValueHighlighter;
 
 /**
  * GUI-thread facade for the OPC UA backend.
@@ -230,6 +233,15 @@ public:
     /** Re-reads and re-decodes the structured value of the last selected node. */
     Q_INVOKABLE void refreshStructuredValue();
 
+    /**
+     * Installs the structured-value syntax highlighter on \a document.
+     *
+     * The QML Value panel passes the TextArea's QQuickTextDocument so the
+     * highlighter attaches to its underlying QTextDocument. The call is a no-op
+     * when \a document is null or a highlighter is already installed.
+     */
+    Q_INVOKABLE void installStructuredValueHighlighter(QQuickTextDocument *document);
+
     /** Writes \a value to the node backing the Data Access View row at \a row. */
     Q_INVOKABLE void writeValue(int row, const QVariant &value);
 
@@ -416,6 +428,9 @@ private:
 
     /** Whether a renderable structured value is currently available. */
     bool m_structuredValueAvailable {false};
+
+    /** Syntax highlighter for the View panel; owned by the TextArea's QTextDocument. */
+    QPointer<StructuredValueHighlighter> m_structuredValueHighlighter;
 
     /** Non-owning worker-service pointer used only for attachment identity checks. */
     OpcUaService *m_service {nullptr};

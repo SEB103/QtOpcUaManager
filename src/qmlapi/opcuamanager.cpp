@@ -3,10 +3,12 @@
 #include <QDir>
 #include <QMutexLocker>
 #include <QSettings>
+#include <QtQuick/QQuickTextDocument>
 
 #include "core/opcuaservice.h"
 #include "models/structuredvalueformatter.h"
 #include "opcuamanager.h"
+#include "structuredvaluehighlighter.h"
 
 namespace {
 
@@ -24,6 +26,16 @@ StructuredValueFormatter::Format toFormatterFormat(OpcUaManager::ValueFormat for
 {
     return format == OpcUaManager::FormatXml ? StructuredValueFormatter::Format::Xml
                                              : StructuredValueFormatter::Format::Json;
+}
+
+/*!
+ * \internal
+ * \brief Maps an OpcUaManager::ValueFormat to the highlighter language.
+ */
+StructuredValueHighlighter::Language toHighlighterLanguage(OpcUaManager::ValueFormat format)
+{
+    return format == OpcUaManager::FormatXml ? StructuredValueHighlighter::Language::Xml
+                                             : StructuredValueHighlighter::Language::Json;
 }
 
 } // namespace
@@ -417,11 +429,36 @@ void OpcUaManager::setValueFormat(ValueFormat format)
     QSettings().setValue(QLatin1String(kValueFormatSettingsKey), static_cast<int>(format));
     emit valueFormatChanged();
 
+    if (m_structuredValueHighlighter)
+        m_structuredValueHighlighter->setLanguage(toHighlighterLanguage(m_valueFormat));
+
     if (m_structuredValueAvailable) {
         m_structuredValueText =
             StructuredValueFormatter::format(m_structuredValueRoot, toFormatterFormat(m_valueFormat));
         emit structuredValueChanged();
     }
+}
+
+/*!
+ * \brief Installs the structured-value syntax highlighter on \a document.
+ *
+ * Attaches a StructuredValueHighlighter to the TextArea's underlying
+ * QTextDocument and seeds it with the current output format. The highlighter is
+ * parented to that document, so it is destroyed with the TextArea; a QPointer
+ * guards the manager's reference against that. The call is ignored when
+ * \a document is null or a highlighter is already installed.
+ */
+void OpcUaManager::installStructuredValueHighlighter(QQuickTextDocument *document)
+{
+    if (!document || m_structuredValueHighlighter)
+        return;
+
+    QTextDocument *textDocument = document->textDocument();
+    if (!textDocument)
+        return;
+
+    m_structuredValueHighlighter = new StructuredValueHighlighter(textDocument);
+    m_structuredValueHighlighter->setLanguage(toHighlighterLanguage(m_valueFormat));
 }
 
 /*!

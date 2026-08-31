@@ -204,13 +204,24 @@ Rectangle {
                         clip: true
 
                         TextArea {
+                            id: structuredValueText
                             readOnly: true
                             selectByMouse: true
                             wrapMode: TextEdit.NoWrap
                             text: cppManagerOpcUa.structuredValueText
                             font.family: "Consolas"
                             font.pixelSize: 13
+                            // Base text color; the C++ QSyntaxHighlighter overrides
+                            // only the matched JSON/XML token ranges.
                             color: Material.foreground
+                            // Attach the structured-value syntax highlighter to this
+                            // TextArea's document via the existing context property, so
+                            // the Base module needs no Cpp.* import.
+                            Component.onCompleted: {
+                                if (cppManagerOpcUa)
+                                    cppManagerOpcUa.installStructuredValueHighlighter(
+                                        structuredValueText.textDocument)
+                            }
                         }
                     }
                 }
