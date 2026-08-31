@@ -14,6 +14,7 @@
 #include <QOpcUaPkiConfiguration>
 #include <QOpcUaProvider>
 #include <QOpcUaUserTokenPolicy>
+#include <QPointer>
 #include <QScopedPointer>
 #include <QStringList>
 #include <QTimer>
@@ -25,6 +26,7 @@
 #include "opcuavaluetree.h"
 
 class QOpcUaNode;
+class StructuredNodeReader;
 
 /**
  * Worker-thread OPC UA service behind OpcUaManager.
@@ -215,6 +217,13 @@ private:
                                       const QVariant &value,
                                       const QString &dataTypeId,
                                       int valueRank) const;
+    /**
+     * Resolves the structured value of \a nodeId by browsing its instance
+     * subtree, used when an ExtensionObject cannot be decoded (for example on
+     * servers that do not expose DataTypeDefinition). Emits structuredValueReady
+     * for \a requestId when the subtree is fully read.
+     */
+    void startStructuredBrowseRead(const QString &nodeId, quint64 requestId);
 
     /** Whether initialize() has completed successfully. */
     bool m_initialized {false};
@@ -250,6 +259,12 @@ private:
     QUrl m_lastEndpointsRequestUrl;
     /** Optional helper for custom OPC UA structured types after connection. */
     QScopedPointer<QOpcUaGenericStructHandler> m_genericStructHandler;
+    /** Node id of the most recent structured-value request, for re-decoding. */
+    QString m_lastStructuredNodeId;
+    /** Request id of the most recent structured-value request, for re-decoding. */
+    quint64 m_lastStructuredRequestId {0};
+    /** Active browse-based structured reader, if a fallback read is in flight. */
+    QPointer<StructuredNodeReader> m_structReader;
     /** Application identity applied to the active client. */
     QOpcUaApplicationIdentity m_identity;
     /** Runtime PKI configuration for certificate validation and authentication. */

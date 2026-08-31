@@ -8,6 +8,8 @@ target_sources(OpcUaCore
         core/opcuaservice.h
         core/opcuavaluedata.h
         core/opcuavaluetree.h
+        core/structurednodereader.cpp
+        core/structurednodereader.h
         models/attributesmodel.cpp
         models/attributesmodel.h
         models/dataaccessmodel.cpp

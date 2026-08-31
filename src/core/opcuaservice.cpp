@@ -1,5 +1,7 @@
 #include "opcuaservice.h"
 
+#include "structurednodereader.h"
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDebug>
@@ -7,6 +9,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHostInfo>
+#include <QLoggingCategory>
 #include <QMetaEnum>
 #include <QMetaObject>
 #include <QOpcUaExtensionObject>
@@ -29,6 +32,33 @@
 #include <memory>
 
 using namespace Qt::Literals::StringLiterals;
+
+/*!
+ * \internal
+ * \brief Logging category for structured-value decoding diagnostics.
+ *
+ * Disabled by default. Enable with QT_LOGGING_RULES="opcua.struct.debug=true"
+ * to trace generic-struct-handler initialization and ExtensionObject decoding.
+ */
+Q_LOGGING_CATEGORY(lcOpcUaStruct, "opcua.struct")
+
+/*!
+ * \internal
+ * \brief Returns whether \a node or any descendant failed to decode.
+ *
+ * A decode error marks an ExtensionObject the generic struct handler could not
+ * decode; it signals that the browse-based structured reader should be used.
+ */
+static bool treeHasDecodeError(const OpcUaValueTreeNode &node)
+{
+    if (node.decodeError)
+        return true;
+    for (const OpcUaValueTreeNode &child : node.children) {
+        if (treeHasDecodeError(child))
+            return true;
+    }
+    return false;
+}
 
 /*!
  * \internal
@@ -985,10 +1015,10 @@ OpcUaValueTreeNode OpcUaService::buildValueTree(const QString &name,
     }
 
     // Structure: an extension object the generic struct handler can decode.
-    if (handlerReady && value.canConvert<QOpcUaExtensionObject>()) {
+    if (value.canConvert<QOpcUaExtensionObject>()) {
         const QOpcUaExtensionObject extensionObject = value.value<QOpcUaExtensionObject>();
         const std::optional<QOpcUaGenericStructValue> decoded =
-            m_genericStructHandler->decode(extensionObject);
+            handlerReady ? m_genericStructHandler->decode(extensionObject) : std::nullopt;
         if (decoded) {
             const QOpcUaGenericStructValue &structValue = *decoded;
             node.kind = OpcUaValueTreeNode::Kind::Struct;
@@ -1005,8 +1035,22 @@ OpcUaValueTreeNode OpcUaService::buildValueTree(const QString &name,
             }
             return node;
         }
-        // Decoding failed; degrade to a scalar text node with an error marker.
+        // Handler not ready or decoding failed: mark so the caller can fall back
+        // to the browse-based structured reader.
         node.decodeError = true;
+    }
+
+    // Undecodable structure: show a clear marker instead of the raw QVariant type
+    // name (which would render as "QOpcUaExtensionObject"/"QtObject").
+    if (node.decodeError && value.canConvert<QOpcUaExtensionObject>()) {
+        node.kind = OpcUaValueTreeNode::Kind::Scalar;
+        node.scalarValue = value;
+        QString typeName;
+        if (handlerReady && !dataTypeId.isEmpty())
+            typeName = m_genericStructHandler->typeNameForTypeId(dataTypeId);
+        node.typeName = typeName.isEmpty() ? QStringLiteral("Structure") : typeName;
+        node.scalarText = QStringLiteral("<undecoded structure>");
+        return node;
     }
 
     // Scalar, or an undecodable value rendered as text.
@@ -1035,6 +1079,11 @@ void OpcUaService::readStructuredValue(const QString &nodeId, quint64 requestId)
         return;
     }
 
+    // Remember the request so the value can be re-decoded once the generic struct
+    // handler finishes initializing (a struct may be selected before it is ready).
+    m_lastStructuredNodeId = nodeId;
+    m_lastStructuredRequestId = requestId;
+
     if (!m_clientConnected || !m_client) {
         emit structuredValueReady(requestId, nodeId, {}, false);
         return;
@@ -1060,8 +1109,19 @@ void OpcUaService::readStructuredValue(const QString &nodeId, quint64 requestId)
                 const int valueRank = valueRankValue.isValid() ? valueRankValue.toInt() : -1;
 
                 const OpcUaValueTreeNode root = buildValueTree(QString(), value, dataTypeId, valueRank);
-                emit structuredValueReady(requestId, nodeId, root, true);
                 node->deleteLater();
+
+                // When the generic struct handler could not decode the value (for
+                // example the server does not expose DataTypeDefinition), fall back
+                // to resolving the structure by browsing the instance subtree.
+                if (treeHasDecodeError(root)) {
+                    qCDebug(lcOpcUaStruct) << "decode incomplete for" << nodeId
+                                           << "- using browse-based structured reader.";
+                    startStructuredBrowseRead(nodeId, requestId);
+                    return;
+                }
+
+                emit structuredValueReady(requestId, nodeId, root, true);
             });
 
     const QOpcUa::NodeAttributes attributesToRead = QOpcUa::NodeAttribute::Value
@@ -1071,6 +1131,32 @@ void OpcUaService::readStructuredValue(const QString &nodeId, quint64 requestId)
         emit structuredValueReady(requestId, nodeId, {}, false);
         node->deleteLater();
     }
+}
+
+/*!
+ * \brief Resolves the structured value of \a nodeId by browsing its subtree.
+ *
+ * Used as a fallback for servers whose ExtensionObject values the generic struct
+ * handler cannot decode. A StructuredNodeReader browses the instance subtree and
+ * reads each member; its finished() result is forwarded as structuredValueReady
+ * for \a requestId. Any previous in-flight reader is discarded.
+ */
+void OpcUaService::startStructuredBrowseRead(const QString &nodeId, quint64 requestId)
+{
+    if (!m_clientConnected || !m_client) {
+        emit structuredValueReady(requestId, nodeId, {}, false);
+        return;
+    }
+
+    if (m_structReader)
+        m_structReader->deleteLater();
+
+    m_structReader = new StructuredNodeReader(m_client, nodeId, requestId, this);
+    connect(m_structReader.data(), &StructuredNodeReader::finished, this,
+            [this](quint64 rid, const QString &nid, const OpcUaValueTreeNode &root, bool ok) {
+                emit structuredValueReady(rid, nid, root, ok);
+            });
+    m_structReader->start();
 }
 
 /*!
@@ -1949,6 +2035,10 @@ void OpcUaService::onClientDisconnected()
                    &OpcUaService::namespacesArrayUpdated);
     }
     m_genericStructHandler.reset();
+    if (m_structReader)
+        m_structReader->deleteLater();
+    m_lastStructuredNodeId.clear();
+    m_lastStructuredRequestId = 0;
 }
 
 /*!
@@ -2066,6 +2156,8 @@ void OpcUaService::namespacesArrayUpdated(const QStringList &namespaceArray)
 {
     if (!m_client || namespaceArray.isEmpty())
         return;
+    qCDebug(lcOpcUaStruct) << "namespaceArray received, count:" << namespaceArray.size()
+                           << "- constructing QOpcUaGenericStructHandler and initializing.";
     disconnect(m_client, &QOpcUaClient::namespaceArrayUpdated, this, &OpcUaService::namespacesArrayUpdated);
     m_genericStructHandler.reset(new QOpcUaGenericStructHandler(m_client));
     connect(m_genericStructHandler.get(), &QOpcUaGenericStructHandler::initializedChanged, this, &OpcUaService::handleGenericStructHandlerInitFinished);
@@ -2077,6 +2169,19 @@ void OpcUaService::namespacesArrayUpdated(const QStringList &namespaceArray)
  */
 void OpcUaService::handleGenericStructHandlerInitFinished(bool success)
 {
-    if (!success)
+    qCDebug(lcOpcUaStruct) << "GenericStructHandler init finished, success:" << success
+                           << "initialized:"
+                           << (m_genericStructHandler && m_genericStructHandler->initialized());
+    if (!success) {
         setLastError(QStringLiteral("GenericStructHandler initialization failed."));
+        return;
+    }
+
+    // The handler is now ready. Re-decode the currently selected node so a structure
+    // selected before initialization completed is populated without a manual refresh.
+    if (m_clientConnected && !m_lastStructuredNodeId.isEmpty()) {
+        qCDebug(lcOpcUaStruct) << "Re-decoding last structured node after handler init:"
+                               << m_lastStructuredNodeId;
+        readStructuredValue(m_lastStructuredNodeId, m_lastStructuredRequestId);
+    }
 }
