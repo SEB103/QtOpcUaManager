@@ -54,7 +54,7 @@ Item {
             SplitView.fillHeight: true
 
             // Selecting a Data View row reveals the same node in the address space.
-            onNodeSelected: nodeId => addressTree.revealNode(nodeId)
+            onNodeSelected: (nodeId, nodePath) => addressTree.revealNode(nodeId, nodePath)
         }
 
         BsNodeAttributes {

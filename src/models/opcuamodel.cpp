@@ -68,6 +68,46 @@ void OpcUaModel::setConnectionActive(bool active)
 }
 
 /*!
+ * \brief Sets the node ids that are currently monitored.
+ *
+ * Nodes created after this call restore their monitoring checkbox from the set.
+ * Already materialized items are updated in place so an open tree reflects the
+ * change immediately, emitting dataChanged() for each item whose state flips.
+ */
+void OpcUaModel::setMonitoredNodeIds(const QSet<QString> &nodeIds)
+{
+    m_monitoredNodeIds = nodeIds;
+
+    if (!mRootItem)
+        return;
+
+    std::vector<TreeItem *> stack;
+    for (int i = 0; i < mRootItem->childCount(); ++i)
+        stack.push_back(mRootItem->child(i));
+
+    while (!stack.empty()) {
+        TreeItem *item = stack.back();
+        stack.pop_back();
+        if (!item)
+            continue;
+
+        const bool monitored = m_monitoredNodeIds.contains(item->nodeId());
+        if (item->monitoringEnabled() != monitored) {
+            item->setMonitoringEnabled(monitored);
+            const QModelIndex idx = indexForItem(item, 0);
+            if (idx.isValid()) {
+                const QModelIndex left = index(idx.row(), 0, idx.parent());
+                const QModelIndex right = index(idx.row(), columnCount() - 1, idx.parent());
+                emit dataChanged(left, right, {MonitoringEnabledRole});
+            }
+        }
+
+        for (int i = 0; i < item->childCount(); ++i)
+            stack.push_back(item->child(i));
+    }
+}
+
+/*!
  * \brief Applies a child snapshot for \a parentNodeId.
  * \param requestId The request identifier emitted by fetchChildrenRequested().
  * \param children The immutable child node snapshots to apply.
@@ -118,6 +158,7 @@ void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
             const QModelIndex right = index(parentIndex.row(), columnCount() - 1, parentIndex.parent());
             emit dataChanged(left, right, {FetchStateRole});
         }
+        maybeResumeReveal(parentNodeId, false);
         return;
     }
 
@@ -130,18 +171,25 @@ void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
 
     if (children.isEmpty()) {
         parentItem->setFetchState(TreeItem::FetchState::Fetched);
+        maybeResumeReveal(parentNodeId, true);
         return;
     }
 
     std::vector<std::unique_ptr<TreeItem>> newChildren;
     newChildren.reserve(size_t(children.size()));
-    for (const auto &child : children)
-        newChildren.push_back(std::make_unique<TreeItem>(child, this, parentItem));
+    for (const auto &child : children) {
+        auto item = std::make_unique<TreeItem>(child, this, parentItem);
+        // Restore the monitoring checkbox for nodes already in the Data Access View.
+        item->setMonitoringEnabled(m_monitoredNodeIds.contains(child.nodeId));
+        newChildren.push_back(std::move(item));
+    }
 
     beginInsertRows(parentIndex, 0, int(children.size()) - 1);
     parentItem->replaceChildren(std::move(newChildren));
     parentItem->setFetchState(TreeItem::FetchState::Fetched);
     endInsertRows();
+
+    maybeResumeReveal(parentNodeId, true);
 }
 
 /*!
@@ -189,6 +237,145 @@ QModelIndex OpcUaModel::indexForNodeId(const QString &nodeId) const
     }
 
     return {};
+}
+
+/*!
+ * \brief Starts materializing the lazy tree along \a displayPath to \a targetNodeId.
+ */
+void OpcUaModel::requestRevealPath(const QStringList &displayPath, const QString &targetNodeId)
+{
+    // Cancel any previous reveal before starting a new one.
+    m_revealActive = false;
+
+    if (!mRootItem || displayPath.isEmpty()) {
+        emit revealPathReady({});
+        return;
+    }
+
+    m_revealActive = true;
+    m_revealPath = displayPath;
+    m_revealTargetNodeId = targetNodeId;
+    m_revealDepth = 0;
+    m_revealParentIndex = QPersistentModelIndex();
+    m_revealWaitParentNodeId.clear();
+
+    advanceReveal();
+}
+
+/*!
+ * \internal
+ * \brief Advances the in-progress reveal, fetching or descending one level.
+ *
+ * Starting from the saved parent and depth, it descends through every already
+ * materialized level synchronously. When a level's children are missing it
+ * either waits for an in-flight browse or issues one and returns, to be resumed
+ * by maybeResumeReveal() once the snapshot arrives. The target node is matched by
+ * id for the final segment and by display name for intermediate segments.
+ */
+void OpcUaModel::advanceReveal()
+{
+    if (!m_revealActive)
+        return;
+    if (!mRootItem) {
+        finishReveal({});
+        return;
+    }
+
+    QModelIndex parent = m_revealParentIndex;
+    while (true) {
+        TreeItem *parentItem = parent.isValid() ? itemFromIndex(parent) : mRootItem.get();
+        if (!parentItem) {
+            finishReveal({});
+            return;
+        }
+
+        const int depth = m_revealDepth;
+        if (depth < 0 || depth >= m_revealPath.size()) {
+            finishReveal({});
+            return;
+        }
+
+        const QString wantName = m_revealPath.at(depth);
+        const bool lastSegment = (depth == m_revealPath.size() - 1);
+
+        TreeItem *match = nullptr;
+        for (int i = 0; i < parentItem->childCount(); ++i) {
+            TreeItem *candidate = parentItem->child(i);
+            if (!candidate)
+                continue;
+            if (lastSegment && !m_revealTargetNodeId.isEmpty()
+                && candidate->nodeId() == m_revealTargetNodeId) {
+                match = candidate;
+                break;
+            }
+            if (candidate->displayName() == wantName) {
+                match = candidate;
+                if (!lastSegment)
+                    break;
+            }
+        }
+
+        if (match) {
+            const QModelIndex matchIndex = indexForItem(match, 0);
+            if (lastSegment) {
+                finishReveal(matchIndex);
+                return;
+            }
+            // Descend to the matched child and resolve the next segment there.
+            m_revealParentIndex = QPersistentModelIndex(matchIndex);
+            m_revealDepth = depth + 1;
+            parent = matchIndex;
+            continue;
+        }
+
+        // The wanted child is not present yet at this level.
+        if (parentItem->fetchState() == TreeItem::FetchState::Fetching) {
+            m_revealWaitParentNodeId = parentItem->nodeId();
+            return;
+        }
+        if (parentItem->canFetchMore()) {
+            m_revealWaitParentNodeId = parentItem->nodeId();
+            fetchMore(parent);
+            return;
+        }
+
+        // Fully fetched and still absent: the address space no longer matches the
+        // stored path, so give up without disturbing the rest of the selection.
+        finishReveal({});
+        return;
+    }
+}
+
+/*!
+ * \internal
+ * \brief Resumes a waiting reveal when the snapshot for \a parentNodeId arrives.
+ */
+void OpcUaModel::maybeResumeReveal(const QString &parentNodeId, bool success)
+{
+    if (!m_revealActive || parentNodeId != m_revealWaitParentNodeId)
+        return;
+
+    m_revealWaitParentNodeId.clear();
+    if (success)
+        advanceReveal();
+    else
+        finishReveal({});
+}
+
+/*!
+ * \internal
+ * \brief Ends the in-progress reveal and emits revealPathReady() with \a index.
+ */
+void OpcUaModel::finishReveal(const QModelIndex &index)
+{
+    m_revealActive = false;
+    m_revealPath.clear();
+    m_revealTargetNodeId.clear();
+    m_revealDepth = 0;
+    m_revealParentIndex = QPersistentModelIndex();
+    m_revealWaitParentNodeId.clear();
+
+    emit revealPathReady(index);
 }
 
 /*!

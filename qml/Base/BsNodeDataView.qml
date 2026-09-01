@@ -44,8 +44,8 @@ Rectangle {
     /*! Height of the header and each data row. */
     readonly property int rowHeight: 30
 
-    /*! Emitted with the node id when a row is selected, so the tree can reveal it. */
-    signal nodeSelected(string nodeId)
+    /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
+    signal nodeSelected(string nodeId, string nodePath)
 
     color: Material.background
     border.color: Material.dividerColor
@@ -63,13 +63,13 @@ Rectangle {
     }
 
     /*!
-        Selects the Data Access View \a row (identified by \a nodeId): loads its
-        attributes and value into the panels, highlights it, and asks the address
-        space to reveal the same node.
+        Selects the Data Access View \a row (identified by \a nodeId, located at
+        \a nodePath): loads its attributes and value into the panels, highlights
+        it, and asks the address space to reveal the same node.
     */
-    function selectRow(row, nodeId) {
+    function selectRow(row, nodeId, nodePath) {
         cppManagerOpcUa.selectDataRow(row)
-        root.nodeSelected(nodeId)
+        root.nodeSelected(nodeId, nodePath)
     }
 
     ColumnLayout {
@@ -213,7 +213,8 @@ Rectangle {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.LeftButton
                                 onClicked: root.selectRow(rowDelegate.index,
-                                                          rowDelegate.model.nodeId)
+                                                          rowDelegate.model.nodeId,
+                                                          rowDelegate.model.nodePath)
                             }
 
                             Row {
@@ -248,7 +249,8 @@ Rectangle {
                                             enabled: modelData.role === "value"
                                             acceptedButtons: Qt.LeftButton
                                             onClicked: root.selectRow(rowDelegate.index,
-                                                                      rowDelegate.model.nodeId)
+                                                                      rowDelegate.model.nodeId,
+                                                                      rowDelegate.model.nodePath)
                                             onDoubleClicked: root.editValue(rowDelegate.index,
                                                                             rowDelegate.model.value)
                                         }

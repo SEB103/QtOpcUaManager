@@ -377,6 +377,8 @@ private:
     QString buildNodePath(const QModelIndex &treeIndex) const;
     /** Makes \a nodeId the selected node and requests its attributes and value. */
     void selectNode(const QString &nodeId);
+    /** Pushes the monitored node ids of the current server to the tree model. */
+    void refreshMonitoredNodeIds();
     /** Protects state mirrored from queued worker-service signals. */
     mutable QMutex m_stateMutex;
 

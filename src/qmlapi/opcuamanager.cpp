@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QMutexLocker>
+#include <QSet>
 #include <QSettings>
 #include <QtQuick/QQuickTextDocument>
 
@@ -305,6 +306,32 @@ QString OpcUaManager::buildNodePath(const QModelIndex &treeIndex) const
 }
 
 /*!
+ * \internal
+ * \brief Pushes the monitored node ids of the current server to the tree model.
+ *
+ * Collects the node ids of every Data Access View row that belongs to the
+ * currently connected server and hands them to the tree model, which uses them
+ * to restore the monitoring checkbox for matching nodes as the tree is browsed.
+ */
+void OpcUaManager::refreshMonitoredNodeIds()
+{
+    if (!m_treeModel || !m_dataModel)
+        return;
+
+    const QString server = m_currentServer.isEmpty() ? m_initialUrl : m_currentServer;
+    QSet<QString> ids;
+    const int rows = m_dataModel->rowCount();
+    for (int i = 0; i < rows; ++i) {
+        if (m_dataModel->serverAt(i) == server) {
+            const QString nodeId = m_dataModel->nodeIdAt(i);
+            if (!nodeId.isEmpty())
+                ids.insert(nodeId);
+        }
+    }
+    m_treeModel->setMonitoredNodeIds(ids);
+}
+
+/*!
  * \brief Adds or removes the node at \a treeIndex from the Data Access View.
  * \param on Whether the node should be monitored and persisted.
  *
@@ -349,6 +376,9 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         m_treeModel->setMonitoringEnabledAt(treeIndex, false);
         emit unsubscribeNodeRequested(nodeId);
     }
+
+    // Keep the tree's monitored-id set in sync so later re-browses stay correct.
+    refreshMonitoredNodeIds();
 }
 
 /*!
@@ -704,6 +734,10 @@ void OpcUaManager::applyConnected(bool connected)
         m_treeModel->setConnectionActive(connected);
 
     if (connected) {
+        // Seed the tree with the persisted monitored node ids before its browse
+        // results arrive, so the monitoring checkbox is restored for those nodes.
+        refreshMonitoredNodeIds();
+
         // Re-establish subscriptions for every persisted monitored node so the
         // Data Access View resumes updating after a (re)connect.
         const int rows = m_dataModel->rowCount();

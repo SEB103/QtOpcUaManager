@@ -18,6 +18,12 @@ Rectangle {
     /*! Height of a single tree row. */
     property int rowHeight: 32
 
+    /*! Index awaiting centering once its row is laid out; null when idle. */
+    property var pendingCenterIndex: null
+
+    /*! Remaining centering retries while the target row is not yet laid out. */
+    property int pendingCenterAttempts: 0
+
     /*!
         Returns the icon resource for the model \a key (the \c iconName role).
         The key encodes the node kind and, for variables, the data-type category.
@@ -52,21 +58,72 @@ Rectangle {
     clip: true
 
     /*!
-        Expands the ancestors of the node with \a nodeId and scrolls it to the
-        vertical center of the tree. Best-effort: it only reveals nodes that are
-        already materialized in the lazy tree; when the node is not loaded (for
-        example its branch is collapsed) the call is a no-op.
+        Reveals the node with \a nodeId in the tree. When its branch is already
+        loaded the node is expanded and centered immediately; otherwise the lazy
+        tree is materialized asynchronously along \a nodePath (a slash-separated
+        display-name path) and revealed when \c revealPathReady arrives.
     */
-    function revealNode(nodeId) {
+    function revealNode(nodeId, nodePath) {
         if (!nodeId)
             return
         const idx = cppManagerOpcUa.treeModel.indexForNodeId(nodeId)
-        if (!idx || !idx.valid)
+        if (idx && idx.valid) {
+            root.expandAndCenter(idx)
             return
-        treeView.expandToIndex(idx)
-        Qt.callLater(function () {
-            treeView.positionViewAtIndex(idx, TableView.AlignCenter)
-        })
+        }
+        if (!nodePath)
+            return
+        const segments = nodePath.split("/").filter(function (s) { return s.length > 0 })
+        if (segments.length === 0)
+            return
+        cppManagerOpcUa.treeModel.requestRevealPath(segments, nodeId)
+    }
+
+    /*!
+        Expands the ancestors of \a index and scrolls it to the vertical center.
+
+        Expanding inserts rows that are laid out asynchronously, so centering is
+        deferred and retried through \l tryCenter until the target row exists.
+    */
+    function expandAndCenter(index) {
+        treeView.expandToIndex(index)
+        root.pendingCenterIndex = index
+        root.pendingCenterAttempts = 10
+        Qt.callLater(root.tryCenter)
+    }
+
+    /*!
+        Scrolls the pending index to the vertical center once its row is laid out,
+        forcing a layout and retrying a bounded number of times while the row is
+        not yet available (\c rowAtIndex returns -1 for not-yet-created rows).
+    */
+    function tryCenter() {
+        const index = root.pendingCenterIndex
+        if (!index || !index.valid)
+            return
+        treeView.forceLayout()
+        const row = treeView.rowAtIndex(index)
+        if (row >= 0) {
+            treeView.positionViewAtRow(row, TableView.AlignVCenter)
+            root.pendingCenterIndex = null
+            return
+        }
+        if (root.pendingCenterAttempts > 0) {
+            root.pendingCenterAttempts -= 1
+            Qt.callLater(root.tryCenter)
+        } else {
+            root.pendingCenterIndex = null
+        }
+    }
+
+    // Completes an asynchronous requestRevealPath() once the target is loaded.
+    Connections {
+        target: cppManagerOpcUa.treeModel
+
+        function onRevealPathReady(index) {
+            if (index && index.valid)
+                root.expandAndCenter(index)
+        }
     }
 
     ColumnLayout {

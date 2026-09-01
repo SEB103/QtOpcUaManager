@@ -62,6 +62,15 @@ private slots:
 
     /*! Verifies that disconnecting clears the snapshot tree. */
     void disconnectClearsTree();
+
+    /*! Verifies that browsed nodes restore the monitoring flag from the id set. */
+    void monitoredNodeIdsRestoreFlagOnBrowse();
+
+    /*! Verifies that updating the id set flips the flag on already-loaded nodes. */
+    void setMonitoredNodeIdsUpdatesMaterializedItems();
+
+    /*! Verifies that requestRevealPath browses a collapsed branch to the target. */
+    void requestRevealPathExpandsCollapsedBranch();
 };
 
 void OpcUaModelTest::initialStateIsEmpty()
@@ -241,6 +250,115 @@ void OpcUaModelTest::disconnectClearsTree()
 
     QCOMPARE(model.rowCount(), 0);
     QVERIFY(!model.canFetchMore(QModelIndex()));
+}
+
+void OpcUaModelTest::monitoredNodeIdsRestoreFlagOnBrowse()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    // A node persisted in the Data Access View must show as monitored once browsed.
+    model.setMonitoredNodeIds({QStringLiteral("ns=2;s=Temperature")});
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=Machine"),
+                        QStringLiteral("Machine"),
+                        QStringLiteral("Machine"),
+                        int(QOpcUa::NodeClass::Object),
+                        true});
+    children.push_back({QStringLiteral("ns=2;s=Temperature"),
+                        QStringLiteral("Temperature"),
+                        QStringLiteral("Temperature"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
+
+    QVERIFY(!model.data(model.index(0, 0), OpcUaModel::MonitoringEnabledRole).toBool());
+    QVERIFY(model.data(model.index(1, 0), OpcUaModel::MonitoringEnabledRole).toBool());
+}
+
+void OpcUaModelTest::setMonitoredNodeIdsUpdatesMaterializedItems()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=Temperature"),
+                        QStringLiteral("Temperature"),
+                        QStringLiteral("Temperature"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
+
+    const QModelIndex nodeIndex = model.index(0, 0);
+    QVERIFY(!model.data(nodeIndex, OpcUaModel::MonitoringEnabledRole).toBool());
+
+    QSignalSpy dataChangedSpy(&model, &OpcUaModel::dataChanged);
+    model.setMonitoredNodeIds({QStringLiteral("ns=2;s=Temperature")});
+
+    QCOMPARE(dataChangedSpy.count(), 1);
+    QVERIFY(model.data(nodeIndex, OpcUaModel::MonitoringEnabledRole).toBool());
+
+    // Clearing the set must flip the flag back off on the loaded item.
+    model.setMonitoredNodeIds({});
+    QVERIFY(!model.data(nodeIndex, OpcUaModel::MonitoringEnabledRole).toBool());
+}
+
+void OpcUaModelTest::requestRevealPathExpandsCollapsedBranch()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    // Root level holds a folder whose children are not fetched yet (collapsed).
+    QList<OpcUaNodeData> rootChildren;
+    rootChildren.push_back({QStringLiteral("ns=2;s=Machine"),
+                            QStringLiteral("Machine"),
+                            QStringLiteral("Machine"),
+                            int(QOpcUa::NodeClass::Object),
+                            true});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, rootChildren, true);
+
+    QSignalSpy revealSpy(&model, &OpcUaModel::revealPathReady);
+    model.requestRevealPath({QStringLiteral("Machine"), QStringLiteral("Temperature")},
+                            QStringLiteral("ns=2;s=Temperature"));
+
+    // Revealing the target must browse the collapsed folder on demand.
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest machineRequest = takeFetchRequest(fetchSpy);
+    QCOMPARE(machineRequest.parentNodeId, QStringLiteral("ns=2;s=Machine"));
+    QCOMPARE(revealSpy.count(), 0);
+
+    QList<OpcUaNodeData> machineChildren;
+    machineChildren.push_back({QStringLiteral("ns=2;s=Speed"),
+                               QStringLiteral("Speed"),
+                               QStringLiteral("Speed"),
+                               int(QOpcUa::NodeClass::Variable),
+                               false});
+    machineChildren.push_back({QStringLiteral("ns=2;s=Temperature"),
+                               QStringLiteral("Temperature"),
+                               QStringLiteral("Temperature"),
+                               int(QOpcUa::NodeClass::Variable),
+                               false});
+    model.applyChildrenSnapshot(machineRequest.parentNodeId,
+                                machineRequest.requestId,
+                                machineChildren,
+                                true);
+
+    // The target is now materialized, so the reveal reports its index.
+    QCOMPARE(revealSpy.count(), 1);
+    const QModelIndex revealed = revealSpy.takeFirst().at(0).value<QModelIndex>();
+    QVERIFY(revealed.isValid());
+    QCOMPARE(model.data(revealed, OpcUaModel::NodeIdRole).toString(),
+             QStringLiteral("ns=2;s=Temperature"));
 }
 
 QTEST_GUILESS_MAIN(OpcUaModelTest)

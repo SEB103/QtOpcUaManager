@@ -4,6 +4,8 @@
 #include <QAbstractItemModel>
 #include <QHash>
 #include <QPersistentModelIndex>
+#include <QSet>
+#include <QStringList>
 #include <memory>
 #include "core/opcuanodedata.h"
 #include "treeitem.h"
@@ -67,6 +69,13 @@ public:
     /** Applies the current connection state. */
     void setConnectionActive(bool active);
 
+    /**
+     * Sets the node ids that are currently monitored so browsed nodes restore
+     * their monitoring checkbox. The set is applied to items created afterwards
+     * and re-applied to already materialized items so an open tree updates too.
+     */
+    void setMonitoredNodeIds(const QSet<QString> &nodeIds);
+
     /** Applies a child snapshot for \a parentNodeId. */
     void applyChildrenSnapshot(const QString &parentNodeId,
                                quint64 requestId,
@@ -85,6 +94,17 @@ public:
      * The search does not trigger lazy fetching.
      */
     Q_INVOKABLE QModelIndex indexForNodeId(const QString &nodeId) const;
+
+    /**
+     * Starts asynchronously materializing the lazy tree along \a displayPath (the
+     * ordered display names from the top level down to the target) so a collapsed
+     * branch is expanded on demand. \a targetNodeId is used to match the final
+     * node. When the node is reached, revealPathReady() is emitted with its index;
+     * an invalid index is emitted when the path cannot be resolved. Any previous
+     * reveal request is cancelled.
+     */
+    Q_INVOKABLE void requestRevealPath(const QStringList &displayPath,
+                                       const QString &targetNodeId);
 
     /** Returns whether monitoring is enabled at \a index. */
     Q_INVOKABLE bool monitoringEnabledAt(const QModelIndex &index) const;
@@ -120,6 +140,12 @@ signals:
     /** Requests lazy children for the given node id. */
     void fetchChildrenRequested(const QString &parentNodeId, quint64 requestId);
 
+    /**
+     * Emitted when a requestRevealPath() run finishes. \a index is the target
+     * node's index, or an invalid index when the path could not be resolved.
+     */
+    void revealPathReady(const QModelIndex &index);
+
 private:
     /** Tracks an outstanding lazy browse request until service results arrive. */
     struct PendingFetch
@@ -138,6 +164,13 @@ private:
     /** Returns the QModelIndex for \a item. */
     QModelIndex indexForItem(TreeItem *item, int column) const;
 
+    /** Advances the in-progress reveal, fetching or descending one level. */
+    void advanceReveal();
+    /** Ends the in-progress reveal and emits revealPathReady() with \a index. */
+    void finishReveal(const QModelIndex &index);
+    /** Resumes a waiting reveal when the snapshot for \a parentNodeId arrives. */
+    void maybeResumeReveal(const QString &parentNodeId, bool success);
+
 private:
     /** Invisible root item for the connected-session snapshot tree. */
     std::unique_ptr<TreeItem> mRootItem;
@@ -149,6 +182,21 @@ private:
     bool m_autoMonitor {false};
     /** Whether the model should expose the current snapshot tree. */
     bool m_connectionActive {false};
+    /** Node ids known to be monitored, used to restore the checkbox on browse. */
+    QSet<QString> m_monitoredNodeIds;
+
+    /** Whether a requestRevealPath() run is currently in progress. */
+    bool m_revealActive {false};
+    /** Ordered display names from the top level down to the reveal target. */
+    QStringList m_revealPath;
+    /** Node id used to match the final segment of the reveal path. */
+    QString m_revealTargetNodeId;
+    /** Index into m_revealPath of the segment currently being resolved. */
+    int m_revealDepth {0};
+    /** Parent whose children are matched at the current reveal step; invalid = root. */
+    QPersistentModelIndex m_revealParentIndex;
+    /** Node id of the parent whose pending browse the reveal is waiting for. */
+    QString m_revealWaitParentNodeId;
 };
 
 #endif // OPCUAMODEL_H
