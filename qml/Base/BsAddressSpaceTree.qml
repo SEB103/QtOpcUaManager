@@ -113,7 +113,29 @@ Rectangle {
                 }
                 onWidthChanged: Qt.callLater(forceLayout)
 
-                ScrollBar.vertical: ScrollBar {}
+                // Slim, fully rounded handle instead of the wide, square-ish
+                // Material default. The narrow hit area keeps the pill visually
+                // half the default width while the track stays interactive.
+                ScrollBar.vertical: ScrollBar {
+                    id: vScrollBar
+
+                    implicitWidth: 8
+
+                    contentItem: Rectangle {
+                        implicitWidth: 6
+                        radius: width / 2
+                        color: vScrollBar.pressed
+                               ? Material.accent
+                               : Qt.rgba(Material.foreground.r,
+                                         Material.foreground.g,
+                                         Material.foreground.b, 0.4)
+                        opacity: vScrollBar.active ? 1.0 : 0.0
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
+                    }
+                }
 
                 delegate: TreeViewDelegate {
                     id: treeDelegate
