@@ -16,8 +16,9 @@ class QTextDocument;
  * so the plain text and clipboard copy stay clean.
  *
  * The active language mirrors OpcUaManager::ValueFormat and is switched with
- * setLanguage(). Colors approximate a Visual Studio Code / Qt Creator dark theme;
- * characters not matched by any rule keep the TextArea base color.
+ * setLanguage(). Two color palettes approximate the Visual Studio Code dark and
+ * light themes and are switched with setDarkTheme() to follow the application
+ * Material theme; characters not matched by any rule keep the TextArea base color.
  */
 class StructuredValueHighlighter : public QSyntaxHighlighter
 {
@@ -41,6 +42,12 @@ public:
     /** Returns the active highlighting language. */
     Language language() const;
 
+    /**
+     * Selects the dark (\a dark true) or light color palette and re-highlights
+     * when the value changed, so token colors follow the application theme.
+     */
+    void setDarkTheme(bool dark);
+
 protected:
     /** Highlights one text block (line) using the active language grammar. */
     void highlightBlock(const QString &text) override;
@@ -52,8 +59,14 @@ private:
     /** Applies the XML grammar to \a text (tags, attribute names, attribute values). */
     void highlightXml(const QString &text);
 
+    /** Assigns the token format colors from the active dark/light palette. */
+    void applyPalette();
+
     /** Active highlighting language. */
     Language m_language {Language::Json};
+
+    /** Whether the dark color palette is active; drives applyPalette(). */
+    bool m_darkTheme {true};
 
     /** Format for JSON property names / keys. */
     QTextCharFormat m_keyFormat;

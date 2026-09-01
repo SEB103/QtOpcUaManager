@@ -120,6 +120,13 @@ Rectangle {
 
                     implicitHeight: root.rowHeight
 
+                    // Plain panel background instead of the Material default, which
+                    // paints alternating light/dark rows; selection keeps the accent.
+                    background: Rectangle {
+                        color: treeDelegate.highlighted ? Material.accentColor
+                                                        : Material.background
+                    }
+
                     // Selecting a node loads its attributes into the Attributes panel.
                     onClicked: cppManagerOpcUa.requestAttributes(treeView.index(row, 0))
 

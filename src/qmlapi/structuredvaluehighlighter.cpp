@@ -32,20 +32,14 @@ bool isInsideSpan(int index, const QList<QPair<int, int>> &spans)
 /*!
  * \brief Creates a highlighter attached to \a document with the JSON grammar active.
  *
- * The QTextCharFormat colors approximate a Visual Studio Code dark theme and the
+ * The token colors are seeded from the dark palette via applyPalette() and the
  * QRegularExpression rules are built once here because highlightBlock() runs for
  * every line on each content change.
  */
 StructuredValueHighlighter::StructuredValueHighlighter(QTextDocument *document)
     : QSyntaxHighlighter(document)
 {
-    m_keyFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
-    m_stringFormat.setForeground(QColor(0xCE, 0x91, 0x78));
-    m_numberFormat.setForeground(QColor(0xB5, 0xCE, 0xA8));
-    m_keywordFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
-    m_punctuationFormat.setForeground(QColor(0xD4, 0xD4, 0xD4));
-    m_tagFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
-    m_attributeFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
+    applyPalette();
 
     m_stringRegex = QRegularExpression(QStringLiteral(R"("(?:[^"\\]|\\.)*")"));
     m_numberRegex =
@@ -76,6 +70,47 @@ void StructuredValueHighlighter::setLanguage(Language language)
 StructuredValueHighlighter::Language StructuredValueHighlighter::language() const
 {
     return m_language;
+}
+
+/*!
+ * \brief Selects the dark or light palette and re-highlights on change.
+ */
+void StructuredValueHighlighter::setDarkTheme(bool dark)
+{
+    if (m_darkTheme == dark)
+        return;
+
+    m_darkTheme = dark;
+    applyPalette();
+    rehighlight();
+}
+
+/*!
+ * \brief Assigns the token format colors from the active dark/light palette.
+ *
+ * The dark palette approximates the Visual Studio Code dark theme; the light
+ * palette approximates the Visual Studio Code Light+ theme so the tokens stay
+ * readable on the light Material background.
+ */
+void StructuredValueHighlighter::applyPalette()
+{
+    if (m_darkTheme) {
+        m_keyFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
+        m_stringFormat.setForeground(QColor(0xCE, 0x91, 0x78));
+        m_numberFormat.setForeground(QColor(0xB5, 0xCE, 0xA8));
+        m_keywordFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
+        m_punctuationFormat.setForeground(QColor(0xD4, 0xD4, 0xD4));
+        m_tagFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
+        m_attributeFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
+    } else {
+        m_keyFormat.setForeground(QColor(0x04, 0x51, 0xA5));
+        m_stringFormat.setForeground(QColor(0xA3, 0x15, 0x15));
+        m_numberFormat.setForeground(QColor(0x09, 0x86, 0x58));
+        m_keywordFormat.setForeground(QColor(0x00, 0x00, 0xFF));
+        m_punctuationFormat.setForeground(QColor(0x00, 0x00, 0x00));
+        m_tagFormat.setForeground(QColor(0x80, 0x00, 0x00));
+        m_attributeFormat.setForeground(QColor(0x04, 0x51, 0xA5));
+    }
 }
 
 /*!

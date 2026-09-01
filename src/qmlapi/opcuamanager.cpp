@@ -459,6 +459,20 @@ void OpcUaManager::installStructuredValueHighlighter(QQuickTextDocument *documen
 
     m_structuredValueHighlighter = new StructuredValueHighlighter(textDocument);
     m_structuredValueHighlighter->setLanguage(toHighlighterLanguage(m_valueFormat));
+    m_structuredValueHighlighter->setDarkTheme(m_structuredValueDarkTheme);
+}
+
+/*!
+ * \brief Selects the dark or light palette for the structured-value highlighter.
+ *
+ * The value is remembered so it can be applied when the highlighter is installed;
+ * an already installed highlighter is updated immediately and re-highlights.
+ */
+void OpcUaManager::setStructuredValueDarkTheme(bool dark)
+{
+    m_structuredValueDarkTheme = dark;
+    if (m_structuredValueHighlighter)
+        m_structuredValueHighlighter->setDarkTheme(dark);
 }
 
 /*!

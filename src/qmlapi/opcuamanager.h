@@ -242,6 +242,16 @@ public:
      */
     Q_INVOKABLE void installStructuredValueHighlighter(QQuickTextDocument *document);
 
+    /**
+     * Selects the dark (\a dark true) or light color palette for the structured
+     * value syntax highlighter so its tokens follow the application Material theme.
+     *
+     * The QML Value panel calls this with the current theme and on every theme
+     * toggle. The choice is remembered and applied to the highlighter when it is
+     * installed, so ordering between install and theme changes does not matter.
+     */
+    Q_INVOKABLE void setStructuredValueDarkTheme(bool dark);
+
     /** Writes \a value to the node backing the Data Access View row at \a row. */
     Q_INVOKABLE void writeValue(int row, const QVariant &value);
 
@@ -431,6 +441,9 @@ private:
 
     /** Syntax highlighter for the View panel; owned by the TextArea's QTextDocument. */
     QPointer<StructuredValueHighlighter> m_structuredValueHighlighter;
+
+    /** Whether the structured-value highlighter uses the dark color palette. */
+    bool m_structuredValueDarkTheme {true};
 
     /** Non-owning worker-service pointer used only for attachment identity checks. */
     OpcUaService *m_service {nullptr};

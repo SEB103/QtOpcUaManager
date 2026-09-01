@@ -214,13 +214,31 @@ Rectangle {
                             // Base text color; the C++ QSyntaxHighlighter overrides
                             // only the matched JSON/XML token ranges.
                             color: Material.foreground
+
+                            // Flat, borderless background so the Value view matches the
+                            // other panels; the default Material TextArea draws a rounded
+                            // outlined container that no other panel has.
+                            background: Rectangle { color: "transparent" }
+
+                            // Tracks the active Material theme so the highlighter
+                            // palette can follow light/dark theme toggles.
+                            property bool appDarkTheme: Material.theme === Material.Dark
+                            onAppDarkThemeChanged: {
+                                if (cppManagerOpcUa)
+                                    cppManagerOpcUa.setStructuredValueDarkTheme(appDarkTheme)
+                            }
+
                             // Attach the structured-value syntax highlighter to this
                             // TextArea's document via the existing context property, so
-                            // the Base module needs no Cpp.* import.
+                            // the Base module needs no Cpp.* import, and seed its palette
+                            // with the current theme.
                             Component.onCompleted: {
-                                if (cppManagerOpcUa)
+                                if (cppManagerOpcUa) {
                                     cppManagerOpcUa.installStructuredValueHighlighter(
                                         structuredValueText.textDocument)
+                                    cppManagerOpcUa.setStructuredValueDarkTheme(
+                                        Material.theme === Material.Dark)
+                                }
                             }
                         }
                     }
