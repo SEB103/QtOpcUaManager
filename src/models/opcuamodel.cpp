@@ -162,6 +162,36 @@ QString OpcUaModel::nodeIdAt(const QModelIndex &index) const
 }
 
 /*!
+ * \brief Returns the column-0 index of the materialized node with id \a nodeId.
+ *
+ * Performs a depth-first search over the currently loaded snapshot tree only, so
+ * it never triggers a lazy browse. Returns an invalid index when no loaded node
+ * carries the id, which lets callers fall back gracefully.
+ */
+QModelIndex OpcUaModel::indexForNodeId(const QString &nodeId) const
+{
+    if (nodeId.isEmpty() || !mRootItem)
+        return {};
+
+    std::vector<TreeItem *> stack;
+    for (int i = mRootItem->childCount() - 1; i >= 0; --i)
+        stack.push_back(mRootItem->child(i));
+
+    while (!stack.empty()) {
+        TreeItem *item = stack.back();
+        stack.pop_back();
+        if (!item)
+            continue;
+        if (item->nodeId() == nodeId)
+            return indexForItem(item, 0);
+        for (int i = item->childCount() - 1; i >= 0; --i)
+            stack.push_back(item->child(i));
+    }
+
+    return {};
+}
+
+/*!
  * \brief Returns whether monitoring is enabled at \a index.
  */
 bool OpcUaModel::monitoringEnabledAt(const QModelIndex &index) const

@@ -79,6 +79,13 @@ public:
     /** Returns the node id at \a index. */
     Q_INVOKABLE QString nodeIdAt(const QModelIndex &index) const;
 
+    /**
+     * Returns the column-0 index of the first already-materialized node whose id
+     * equals \a nodeId, or an invalid index when it is absent or not yet loaded.
+     * The search does not trigger lazy fetching.
+     */
+    Q_INVOKABLE QModelIndex indexForNodeId(const QString &nodeId) const;
+
     /** Returns whether monitoring is enabled at \a index. */
     Q_INVOKABLE bool monitoringEnabledAt(const QModelIndex &index) const;
 

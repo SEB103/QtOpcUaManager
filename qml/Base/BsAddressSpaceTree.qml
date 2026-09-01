@@ -51,6 +51,24 @@ Rectangle {
     border.width: 1
     clip: true
 
+    /*!
+        Expands the ancestors of the node with \a nodeId and scrolls it to the
+        vertical center of the tree. Best-effort: it only reveals nodes that are
+        already materialized in the lazy tree; when the node is not loaded (for
+        example its branch is collapsed) the call is a no-op.
+    */
+    function revealNode(nodeId) {
+        if (!nodeId)
+            return
+        const idx = cppManagerOpcUa.treeModel.indexForNodeId(nodeId)
+        if (!idx || !idx.valid)
+            return
+        treeView.expandToIndex(idx)
+        Qt.callLater(function () {
+            treeView.positionViewAtIndex(idx, TableView.AlignCenter)
+        })
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -143,10 +161,12 @@ Rectangle {
                     implicitHeight: root.rowHeight
 
                     // Plain panel background instead of the Material default, which
-                    // paints alternating light/dark rows; selection keeps the accent.
+                    // paints alternating light/dark rows. The currently selected node
+                    // (shared across panels) gets a lightened highlight.
                     background: Rectangle {
-                        color: treeDelegate.highlighted ? Material.accentColor
-                                                        : Material.background
+                        color: nodeId === cppManagerOpcUa.selectedNodeId
+                               ? Qt.lighter(Material.background, 1.5)
+                               : Material.background
                     }
 
                     // Selecting a node loads its attributes into the Attributes panel.
@@ -173,6 +193,7 @@ Rectangle {
                             Layout.alignment: Qt.AlignVCenter
                             text: displayName
                             color: Material.foreground
+                            font.bold: nodeId === cppManagerOpcUa.selectedNodeId
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                         }

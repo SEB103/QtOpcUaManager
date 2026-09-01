@@ -44,6 +44,9 @@ Rectangle {
     /*! Height of the header and each data row. */
     readonly property int rowHeight: 30
 
+    /*! Emitted with the node id when a row is selected, so the tree can reveal it. */
+    signal nodeSelected(string nodeId)
+
     color: Material.background
     border.color: Material.dividerColor
     border.width: 1
@@ -57,6 +60,16 @@ Rectangle {
         valueEditor.editRow = row
         valueEditor.editField.text = currentValue
         valueEditor.open()
+    }
+
+    /*!
+        Selects the Data Access View \a row (identified by \a nodeId): loads its
+        attributes and value into the panels, highlights it, and asks the address
+        space to reveal the same node.
+    */
+    function selectRow(row, nodeId) {
+        cppManagerOpcUa.selectDataRow(row)
+        root.nodeSelected(nodeId)
     }
 
     ColumnLayout {
@@ -182,11 +195,26 @@ Rectangle {
                             required property int index
                             required property var model
 
+                            /*! Whether this row is the shared selected node. */
+                            readonly property bool selected:
+                                model.nodeId === cppManagerOpcUa.selectedNodeId
+
                             width: root.totalWidth
                             height: root.rowHeight
-                            color: index % 2 === 0
-                                   ? "transparent"
-                                   : Qt.darker(Material.background, 1.05)
+                            color: rowDelegate.selected
+                                   ? Qt.lighter(Material.background, 1.5)
+                                   : (index % 2 === 0
+                                      ? "transparent"
+                                      : Qt.darker(Material.background, 1.05))
+
+                            // Selects the row on a click anywhere outside the cells
+                            // that carry their own pointer handling (the value cell).
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+                                onClicked: root.selectRow(rowDelegate.index,
+                                                          rowDelegate.model.nodeId)
+                            }
 
                             Row {
                                 anchors.fill: parent
@@ -207,15 +235,20 @@ Rectangle {
                                             text: rowDelegate.model[modelData.role] !== undefined
                                                   ? rowDelegate.model[modelData.role]
                                                   : ""
+                                            font.bold: rowDelegate.selected
                                             elide: Text.ElideRight
                                             color: Material.foreground
                                         }
 
-                                        // Double-clicking the value cell opens the editor.
+                                        // The value cell selects on a single click and
+                                        // opens the editor on a double click; other cells
+                                        // are handled by the row-level MouseArea.
                                         MouseArea {
                                             anchors.fill: parent
                                             enabled: modelData.role === "value"
                                             acceptedButtons: Qt.LeftButton
+                                            onClicked: root.selectRow(rowDelegate.index,
+                                                                      rowDelegate.model.nodeId)
                                             onDoubleClicked: root.editValue(rowDelegate.index,
                                                                             rowDelegate.model.value)
                                         }

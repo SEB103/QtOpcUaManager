@@ -87,6 +87,9 @@ class OpcUaManager : public QObject
     Q_PROPERTY(bool structuredValueAvailable READ structuredValueAvailable
                    NOTIFY structuredValueChanged)
 
+    /** Node id of the currently selected node, shared by all panels for highlighting. */
+    Q_PROPERTY(QString selectedNodeId READ selectedNodeId NOTIFY selectedNodeIdChanged)
+
 public:
     /** Operation state values exposed to QML. */
     enum OperationState {
@@ -182,6 +185,9 @@ public:
     /** Returns whether a renderable structured value is available for the panel. */
     bool structuredValueAvailable() const;
 
+    /** Returns the node id of the currently selected node. */
+    QString selectedNodeId() const;
+
     /** Sets the structured-value output \a format and re-renders the cached value. */
     void setValueFormat(ValueFormat format);
 
@@ -229,6 +235,9 @@ public:
 
     /** Requests the attributes of the node at the tree \a treeIndex for the panel. */
     Q_INVOKABLE void requestAttributes(const QModelIndex &treeIndex);
+
+    /** Selects the Data Access View row at \a row, driving the shared node selection. */
+    Q_INVOKABLE void selectDataRow(int row);
 
     /** Re-reads and re-decodes the structured value of the last selected node. */
     Q_INVOKABLE void refreshStructuredValue();
@@ -285,6 +294,8 @@ signals:
     void valueFormatChanged();
     /** Emitted when the structured value text or its availability changes. */
     void structuredValueChanged();
+    /** Emitted when the currently selected node id changes. */
+    void selectedNodeIdChanged();
 
     /** Requests worker-service initialization. */
     void initializeRequested();
@@ -364,6 +375,8 @@ public slots:
 private:
     /** Builds a slash-separated browse path for \a treeIndex from its ancestors. */
     QString buildNodePath(const QModelIndex &treeIndex) const;
+    /** Makes \a nodeId the selected node and requests its attributes and value. */
+    void selectNode(const QString &nodeId);
     /** Protects state mirrored from queued worker-service signals. */
     mutable QMutex m_stateMutex;
 

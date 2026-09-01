@@ -41,6 +41,8 @@ Item {
         }
 
         BsAddressSpaceTree {
+            id: addressTree
+
             SplitView.preferredWidth: 340
             SplitView.minimumWidth: 220
             SplitView.fillHeight: true
@@ -50,6 +52,9 @@ Item {
             SplitView.fillWidth: true
             SplitView.minimumWidth: 220
             SplitView.fillHeight: true
+
+            // Selecting a Data View row reveals the same node in the address space.
+            onNodeSelected: nodeId => addressTree.revealNode(nodeId)
         }
 
         BsNodeAttributes {

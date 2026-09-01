@@ -382,10 +382,48 @@ void OpcUaManager::requestAttributes(const QModelIndex &treeIndex)
     if (nodeId.isEmpty())
         return;
 
+    selectNode(nodeId);
+}
+
+/*!
+ * \brief Selects the Data Access View row at \a row, driving the shared node selection.
+ *
+ * The Data Access View only knows the node id string, so it resolves the id from
+ * the table model and selects it directly instead of going through a tree index.
+ */
+void OpcUaManager::selectDataRow(int row)
+{
+    if (!m_dataModel)
+        return;
+
+    const QString nodeId = m_dataModel->nodeIdAt(row);
+    if (nodeId.isEmpty())
+        return;
+
+    selectNode(nodeId);
+}
+
+/*!
+ * \internal
+ * \brief Makes \a nodeId the selected node and requests its attributes and value.
+ *
+ * Centralizes selection so that clicks in the address-space tree and the Data
+ * Access View share one selected-node state. Only the most recent request is
+ * applied; earlier in-flight results are ignored so that fast selection changes
+ * do not show stale attributes. The selected node id is exposed to QML so both
+ * panels can highlight the matching row.
+ */
+void OpcUaManager::selectNode(const QString &nodeId)
+{
     const quint64 requestId = ++m_nextAttributeRequestId;
     m_pendingAttributeRequestId = requestId;
     m_pendingStructuredRequestId = requestId;
-    m_selectedNodeId = nodeId;
+
+    if (m_selectedNodeId != nodeId) {
+        m_selectedNodeId = nodeId;
+        emit selectedNodeIdChanged();
+    }
+
     emit readAttributesRequested(nodeId, requestId);
     emit readStructuredValueRequested(nodeId, requestId);
 }
@@ -412,6 +450,14 @@ QString OpcUaManager::structuredValueText() const
 bool OpcUaManager::structuredValueAvailable() const
 {
     return m_structuredValueAvailable;
+}
+
+/*!
+ * \brief Returns the node id of the currently selected node.
+ */
+QString OpcUaManager::selectedNodeId() const
+{
+    return m_selectedNodeId;
 }
 
 /*!
