@@ -1,6 +1,7 @@
 #ifndef OPCUAMANAGER_H
 #define OPCUAMANAGER_H
 
+#include <QHash>
 #include <QMutex>
 #include <QObject>
 #include <QPointer>
@@ -18,6 +19,10 @@
 class OpcUaService;
 class QQuickTextDocument;
 class StructuredValueHighlighter;
+
+QT_BEGIN_NAMESPACE
+class QSettings;
+QT_END_NAMESPACE
 
 /**
  * GUI-thread facade for the OPC UA backend.
@@ -62,6 +67,18 @@ class OpcUaManager : public QObject
 
     /** Tree model exposed to QML for address-space browsing; owned by this manager. */
     Q_PROPERTY(OpcUaModel *treeModel READ treeModel CONSTANT)
+
+    /** Focus-segment tree model rooted at the pinned node; owned by this manager. */
+    Q_PROPERTY(OpcUaModel *focusModel READ focusModel CONSTANT)
+
+    /** Node id of the pinned focus node; empty when no node is pinned. */
+    Q_PROPERTY(QString focusNodeId READ focusNodeId NOTIFY focusNodeChanged)
+
+    /** Display name of the pinned focus node, used as the focus segment title. */
+    Q_PROPERTY(QString focusNodeName READ focusNodeName NOTIFY focusNodeChanged)
+
+    /** Whether a previously used connection is stored and can be reconnected to. */
+    Q_PROPERTY(bool hasLastConnection READ hasLastConnection NOTIFY hasLastConnectionChanged)
 
     /** Data Access View table model exposed to QML; owned by this manager. */
     Q_PROPERTY(DataAccessModel *dataModel READ dataModel CONSTANT)
@@ -164,6 +181,25 @@ public:
     /** Returns the owned address-space tree model exposed to QML. */
     OpcUaModel *treeModel() const;
 
+    /** Returns the owned focus-segment tree model exposed to QML. */
+    OpcUaModel *focusModel() const;
+
+    /** Returns the node id of the pinned focus node, or an empty string. */
+    QString focusNodeId() const;
+
+    /** Returns the display name of the pinned focus node. */
+    QString focusNodeName() const;
+
+    /** Returns whether a stored connection is available for reconnection. */
+    bool hasLastConnection() const;
+
+    /**
+     * Injects the INI settings store used to persist the last connection and the
+     * pinned focus node. Ownership stays with the caller; the pointer may be null,
+     * in which case persistence is disabled.
+     */
+    void setSettings(QSettings *settings);
+
     /** Returns the owned Data Access View table model exposed to QML. */
     DataAccessModel *dataModel() const;
 
@@ -223,6 +259,30 @@ public:
 
     /** Requests disconnection from the current server. */
     Q_INVOKABLE void disconnectFromServer();
+
+    /**
+     * Pins the node at the tree \a treeIndex as the focus node, so the focus
+     * segment shows only that node's subtree. The index may come from either the
+     * main tree model or the focus model.
+     */
+    Q_INVOKABLE void setFocusNodeFromIndex(const QModelIndex &treeIndex);
+
+    /** Clears the pinned focus node and empties the focus segment. */
+    Q_INVOKABLE void clearFocusNode();
+
+    /**
+     * Reconnects to the stored last connection: selects the backend and
+     * authentication mode, rediscovers servers and endpoints, and connects to the
+     * matching endpoint. For username authentication passwordRequired() is emitted
+     * first so QML can prompt for the password.
+     */
+    Q_INVOKABLE void connectToLast();
+
+    /**
+     * Supplies the \a password requested by passwordRequired() and resumes an
+     * in-progress connectToLast() run that is waiting for username credentials.
+     */
+    Q_INVOKABLE void provideReconnectPassword(const QString &password);
 
     /**
      * Adds or removes the node at the tree \a treeIndex from the Data Access View
@@ -296,6 +356,18 @@ signals:
     void structuredValueChanged();
     /** Emitted when the currently selected node id changes. */
     void selectedNodeIdChanged();
+
+    /** Emitted when the pinned focus node or its display name changes. */
+    void focusNodeChanged();
+
+    /** Emitted when the availability of a stored connection changes. */
+    void hasLastConnectionChanged();
+
+    /**
+     * Emitted while connectToLast() needs the password for username authentication
+     * with \a userName. QML shows a prompt and calls provideReconnectPassword().
+     */
+    void passwordRequired(const QString &userName);
 
     /** Requests worker-service initialization. */
     void initializeRequested();
@@ -379,6 +451,51 @@ private:
     void selectNode(const QString &nodeId);
     /** Pushes the monitored node ids of the current server to the tree model. */
     void refreshMonitoredNodeIds();
+    /** Returns the owned model that produced \a index (focus model or tree model). */
+    OpcUaModel *modelForIndex(const QModelIndex &index) const;
+    /** Pins \a nodeId as the focus node using \a absolutePath and \a displayName. */
+    void setFocusNode(const QString &nodeId,
+                      const QString &absolutePath,
+                      const QString &displayName);
+    /** Applies the pinned focus node to the focus model for the current connection. */
+    void applyFocusNodeToModel();
+    /** Assigns a routed browse id for \a model and forwards the request to the service. */
+    void routeFetch(OpcUaModel *model, const QString &parentNodeId, quint64 modelRequestId);
+    /** Writes the current connection parameters to the INI store. */
+    void persistLastConnection();
+    /** Writes the pinned focus node to the INI store, or removes it when cleared. */
+    void persistFocusNode();
+    /** Loads the stored focus node into the in-memory focus state without connecting. */
+    void loadStoredFocusNode();
+    /** Recomputes hasLastConnection() from the INI store and emits on change. */
+    void updateHasLastConnection();
+    /** Starts server discovery for an in-progress connectToLast() run. */
+    void startReconnectDiscovery();
+    /** Aborts an in-progress connectToLast() run and reports \a reason. */
+    void abortReconnect(const QString &reason);
+
+    /** Reconnect state-machine stages driven by connectToLast(). */
+    enum class ReconnectStage {
+        /** No reconnection is in progress. */
+        Idle,
+        /** Waiting for the username password from QML. */
+        AwaitingPassword,
+        /** FindServers is in progress for the stored server. */
+        DiscoveringServers,
+        /** GetEndpoints is in progress for the stored server. */
+        RequestingEndpoints,
+        /** Connection to the matched endpoint is in progress. */
+        Connecting
+    };
+
+    /** Route from a service browse id back to the requesting model and its request id. */
+    struct BrowseRoute {
+        /** Model that issued the browse request. */
+        OpcUaModel *model {nullptr};
+        /** Request id the model expects in applyChildrenSnapshot(). */
+        quint64 modelRequestId {0};
+    };
+
     /** Protects state mirrored from queued worker-service signals. */
     mutable QMutex m_stateMutex;
 
@@ -417,6 +534,47 @@ private:
 
     /** Owned GUI-thread model exposed to QML. */
     OpcUaModel *m_treeModel {nullptr};
+
+    /** Owned focus-segment model rooted at the pinned node. */
+    OpcUaModel *m_focusModel {nullptr};
+
+    /** Node id of the pinned focus node; empty when none is pinned. */
+    QString m_focusNodeId;
+    /** Absolute display path of the pinned focus node. */
+    QString m_focusNodePath;
+    /** Display name of the pinned focus node. */
+    QString m_focusNodeName;
+
+    /** Non-owning INI settings store for last-connection and focus persistence. */
+    QSettings *m_settings {nullptr};
+
+    /** Cached availability of a stored connection, mirrored to QML. */
+    bool m_hasLastConnection {false};
+
+    /** Routes service browse ids to the model that requested them. */
+    QHash<quint64, BrowseRoute> m_browseRouting;
+    /** Monotonic browse id shared by both models and sent to the service. */
+    quint64 m_nextBrowseRequestId {0};
+
+    /** Discovery URL of the most recent connection attempt, persisted on success. */
+    QString m_lastDiscoveryUrl;
+    /** Endpoint display string of the most recent connect, persisted on success. */
+    QString m_lastEndpointDisplay;
+    /** User name of the most recent username authentication; never the password. */
+    QString m_lastUserName;
+
+    /** Current reconnection stage for connectToLast(). */
+    ReconnectStage m_reconnectStage {ReconnectStage::Idle};
+    /** Stored server display string to match during a reconnect. */
+    QString m_reconnectServer;
+    /** Stored endpoint display string to match during a reconnect. */
+    QString m_reconnectEndpoint;
+    /** Stored user name to reuse during a reconnect. */
+    QString m_reconnectUser;
+    /** Stored discovery URL to reuse during a reconnect. */
+    QString m_reconnectDiscoveryUrl;
+    /** Stored authentication mode to reuse during a reconnect. */
+    int m_reconnectAuthMode {0};
 
     /** Owned Data Access View table model exposed to QML. */
     DataAccessModel *m_dataModel {nullptr};

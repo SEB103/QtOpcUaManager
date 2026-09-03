@@ -53,7 +53,7 @@ void OpcUaModel::setConnectionActive(bool active)
     beginResetModel();
 
     if (m_connectionActive)
-        mRootItem = std::make_unique<TreeItem>(this);
+        mRootItem = std::make_unique<TreeItem>(this, m_rootNodeId, m_rootDisplayName);
     else
         mRootItem.reset();
 
@@ -65,6 +65,45 @@ void OpcUaModel::setConnectionActive(bool active)
                 fetchMore(QModelIndex());
         });
     }
+}
+
+/*!
+ * \brief Sets the node the model is rooted at and re-seeds the tree when connected.
+ * \param nodeId The OPC UA node id to browse from; the RootFolder when empty.
+ * \param displayName The display name used for the invisible root browse point.
+ *
+ * The new root is remembered for the next activation. When a session is already
+ * active the tree is reset and an initial lazy browse of the new root is queued,
+ * so switching the focus node repopulates the segment immediately.
+ */
+void OpcUaModel::setRootNode(const QString &nodeId, const QString &displayName)
+{
+    const QString effectiveId = nodeId.isEmpty() ? QStringLiteral("ns=0;i=84") : nodeId;
+    m_rootNodeId = effectiveId;
+    m_rootDisplayName = displayName.isEmpty() ? effectiveId : displayName;
+
+    if (!m_connectionActive)
+        return;
+
+    m_pendingFetchRequests.clear();
+    m_revealActive = false;
+
+    beginResetModel();
+    mRootItem = std::make_unique<TreeItem>(this, m_rootNodeId, m_rootDisplayName);
+    endResetModel();
+
+    QTimer::singleShot(0, this, [this]() {
+        if (mRootItem && canFetchMore(QModelIndex()))
+            fetchMore(QModelIndex());
+    });
+}
+
+/*!
+ * \brief Resets the model root back to the server RootFolder.
+ */
+void OpcUaModel::clearRootNode()
+{
+    setRootNode(QStringLiteral("ns=0;i=84"), QStringLiteral("RootFolder"));
 }
 
 /*!

@@ -8,6 +8,10 @@ class OpcUaManager;
 class OpcUaService;
 class QThread;
 
+QT_BEGIN_NAMESPACE
+class QSettings;
+QT_END_NAMESPACE
+
 /**
  * QML engine wrapper that owns application-level C++ services.
  */
@@ -24,6 +28,9 @@ public:
 
     /** Starts asynchronous creation and initialization of the OPC UA backend once. */
     bool startOpcUaBackend();
+
+    /** Injects the INI \a settings store into the OPC UA facade for persistence. */
+    void setSettings(QSettings* settings);
 
 private:
     /** Creates the worker-thread OPC UA service and connects it to the QML facade. */

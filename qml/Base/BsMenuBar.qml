@@ -34,6 +34,13 @@ MenuBar {
     */
     signal themeToggleRequested()
 
+    /*!
+        \qmlsignal BsMenuBar::lastConnectionRequested()
+        Emitted when the user selects "Connect to Last Server". The corresponding
+        handler is \c onLastConnectionRequested.
+    */
+    signal lastConnectionRequested()
+
     Menu {
         title: qsTr("Application")
 
@@ -49,6 +56,14 @@ MenuBar {
                 text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
                 enabled: !cppManagerOpcUa.busy
                 onTriggered: appMenuBar.apiServerConnectionRequested()
+            }
+
+            MenuItem {
+                text: qsTr("Connect to Last Server")
+                enabled: !cppManagerOpcUa.busy
+                         && !cppManagerOpcUa.connected
+                         && cppManagerOpcUa.hasLastConnection
+                onTriggered: appMenuBar.lastConnectionRequested()
             }
         }
 

@@ -92,10 +92,23 @@ DataTypeInfo resolveDataType(const QString &dataTypeId)
  * RootFolder browse point and is never exposed directly to QML.
  */
 TreeItem::TreeItem(OpcUaModel *model)
+    : TreeItem(model, QStringLiteral("ns=0;i=84"), QStringLiteral("RootFolder"))
+{
+}
+
+/*!
+ * \brief Creates the invisible root item anchored at \a nodeId.
+ * \param nodeId The OPC UA node id the model browses from.
+ * \param displayName The display name used for the root browse point.
+ * The root item is a pure GUI-thread container. It represents the logical browse
+ * point (the server RootFolder by default, or a focus node for a re-rooted model)
+ * and is never exposed directly to QML.
+ */
+TreeItem::TreeItem(OpcUaModel *model, const QString &nodeId, const QString &displayName)
     : m_model(model)
-    , m_nodeId(QStringLiteral("ns=0;i=84"))
-    , m_browseName(QStringLiteral("RootFolder"))
-    , m_displayName(QStringLiteral("RootFolder"))
+    , m_nodeId(nodeId)
+    , m_browseName(displayName)
+    , m_displayName(displayName)
     , m_hasChildren(true)
 {
 }

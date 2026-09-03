@@ -70,6 +70,19 @@ public:
     void setConnectionActive(bool active);
 
     /**
+     * Sets the node the model is rooted at and re-seeds the tree when connected.
+     *
+     * The main address-space model keeps the default server RootFolder, while a
+     * focus model can be rooted at an arbitrary node so only that subtree is
+     * browsed. The root node id is remembered and applied the next time the
+     * connection becomes active.
+     */
+    void setRootNode(const QString &nodeId, const QString &displayName);
+
+    /** Resets the model root back to the server RootFolder. */
+    void clearRootNode();
+
+    /**
      * Sets the node ids that are currently monitored so browsed nodes restore
      * their monitoring checkbox. The set is applied to items created afterwards
      * and re-applied to already materialized items so an open tree updates too.
@@ -174,6 +187,10 @@ private:
 private:
     /** Invisible root item for the connected-session snapshot tree. */
     std::unique_ptr<TreeItem> mRootItem;
+    /** Node id the tree is rooted at; the server RootFolder by default. */
+    QString m_rootNodeId {QStringLiteral("ns=0;i=84")};
+    /** Display name used for the invisible root browse point. */
+    QString m_rootDisplayName {QStringLiteral("RootFolder")};
     /** Outstanding browse requests keyed by service request id. */
     QHash<quint64, PendingFetch> m_pendingFetchRequests;
     /** Monotonic request id used to correlate browse results. */

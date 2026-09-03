@@ -51,6 +51,10 @@ ApplicationWindow {
         function onThemeToggleRequested() {
             mainWindow.darkTheme = !mainWindow.darkTheme
         }
+
+        function onLastConnectionRequested() {
+            cppManagerOpcUa.connectToLast()
+        }
     }
 
     Dialog {
@@ -77,6 +81,51 @@ ApplicationWindow {
         function onConnectedChanged() {
             if (cppManagerOpcUa.connected && apiServerDialog.opened)
                 apiServerDialog.close()
+        }
+
+        function onPasswordRequired(userName) {
+            reconnectPasswordField.text = ""
+            reconnectPasswordDialog.userName = userName
+            reconnectPasswordDialog.open()
+        }
+    }
+
+    Dialog {
+        id: reconnectPasswordDialog
+
+        /*! User name the stored connection authenticates as. */
+        property string userName: ""
+
+        x: Math.round((mainWindow.width - width) / 2)
+        y: Math.round((mainWindow.height - height) / 2)
+        width: Math.min(mainWindow.width - 80, 420)
+        title: qsTr("Password required")
+        modal: true
+        focus: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        closePolicy: Popup.CloseOnEscape
+
+        onAccepted: cppManagerOpcUa.provideReconnectPassword(reconnectPasswordField.text)
+
+        Column {
+            width: parent.width
+            spacing: 8
+
+            Label {
+                width: parent.width
+                wrapMode: Text.Wrap
+                text: qsTr("Enter the password for user \"%1\".")
+                          .arg(reconnectPasswordDialog.userName)
+            }
+
+            TextField {
+                id: reconnectPasswordField
+
+                width: parent.width
+                echoMode: TextInput.Password
+                placeholderText: qsTr("Password")
+                onAccepted: reconnectPasswordDialog.accept()
+            }
         }
     }
 

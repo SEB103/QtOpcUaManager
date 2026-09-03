@@ -157,6 +157,17 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
 #endif
 }
 
+/*!
+ * \brief Injects the INI settings store into the OPC UA facade.
+ * \param settings Non-owning settings store used for last-connection and focus
+ *        persistence; may be null to disable persistence.
+ */
+void AppEngine::setSettings(QSettings* settings)
+{
+    if (m_opcUaManager)
+        m_opcUaManager->setSettings(settings);
+}
+
 void AppEngine::createOpcUaRuntime()
 {
     if (m_opcUaThread || m_opcUaService)

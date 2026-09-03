@@ -29,6 +29,12 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("OpcUaManager"));
     QCoreApplication::setApplicationVersion(QStringLiteral(OPCUAMANAGER_VERSION));
 
+    // Create the INI settings store next to the executable in an ini/ folder,
+    // matching the db/ and pki/ layout. It persists the last connection and the
+    // pinned focus node between runs.
+    app.createSettings(QCoreApplication::applicationName(),
+                       QCoreApplication::applicationDirPath());
+
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
     for (const QString &locale : uiLanguages) {
@@ -54,6 +60,7 @@ int main(int argc, char *argv[])
         QStringLiteral("opc.tcp://127.0.0.1:4840"));
 
     AppEngine engine(initialUrl.trimmed());
+    engine.setSettings(app.settings());
 
     QObject::connect(
         &engine,

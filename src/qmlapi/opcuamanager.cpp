@@ -105,6 +105,7 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     : QObject(parent)
     , m_initialUrl(initialUrl)
     , m_treeModel(new OpcUaModel(this))
+    , m_focusModel(new OpcUaModel(this))
     , m_dataModel(new DataAccessModel(this))
     , m_attributesModel(new AttributesModel(this))
     , m_nodeDatabase(std::make_unique<NodeDatabase>())
@@ -195,6 +196,52 @@ OpcUaModel *OpcUaManager::treeModel() const
     return m_treeModel;
 }
 
+/*!
+ * \brief Returns the owned focus-segment tree model exposed to QML.
+ */
+OpcUaModel *OpcUaManager::focusModel() const
+{
+    return m_focusModel;
+}
+
+/*!
+ * \brief Returns the node id of the pinned focus node, or an empty string.
+ */
+QString OpcUaManager::focusNodeId() const
+{
+    return m_focusNodeId;
+}
+
+/*!
+ * \brief Returns the display name of the pinned focus node.
+ */
+QString OpcUaManager::focusNodeName() const
+{
+    return m_focusNodeName;
+}
+
+/*!
+ * \brief Returns whether a stored connection is available for reconnection.
+ */
+bool OpcUaManager::hasLastConnection() const
+{
+    return m_hasLastConnection;
+}
+
+/*!
+ * \brief Injects the INI settings store used for persistence.
+ * \param settings Non-owning settings store, or null to disable persistence.
+ *
+ * Recomputes hasLastConnection() and loads any stored focus node into memory so
+ * a later connectToLast() (or reconnect) can restore the focus segment.
+ */
+void OpcUaManager::setSettings(QSettings *settings)
+{
+    m_settings = settings;
+    loadStoredFocusNode();
+    updateHasLastConnection();
+}
+
 DataAccessModel *OpcUaManager::dataModel() const
 {
     return m_dataModel;
@@ -234,6 +281,8 @@ void OpcUaManager::setAnonymousAuthentication()
 
 void OpcUaManager::setUsernameAuthentication(const QString &userName, const QString &password)
 {
+    // Remember only the user name for persistence; the password is never stored.
+    m_lastUserName = userName;
     emit setUsernameAuthenticationRequested(userName, password);
 }
 
@@ -250,6 +299,7 @@ void OpcUaManager::setCertificateAuthentication()
 void OpcUaManager::discoverServers(const QString &hostOrUrl)
 {
     const QString effectiveUrl = hostOrUrl.trimmed().isEmpty() ? m_initialUrl : hostOrUrl;
+    m_lastDiscoveryUrl = effectiveUrl;
     qInfo() << "OpcUaManager discoverServers requested:" << effectiveUrl;
     emit discoverServersRequested(effectiveUrl);
 }
@@ -276,6 +326,10 @@ void OpcUaManager::requestEndpointsForServer(int serverIndex)
 void OpcUaManager::connectToEndpoint(int endpointIndex)
 {
     qInfo() << "OpcUaManager connectToEndpoint requested. index:" << endpointIndex;
+    {
+        QMutexLocker locker(&m_stateMutex);
+        m_lastEndpointDisplay = m_endpoints.value(endpointIndex);
+    }
     emit connectToEndpointRequested(endpointIndex);
 }
 
@@ -293,16 +347,32 @@ void OpcUaManager::disconnectFromServer()
  */
 QString OpcUaManager::buildNodePath(const QModelIndex &treeIndex) const
 {
-    if (!m_treeModel || !treeIndex.isValid())
+    if (!treeIndex.isValid())
+        return {};
+
+    const QAbstractItemModel *model = treeIndex.model();
+    if (!model)
         return {};
 
     QStringList segments;
     for (QModelIndex index = treeIndex; index.isValid(); index = index.parent()) {
-        const QString name = m_treeModel->data(index, OpcUaModel::DisplayNameRole).toString();
+        const QString name = model->data(index, OpcUaModel::DisplayNameRole).toString();
         if (!name.isEmpty())
             segments.prepend(name);
     }
-    return segments.join(QLatin1Char('/'));
+
+    QString path = segments.join(QLatin1Char('/'));
+
+    // The focus model is rooted at the pinned node, so a path walked inside it is
+    // relative to that node. Prefix the focus node's own absolute path to keep the
+    // stored path server-absolute for cross-panel reveal and persistence.
+    if (model == m_focusModel && !m_focusNodePath.isEmpty()) {
+        path = path.isEmpty()
+                   ? m_focusNodePath
+                   : m_focusNodePath + QLatin1Char('/') + path;
+    }
+
+    return path;
 }
 
 /*!
@@ -329,6 +399,8 @@ void OpcUaManager::refreshMonitoredNodeIds()
         }
     }
     m_treeModel->setMonitoredNodeIds(ids);
+    if (m_focusModel)
+        m_focusModel->setMonitoredNodeIds(ids);
 }
 
 /*!
@@ -340,10 +412,11 @@ void OpcUaManager::refreshMonitoredNodeIds()
  */
 void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
 {
-    if (!m_treeModel || !treeIndex.isValid())
+    if (!treeIndex.isValid())
         return;
 
-    const QString nodeId = m_treeModel->nodeIdAt(treeIndex);
+    OpcUaModel *model = modelForIndex(treeIndex);
+    const QString nodeId = model->nodeIdAt(treeIndex);
     if (nodeId.isEmpty())
         return;
 
@@ -354,13 +427,13 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         record.server = server;
         record.nodeId = nodeId;
         record.nodePath = buildNodePath(treeIndex);
-        record.displayName = m_treeModel->data(treeIndex, OpcUaModel::DisplayNameRole).toString();
-        record.dataType = m_treeModel->data(treeIndex, OpcUaModel::DataTypeRole).toString();
+        record.displayName = model->data(treeIndex, OpcUaModel::DisplayNameRole).toString();
+        record.dataType = model->data(treeIndex, OpcUaModel::DataTypeRole).toString();
 
         if (m_nodeDatabase)
             m_nodeDatabase->insert(record);
         m_dataModel->addRow(record);
-        m_treeModel->setMonitoringEnabledAt(treeIndex, true);
+        model->setMonitoringEnabledAt(treeIndex, true);
         if (connected())
             emit subscribeNodeRequested(nodeId);
     } else {
@@ -373,11 +446,11 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
                 break;
             }
         }
-        m_treeModel->setMonitoringEnabledAt(treeIndex, false);
+        model->setMonitoringEnabledAt(treeIndex, false);
         emit unsubscribeNodeRequested(nodeId);
     }
 
-    // Keep the tree's monitored-id set in sync so later re-browses stay correct.
+    // Keep both models' monitored-id sets in sync so later re-browses stay correct.
     refreshMonitoredNodeIds();
 }
 
@@ -405,10 +478,10 @@ void OpcUaManager::removeNode(int row)
  */
 void OpcUaManager::requestAttributes(const QModelIndex &treeIndex)
 {
-    if (!m_treeModel || !treeIndex.isValid())
+    if (!treeIndex.isValid())
         return;
 
-    const QString nodeId = m_treeModel->nodeIdAt(treeIndex);
+    const QString nodeId = modelForIndex(treeIndex)->nodeIdAt(treeIndex);
     if (nodeId.isEmpty())
         return;
 
@@ -456,6 +529,310 @@ void OpcUaManager::selectNode(const QString &nodeId)
 
     emit readAttributesRequested(nodeId, requestId);
     emit readStructuredValueRequested(nodeId, requestId);
+}
+
+/*!
+ * \internal
+ * \brief Returns the owned model that produced \a index.
+ *
+ * A tree \a index carries a pointer to its source model, so a click in the focus
+ * segment is routed to the focus model and any other index to the main tree model.
+ */
+OpcUaModel *OpcUaManager::modelForIndex(const QModelIndex &index) const
+{
+    return index.model() == m_focusModel ? m_focusModel : m_treeModel;
+}
+
+/*!
+ * \brief Pins the node at the tree \a treeIndex as the focus node.
+ *
+ * Resolves the node id, absolute path, and display name from the source model and
+ * re-roots the focus segment on that node. The index may come from either model.
+ */
+void OpcUaManager::setFocusNodeFromIndex(const QModelIndex &treeIndex)
+{
+    if (!treeIndex.isValid())
+        return;
+
+    OpcUaModel *model = modelForIndex(treeIndex);
+    const QString nodeId = model->nodeIdAt(treeIndex);
+    if (nodeId.isEmpty())
+        return;
+
+    const QString name = model->data(treeIndex, OpcUaModel::DisplayNameRole).toString();
+    const QString path = buildNodePath(treeIndex);
+    setFocusNode(nodeId, path, name);
+}
+
+/*!
+ * \internal
+ * \brief Pins \a nodeId as the focus node and updates the focus segment.
+ * \param absolutePath The server-absolute display path of the node.
+ * \param displayName The display name shown as the focus segment title.
+ */
+void OpcUaManager::setFocusNode(const QString &nodeId,
+                                const QString &absolutePath,
+                                const QString &displayName)
+{
+    if (nodeId.isEmpty())
+        return;
+
+    m_focusNodeId = nodeId;
+    m_focusNodePath = absolutePath;
+    m_focusNodeName = displayName.isEmpty() ? nodeId : displayName;
+
+    applyFocusNodeToModel();
+    persistFocusNode();
+    emit focusNodeChanged();
+}
+
+/*!
+ * \brief Clears the pinned focus node and empties the focus segment.
+ */
+void OpcUaManager::clearFocusNode()
+{
+    m_focusNodeId.clear();
+    m_focusNodePath.clear();
+    m_focusNodeName.clear();
+
+    if (m_focusModel)
+        m_focusModel->clear();
+
+    if (m_settings) {
+        m_settings->remove(QStringLiteral("LastFocusNode"));
+        m_settings->sync();
+    }
+
+    emit focusNodeChanged();
+}
+
+/*!
+ * \internal
+ * \brief Applies the pinned focus node to the focus model for the current session.
+ *
+ * The focus model is re-rooted at the pinned node and activated only while a
+ * session is connected; otherwise it is cleared so the segment stays empty.
+ */
+void OpcUaManager::applyFocusNodeToModel()
+{
+    if (!m_focusModel)
+        return;
+
+    if (m_focusNodeId.isEmpty() || !connected()) {
+        m_focusModel->clear();
+        return;
+    }
+
+    m_focusModel->setRootNode(m_focusNodeId, m_focusNodeName);
+    m_focusModel->setConnectionActive(true);
+}
+
+/*!
+ * \internal
+ * \brief Assigns a routed browse id for \a model and forwards the request.
+ *
+ * Both tree models generate their own request ids, which can collide. Each browse
+ * is remapped to a manager-global id sent to the service, so the reply is routed
+ * back to the model that asked for it with the request id that model expects.
+ */
+void OpcUaManager::routeFetch(OpcUaModel *model,
+                              const QString &parentNodeId,
+                              quint64 modelRequestId)
+{
+    const quint64 browseId = ++m_nextBrowseRequestId;
+    m_browseRouting.insert(browseId, BrowseRoute{model, modelRequestId});
+    emit browseChildrenRequested(parentNodeId, browseId);
+}
+
+/*!
+ * \internal
+ * \brief Writes the current connection parameters to the INI store.
+ *
+ * The password is never stored; only the user name is kept for username
+ * authentication so a later reconnect can prompt for the password.
+ */
+void OpcUaManager::persistLastConnection()
+{
+    if (!m_settings)
+        return;
+
+    QString backend;
+    int authMode = 0;
+    {
+        QMutexLocker locker(&m_stateMutex);
+        backend = m_backend;
+        authMode = m_authMode;
+    }
+
+    m_settings->beginGroup(QStringLiteral("LastConnection"));
+    m_settings->setValue(QStringLiteral("discoveryUrl"), m_lastDiscoveryUrl);
+    m_settings->setValue(QStringLiteral("backend"), backend);
+    m_settings->setValue(QStringLiteral("server"), m_currentServer);
+    m_settings->setValue(QStringLiteral("endpoint"), m_lastEndpointDisplay);
+    m_settings->setValue(QStringLiteral("authMode"), authMode);
+    // authMode 1 is username authentication (see BsOpcUaConnectionForm mapping).
+    m_settings->setValue(QStringLiteral("userName"),
+                         authMode == 1 ? m_lastUserName : QString());
+    m_settings->endGroup();
+    m_settings->sync();
+
+    updateHasLastConnection();
+}
+
+/*!
+ * \internal
+ * \brief Writes the pinned focus node to the INI store, or removes it when cleared.
+ */
+void OpcUaManager::persistFocusNode()
+{
+    if (!m_settings)
+        return;
+
+    if (m_focusNodeId.isEmpty()) {
+        m_settings->remove(QStringLiteral("LastFocusNode"));
+    } else {
+        m_settings->beginGroup(QStringLiteral("LastFocusNode"));
+        m_settings->setValue(QStringLiteral("nodeId"), m_focusNodeId);
+        m_settings->setValue(QStringLiteral("path"), m_focusNodePath);
+        m_settings->setValue(QStringLiteral("displayName"), m_focusNodeName);
+        m_settings->endGroup();
+    }
+    m_settings->sync();
+}
+
+/*!
+ * \internal
+ * \brief Loads the stored focus node into memory without touching the connection.
+ *
+ * The focus segment is applied to the model later, once a session is connected.
+ */
+void OpcUaManager::loadStoredFocusNode()
+{
+    if (!m_settings)
+        return;
+
+    m_settings->beginGroup(QStringLiteral("LastFocusNode"));
+    const QString nodeId = m_settings->value(QStringLiteral("nodeId")).toString();
+    const QString path = m_settings->value(QStringLiteral("path")).toString();
+    const QString name = m_settings->value(QStringLiteral("displayName")).toString();
+    m_settings->endGroup();
+
+    if (nodeId.isEmpty())
+        return;
+
+    m_focusNodeId = nodeId;
+    m_focusNodePath = path;
+    m_focusNodeName = name.isEmpty() ? nodeId : name;
+    emit focusNodeChanged();
+}
+
+/*!
+ * \internal
+ * \brief Recomputes hasLastConnection() from the INI store and emits on change.
+ */
+void OpcUaManager::updateHasLastConnection()
+{
+    bool has = false;
+    if (m_settings) {
+        has = !m_settings->value(QStringLiteral("LastConnection/discoveryUrl"))
+                   .toString()
+                   .isEmpty();
+    }
+
+    if (has == m_hasLastConnection)
+        return;
+
+    m_hasLastConnection = has;
+    emit hasLastConnectionChanged();
+}
+
+/*!
+ * \brief Reconnects to the stored last connection.
+ *
+ * Reads the persisted parameters, selects the backend and authentication mode,
+ * and starts server discovery. Username authentication needs a password, which is
+ * never stored, so passwordRequired() is emitted and the run resumes once
+ * provideReconnectPassword() is called.
+ */
+void OpcUaManager::connectToLast()
+{
+    if (!m_settings) {
+        applyLastError(tr("No stored connection is available."));
+        return;
+    }
+    if (connected() || busy())
+        return;
+
+    m_settings->beginGroup(QStringLiteral("LastConnection"));
+    m_reconnectDiscoveryUrl = m_settings->value(QStringLiteral("discoveryUrl")).toString();
+    const QString backend = m_settings->value(QStringLiteral("backend")).toString();
+    m_reconnectServer = m_settings->value(QStringLiteral("server")).toString();
+    m_reconnectEndpoint = m_settings->value(QStringLiteral("endpoint")).toString();
+    m_reconnectAuthMode = m_settings->value(QStringLiteral("authMode"), 0).toInt();
+    m_reconnectUser = m_settings->value(QStringLiteral("userName")).toString();
+    m_settings->endGroup();
+
+    if (m_reconnectDiscoveryUrl.isEmpty()) {
+        applyLastError(tr("No stored connection is available."));
+        return;
+    }
+
+    // Restore the pinned focus node so the focus segment returns after connecting.
+    loadStoredFocusNode();
+
+    if (!backend.isEmpty())
+        setBackend(backend);
+
+    // Username authentication (authMode 1) needs a password, which is never
+    // stored: ask QML for it and continue in provideReconnectPassword().
+    if (m_reconnectAuthMode == 1) {
+        m_reconnectStage = ReconnectStage::AwaitingPassword;
+        emit passwordRequired(m_reconnectUser);
+        return;
+    }
+
+    if (m_reconnectAuthMode == 2)
+        setCertificateAuthentication();
+    else
+        setAnonymousAuthentication();
+
+    startReconnectDiscovery();
+}
+
+/*!
+ * \brief Supplies the \a password and resumes a waiting connectToLast() run.
+ */
+void OpcUaManager::provideReconnectPassword(const QString &password)
+{
+    if (m_reconnectStage != ReconnectStage::AwaitingPassword)
+        return;
+
+    setUsernameAuthentication(m_reconnectUser, password);
+    startReconnectDiscovery();
+}
+
+/*!
+ * \internal
+ * \brief Starts server discovery for an in-progress connectToLast() run.
+ */
+void OpcUaManager::startReconnectDiscovery()
+{
+    m_reconnectStage = ReconnectStage::DiscoveringServers;
+    discoverServers(m_reconnectDiscoveryUrl);
+}
+
+/*!
+ * \internal
+ * \brief Aborts an in-progress connectToLast() run and reports \a reason.
+ */
+void OpcUaManager::abortReconnect(const QString &reason)
+{
+    if (m_reconnectStage == ReconnectStage::Idle)
+        return;
+
+    m_reconnectStage = ReconnectStage::Idle;
+    if (!reason.isEmpty())
+        applyLastError(reason);
 }
 
 /*!
@@ -636,8 +1013,18 @@ void OpcUaManager::attachService(OpcUaService *service)
             this, &OpcUaManager::applyAuthMode, Qt::QueuedConnection);
     connect(service, &OpcUaService::browseChildrenReady,
             this, &OpcUaManager::applyBrowseChildren, Qt::QueuedConnection);
-    connect(m_treeModel, &OpcUaModel::fetchChildrenRequested,
-            this, &OpcUaManager::browseChildrenRequested, Qt::QueuedConnection);
+
+    // Both the main tree and the focus segment browse through the service. Each
+    // model's request is remapped to a manager-global id so the reply is routed
+    // back to the model that asked for it (see routeFetch/applyBrowseChildren).
+    connect(m_treeModel, &OpcUaModel::fetchChildrenRequested, this,
+            [this](const QString &parentNodeId, quint64 requestId) {
+                routeFetch(m_treeModel, parentNodeId, requestId);
+            });
+    connect(m_focusModel, &OpcUaModel::fetchChildrenRequested, this,
+            [this](const QString &parentNodeId, quint64 requestId) {
+                routeFetch(m_focusModel, parentNodeId, requestId);
+            });
 
     connect(this, &OpcUaManager::readAttributesRequested,
             service, &OpcUaService::readNodeAttributes, Qt::QueuedConnection);
@@ -696,12 +1083,40 @@ void OpcUaManager::applyBackend(const QString &backend)
  */
 void OpcUaManager::applyServers(const QStringList &servers)
 {
-    QMutexLocker locker(&m_stateMutex);
-    if (m_servers == servers)
+    bool changed = false;
+    {
+        QMutexLocker locker(&m_stateMutex);
+        if (m_servers != servers) {
+            m_servers = servers;
+            changed = true;
+        }
+    }
+    if (changed)
+        emit serversChanged();
+
+    if (m_reconnectStage != ReconnectStage::DiscoveringServers)
         return;
-    m_servers = servers;
-    locker.unlock();
-    emit serversChanged();
+
+    // Pick the stored server: exact display match first, then a substring match,
+    // then the first server as a fallback.
+    int index = servers.indexOf(m_reconnectServer);
+    if (index < 0 && !m_reconnectServer.isEmpty()) {
+        for (int i = 0; i < servers.size(); ++i) {
+            if (servers.at(i).contains(m_reconnectServer)) {
+                index = i;
+                break;
+            }
+        }
+    }
+    if (index < 0 && !servers.isEmpty())
+        index = 0;
+    if (index < 0) {
+        abortReconnect(tr("The stored server was not found during discovery."));
+        return;
+    }
+
+    m_reconnectStage = ReconnectStage::RequestingEndpoints;
+    requestEndpointsForServer(index);
 }
 
 /*!
@@ -710,12 +1125,31 @@ void OpcUaManager::applyServers(const QStringList &servers)
  */
 void OpcUaManager::applyEndpoints(const QStringList &endpoints)
 {
-    QMutexLocker locker(&m_stateMutex);
-    if (m_endpoints == endpoints)
+    bool changed = false;
+    {
+        QMutexLocker locker(&m_stateMutex);
+        if (m_endpoints != endpoints) {
+            m_endpoints = endpoints;
+            changed = true;
+        }
+    }
+    if (changed)
+        emit endpointsChanged();
+
+    if (m_reconnectStage != ReconnectStage::RequestingEndpoints)
         return;
-    m_endpoints = endpoints;
-    locker.unlock();
-    emit endpointsChanged();
+
+    // Pick the stored endpoint by exact display match, else the first endpoint.
+    int index = endpoints.indexOf(m_reconnectEndpoint);
+    if (index < 0 && !endpoints.isEmpty())
+        index = 0;
+    if (index < 0) {
+        abortReconnect(tr("The stored endpoint was not found."));
+        return;
+    }
+
+    m_reconnectStage = ReconnectStage::Connecting;
+    connectToEndpoint(index);
 }
 
 /*!
@@ -738,6 +1172,14 @@ void OpcUaManager::applyConnected(bool connected)
         // results arrive, so the monitoring checkbox is restored for those nodes.
         refreshMonitoredNodeIds();
 
+        // Restore the pinned focus segment now that the session is active.
+        applyFocusNodeToModel();
+
+        // Persist the parameters that produced this successful connection and mark
+        // any in-progress reconnect as finished.
+        persistLastConnection();
+        m_reconnectStage = ReconnectStage::Idle;
+
         // Re-establish subscriptions for every persisted monitored node so the
         // Data Access View resumes updating after a (re)connect.
         const int rows = m_dataModel->rowCount();
@@ -747,6 +1189,10 @@ void OpcUaManager::applyConnected(bool connected)
                 emit subscribeNodeRequested(nodeId);
         }
     } else {
+        if (m_focusModel)
+            m_focusModel->clear();
+        // Drop routes for browses that will never return after the session ended.
+        m_browseRouting.clear();
         m_dataModel->clearValues();
         m_attributesModel->clear();
     }
@@ -812,6 +1258,15 @@ void OpcUaManager::applyLastError(const QString &lastError)
         return;
     m_lastError = lastError;
     locker.unlock();
+
+    // A real error during an automatic reconnect ends the run so the state machine
+    // does not keep matching stale discovery results.
+    if (!lastError.isEmpty()
+        && m_reconnectStage != ReconnectStage::Idle
+        && m_reconnectStage != ReconnectStage::AwaitingPassword) {
+        m_reconnectStage = ReconnectStage::Idle;
+    }
+
     emit lastErrorChanged();
 }
 
@@ -841,8 +1296,15 @@ void OpcUaManager::applyBrowseChildren(const QString &parentNodeId,
                                        const QList<OpcUaNodeData> &children,
                                        bool success)
 {
-    if (m_treeModel)
-        m_treeModel->applyChildrenSnapshot(parentNodeId, requestId, children, success);
+    const auto it = m_browseRouting.find(requestId);
+    if (it == m_browseRouting.end())
+        return;
+
+    const BrowseRoute route = it.value();
+    m_browseRouting.erase(it);
+
+    if (route.model)
+        route.model->applyChildrenSnapshot(parentNodeId, route.modelRequestId, children, success);
 }
 
 /*!

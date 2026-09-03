@@ -34,8 +34,11 @@ public:
         Error
     };
 
-    /** Creates the invisible root item. */
+    /** Creates the invisible root item anchored at the server RootFolder. */
     explicit TreeItem(OpcUaModel *model);
+
+    /** Creates the invisible root item anchored at \a nodeId with \a displayName. */
+    TreeItem(OpcUaModel *model, const QString &nodeId, const QString &displayName);
 
     /** Creates a visible child item from snapshot data. */
     TreeItem(const OpcUaNodeData &data, OpcUaModel *model, TreeItem *parent);
