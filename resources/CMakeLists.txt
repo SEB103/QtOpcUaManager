@@ -9,6 +9,13 @@ qt_add_resources(appOpcUaManager "application_resources"
     FILES
         qtquickcontrols2.conf
 
+        # Application branding: multi-size window/taskbar icon and the wordmark
+        # logo shown on the launcher start page. Source PNGs and generated
+        # variants live under images/app/ (the .exe icon comes from
+        # images/app/app.rc, which is not a runtime resource).
+        images/app/OpcUaManager.ico
+        images/app/OpcUaManagerLogo.png
+
         images/svg/dark_mode.svg
         images/svg/help.svg
         images/svg/info.svg

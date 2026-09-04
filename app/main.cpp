@@ -1,6 +1,8 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QGuiApplication>
+#include <QIcon>
 #include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QString>
@@ -28,6 +30,12 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain(QStringLiteral("opcuamanager.local"));
     QCoreApplication::setApplicationName(QStringLiteral("OpcUaManager"));
     QCoreApplication::setApplicationVersion(QStringLiteral(OPCUAMANAGER_VERSION));
+
+    // Set the application icon used for the window title bar, the taskbar and
+    // Alt+Tab. The multi-size .ico is bundled via resources/CMakeLists.txt; Qt
+    // selects the frame matching the requested size. The Windows .exe carries
+    // the same icon through resources/images/app/app.rc.
+    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/images/app/OpcUaManager.ico")));
 
     // Create the INI settings store next to the executable in an ini/ folder,
     // matching the db/ and pki/ layout. It persists the last connection and the

@@ -69,6 +69,20 @@ Pane {
             y: 40
             spacing: 16
 
+            // Application wordmark logo shown at the top of the start page. The
+            // source is a transparent-background PNG so it blends with either
+            // theme; sourceSize caps the decoded size for a 128 px display.
+            Image {
+                source: "qrc:/images/app/OpcUaManagerLogo.png"
+                fillMode: Image.PreserveAspectFit
+                sourceSize.width: 256
+                sourceSize.height: 256
+                Layout.preferredWidth: 128
+                Layout.preferredHeight: 128
+                Accessible.role: Accessible.Graphic
+                Accessible.name: qsTr("OPC UA Manager")
+            }
+
             Label {
                 text: qsTr("OPC UA Manager")
                 font.pixelSize: 28

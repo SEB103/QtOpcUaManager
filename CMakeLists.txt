@@ -102,6 +102,13 @@ set_target_properties(appOpcUaManager PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+# Embed the application icon into the Windows .exe (used by Explorer, the
+# taskbar/Alt+Tab and Desktop/Start Menu shortcuts). The .rc references the
+# sibling OpcUaManager.ico; MSVC compiles it automatically.
+if(WIN32)
+    target_sources(appOpcUaManager PRIVATE resources/images/app/app.rc)
+endif()
+
 qt_add_translations(appOpcUaManager
     TS_FILES
         translations/OpcUaManager_de_DE.ts
