@@ -85,6 +85,13 @@ MenuBar {
     */
     signal openRecentRequested(int index)
 
+    /*!
+        \qmlsignal BsMenuBar::settingsRequested()
+        Emitted when the user opens application settings. The corresponding
+        handler is \c onSettingsRequested.
+    */
+    signal settingsRequested()
+
     Menu {
         title: qsTr("Application")
 
@@ -114,6 +121,13 @@ MenuBar {
         MenuItem {
             text: qsTr("Sta&rt/Stop")
             enabled: false
+        }
+
+        MenuSeparator {}
+
+        MenuItem {
+            text: qsTr("&Settings…")
+            onTriggered: appMenuBar.settingsRequested()
         }
 
         MenuSeparator {}

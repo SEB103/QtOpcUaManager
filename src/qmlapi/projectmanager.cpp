@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QUrl>
 #include <QVariantMap>
 
@@ -17,6 +18,8 @@ namespace {
 constexpr int kMaxRecentProjects = 10;
 /*! \internal Settings array name holding the recent-projects list. */
 constexpr auto kRecentArrayKey = "RecentProjects";
+/*! \internal Settings key holding the default projects directory. */
+constexpr auto kDefaultProjectsDirKey = "defaultProjectsDir";
 
 /*!
  * \internal
@@ -91,6 +94,43 @@ QVariantList ProjectManager::recentProjects() const
 }
 
 /*!
+ * \brief Returns the configured default projects directory, or the built-in default.
+ *
+ * When no directory has been configured, falls back to an "OpcUaManager" folder
+ * under the user's Documents location.
+ */
+QString ProjectManager::defaultProjectsDir() const
+{
+    QString dir;
+    if (m_settings)
+        dir = m_settings->value(QLatin1String(kDefaultProjectsDirKey)).toString();
+
+    if (dir.isEmpty()) {
+        const QString documents =
+            QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        dir = QDir(documents).filePath(QStringLiteral("OpcUaManager"));
+    }
+    return QDir::cleanPath(dir);
+}
+
+/*!
+ * \brief Sets and persists the default projects directory from \a pathOrUrl.
+ */
+void ProjectManager::setDefaultProjectsDir(const QString &pathOrUrl)
+{
+    const QString dir = QDir::cleanPath(toLocalPath(pathOrUrl));
+    if (dir.isEmpty() || dir == defaultProjectsDir())
+        return;
+
+    if (m_settings) {
+        m_settings->setValue(QLatin1String(kDefaultProjectsDirKey), dir);
+        m_settings->sync();
+    }
+    QDir().mkpath(dir);
+    emit defaultProjectsDirChanged();
+}
+
+/*!
  * \brief Injects the INI settings store and loads the recent-projects list.
  * \param settings Non-owning settings store, or null to disable persistence.
  */
@@ -148,6 +188,11 @@ bool ProjectManager::createProjectAtPath(const QString &pathOrUrl)
     }
     if (!path.endsWith(QStringLiteral(".uaproj"), Qt::CaseInsensitive))
         path += QStringLiteral(".uaproj");
+
+    if (QFileInfo::exists(path)) {
+        emit projectError(tr("A project file already exists at %1.").arg(path));
+        return false;
+    }
 
     ProjectData data;
     data.displayName = QFileInfo(path).completeBaseName();

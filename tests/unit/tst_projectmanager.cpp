@@ -1,3 +1,4 @@
+#include <QDir>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QVariantMap>
@@ -52,6 +53,15 @@ private slots:
 
     /*! Verifies that a facade change marks dirty and saving clears it and persists. */
     void saveClearsDirtyAndPersistsChanges();
+
+    /*! Verifies the default projects directory falls back to Documents/OpcUaManager. */
+    void defaultProjectsDirFallsBackToDocuments();
+
+    /*! Verifies that setting the default projects directory persists across reload. */
+    void defaultProjectsDirPersists();
+
+    /*! Verifies that creating a project over an existing file is refused. */
+    void createRefusesToOverwriteExistingFile();
 
 private:
     /*! Builds a settings store inside \a dir for one test. */
@@ -309,6 +319,69 @@ void ProjectManagerTest::saveClearsDirtyAndPersistsChanges()
     const ProjectSerializer::LoadResult result = ProjectSerializer::load(path);
     QVERIFY(result.ok);
     QCOMPARE(result.data.settings.valueFormat, int(OpcUaManager::FormatXml));
+}
+
+/*!
+ * \brief Verifies the default projects directory falls back to Documents/OpcUaManager.
+ */
+void ProjectManagerTest::defaultProjectsDirFallsBackToDocuments()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    TestableProjectManager manager;
+    manager.setSettings(makeSettings(dir, &manager));
+
+    const QString fallback = manager.defaultProjectsDir();
+    QVERIFY(!fallback.isEmpty());
+    QVERIFY(fallback.endsWith(QStringLiteral("OpcUaManager")));
+}
+
+/*!
+ * \brief Verifies that setting the default projects directory persists across reload.
+ */
+void ProjectManagerTest::defaultProjectsDirPersists()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString settingsPath = dir.filePath(QStringLiteral("settings.ini"));
+    const QString chosen = dir.filePath(QStringLiteral("MyProjects"));
+
+    {
+        TestableProjectManager manager;
+        auto *settings = new QSettings(settingsPath, QSettings::IniFormat, &manager);
+        manager.setSettings(settings);
+
+        QSignalSpy spy(&manager, &ProjectManager::defaultProjectsDirChanged);
+        manager.setDefaultProjectsDir(chosen);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(manager.defaultProjectsDir(), QDir::cleanPath(chosen));
+    }
+
+    TestableProjectManager reloaded;
+    auto *settings = new QSettings(settingsPath, QSettings::IniFormat, &reloaded);
+    reloaded.setSettings(settings);
+    QCOMPARE(reloaded.defaultProjectsDir(), QDir::cleanPath(chosen));
+}
+
+/*!
+ * \brief Verifies that creating a project over an existing file is refused.
+ */
+void ProjectManagerTest::createRefusesToOverwriteExistingFile()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    TestableProjectManager manager;
+    manager.setSettings(makeSettings(dir, &manager));
+
+    const QString path = dir.filePath(QStringLiteral("Existing.uaproj"));
+    QVERIFY(manager.createProjectAtPath(path));
+
+    manager.clearActiveProject();
+    QSignalSpy errorSpy(&manager, &ProjectManager::projectError);
+    QVERIFY(!manager.createProjectAtPath(path));
+    QCOMPARE(errorSpy.count(), 1);
 }
 
 QTEST_MAIN(ProjectManagerTest)

@@ -1210,6 +1210,12 @@ void OpcUaManager::applyServers(const QStringList &servers)
     if (m_reconnectStage != ReconnectStage::DiscoveringServers)
         return;
 
+    // discoverServers() clears the list and emits an empty serversChanged() before
+    // the network result arrives. That transient empty emission must not abort an
+    // in-progress reconnect; wait for the populated result instead.
+    if (servers.isEmpty())
+        return;
+
     // Pick the stored server: exact display match first, then a substring match,
     // then the first server as a fallback.
     int index = servers.indexOf(m_reconnectServer);
@@ -1250,6 +1256,11 @@ void OpcUaManager::applyEndpoints(const QStringList &endpoints)
         emit endpointsChanged();
 
     if (m_reconnectStage != ReconnectStage::RequestingEndpoints)
+        return;
+
+    // Endpoint discovery clears the list first, like server discovery; ignore the
+    // transient empty emission and wait for the populated endpoint list.
+    if (endpoints.isEmpty())
         return;
 
     // Pick the stored endpoint by exact display match, else the first endpoint.

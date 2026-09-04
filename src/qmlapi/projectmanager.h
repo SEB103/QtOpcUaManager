@@ -41,6 +41,10 @@ class ProjectManager : public QObject
     /** Recent-project entries, newest first, as QVariantMap rows for QML. */
     Q_PROPERTY(QVariantList recentProjects READ recentProjects NOTIFY recentProjectsChanged)
 
+    /** Default directory new projects are created in; user-configurable. */
+    Q_PROPERTY(QString defaultProjectsDir READ defaultProjectsDir WRITE setDefaultProjectsDir
+                   NOTIFY defaultProjectsDirChanged)
+
 public:
     /** Creates a project manager with no active project and an empty recent list. */
     explicit ProjectManager(QObject *parent = nullptr);
@@ -62,6 +66,12 @@ public:
 
     /** Returns the recent-project rows exposed to QML, newest first. */
     QVariantList recentProjects() const;
+
+    /** Returns the configured default projects directory, or the built-in default. */
+    QString defaultProjectsDir() const;
+
+    /** Sets and persists the default projects directory from \a pathOrUrl. */
+    Q_INVOKABLE void setDefaultProjectsDir(const QString &pathOrUrl);
 
     /**
      * Injects the INI settings store used to persist the recent-projects list.
@@ -128,6 +138,9 @@ signals:
 
     /** Emitted when the recent-projects list changes. */
     void recentProjectsChanged();
+
+    /** Emitted when the default projects directory changes. */
+    void defaultProjectsDirChanged();
 
     /** Emitted with a user-facing \a message when a project operation fails. */
     void projectError(const QString &message);

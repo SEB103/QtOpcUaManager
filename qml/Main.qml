@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Dialogs
+import QtQuick.Layouts
 import Base as Base
 
 /*!
@@ -84,7 +85,7 @@ ApplicationWindow {
         visible: !cppProjectManager.hasActiveProject
 
         onOpenProjectRequested: openProjectDialog.open()
-        onCreateProjectRequested: createProjectDialog.open()
+        onCreateProjectRequested: newProjectDialog.open()
     }
 
     Connections {
@@ -110,7 +111,11 @@ ApplicationWindow {
         }
 
         function onNewProjectRequested() {
-            mainWindow.runGuarded(() => createProjectDialog.open())
+            mainWindow.runGuarded(() => newProjectDialog.open())
+        }
+
+        function onSettingsRequested() {
+            settingsDialog.open()
         }
 
         function onOpenProjectRequested() {
@@ -142,14 +147,103 @@ ApplicationWindow {
         onAccepted: cppProjectManager.openProject(selectedFile)
     }
 
-    FileDialog {
-        id: createProjectDialog
+    // Guided create-project form: the user types a name, sees the resulting
+    // <name>.uaproj file and full path, and can change the destination folder.
+    Dialog {
+        id: newProjectDialog
 
+        /*! Local path of the destination folder for the new project. */
+        property string projectFolder: ""
+
+        x: Math.round((mainWindow.width - width) / 2)
+        y: Math.round((mainWindow.height - height) / 2)
+        width: Math.min(mainWindow.width - 80, 560)
         title: qsTr("Create New Project")
-        fileMode: FileDialog.SaveFile
-        defaultSuffix: "uaproj"
-        nameFilters: [qsTr("OPC UA projects (*.uaproj)")]
-        onAccepted: cppProjectManager.createProjectAtPath(selectedFile)
+        modal: true
+        focus: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        closePolicy: Popup.CloseOnEscape
+
+        onOpened: {
+            newProjectNameField.text = ""
+            newProjectDialog.projectFolder = cppProjectManager.defaultProjectsDir
+            newProjectNameField.forceActiveFocus()
+        }
+
+        onAccepted: {
+            const name = newProjectNameField.text.trim()
+            if (cppProjectManager.createProject(name, newProjectDialog.projectFolder))
+                cppProjectManager.setDefaultProjectsDir(newProjectDialog.projectFolder)
+            else
+                Qt.callLater(() => newProjectDialog.open()) // failed (e.g. name taken) — reopen to fix
+        }
+
+        Component.onCompleted: {
+            const okButton = standardButton(Dialog.Ok)
+            if (okButton)
+                okButton.enabled = Qt.binding(() =>
+                    newProjectNameField.text.trim().length > 0
+                    && newProjectDialog.projectFolder.length > 0)
+        }
+
+        GridLayout {
+            width: parent.width
+            columns: 3
+            columnSpacing: 10
+            rowSpacing: 8
+
+            Label { text: qsTr("Name:"); Layout.preferredWidth: 110 }
+            TextField {
+                id: newProjectNameField
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                placeholderText: qsTr("Project name")
+                onAccepted: newProjectDialog.accept()
+            }
+            Item { Layout.preferredWidth: 100 }
+
+            Label { text: qsTr("File:"); Layout.preferredWidth: 110 }
+            Label {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                elide: Text.ElideMiddle
+                text: (newProjectNameField.text.trim().length > 0
+                       ? newProjectNameField.text.trim() : qsTr("<name>")) + ".uaproj"
+            }
+
+            Label { text: qsTr("Location:"); Layout.preferredWidth: 110 }
+            TextField {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                readOnly: true
+                text: newProjectDialog.projectFolder
+            }
+            Button {
+                text: qsTr("Browse…")
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 44
+                onClicked: newProjectFolderDialog.open()
+            }
+
+            Label { text: qsTr("Full path:"); Layout.preferredWidth: 110 }
+            Label {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                elide: Text.ElideMiddle
+                opacity: 0.7
+                text: newProjectDialog.projectFolder + "/"
+                      + (newProjectNameField.text.trim().length > 0
+                         ? newProjectNameField.text.trim() : qsTr("<name>")) + ".uaproj"
+            }
+        }
+    }
+
+    FolderDialog {
+        id: newProjectFolderDialog
+
+        title: qsTr("Select Project Folder")
+        currentFolder: Qt.resolvedUrl(cppProjectManager.defaultProjectsDir)
+        onAccepted: newProjectDialog.projectFolder = cppProjectManager.toLocalPath(selectedFolder)
     }
 
     FileDialog {
@@ -224,6 +318,48 @@ ApplicationWindow {
             width: parent.width
             wrapMode: Text.Wrap
         }
+    }
+
+    Dialog {
+        id: settingsDialog
+
+        x: Math.round((mainWindow.width - width) / 2)
+        y: Math.round((mainWindow.height - height) / 2)
+        width: Math.min(mainWindow.width - 80, 620)
+        title: qsTr("Settings")
+        modal: true
+        focus: true
+        standardButtons: Dialog.Close
+        closePolicy: Popup.CloseOnEscape
+
+        GridLayout {
+            width: parent.width
+            columns: 3
+            columnSpacing: 10
+            rowSpacing: 8
+
+            Label { text: qsTr("Default projects folder:"); Layout.preferredWidth: 180 }
+            TextField {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                readOnly: true
+                text: cppProjectManager.defaultProjectsDir
+            }
+            Button {
+                text: qsTr("Browse…")
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 44
+                onClicked: settingsFolderDialog.open()
+            }
+        }
+    }
+
+    FolderDialog {
+        id: settingsFolderDialog
+
+        title: qsTr("Select Default Projects Folder")
+        currentFolder: Qt.resolvedUrl(cppProjectManager.defaultProjectsDir)
+        onAccepted: cppProjectManager.setDefaultProjectsDir(selectedFolder)
     }
 
     Dialog {
