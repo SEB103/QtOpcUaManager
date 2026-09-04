@@ -11,6 +11,7 @@ qt_add_qml_module(MainQml
     QML_FILES
         Main.qml
         MainScreen.ui.qml
+        LauncherScreen.qml
 )
 
 target_link_libraries(MainQml
@@ -18,4 +19,5 @@ target_link_libraries(MainQml
         Base
         Qt6::Quick
         Qt6::QuickControls2
+        Qt6::QuickDialogs2
 )

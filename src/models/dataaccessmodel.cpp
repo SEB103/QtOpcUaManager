@@ -24,6 +24,21 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
 }
 
 /*!
+ * \brief Returns the persistent identity and metadata of every row, in display order.
+ *
+ * Live value, timestamp, and status fields are excluded; only the persistable
+ * MonitoredNodeRecord of each row is returned, for saving into a project file.
+ */
+QList<MonitoredNodeRecord> DataAccessModel::records() const
+{
+    QList<MonitoredNodeRecord> result;
+    result.reserve(m_rows.size());
+    for (const Row &row : m_rows)
+        result.append(row.record);
+    return result;
+}
+
+/*!
  * \brief Appends \a record when its (server, nodeId) pair is not present.
  * \return \c true when a new row was appended.
  */

@@ -22,6 +22,9 @@ target_sources(OpcUaCore
         models/treeitem.h
         persistence/nodedatabase.cpp
         persistence/nodedatabase.h
+        project/projectdata.h
+        project/projectserializer.cpp
+        project/projectserializer.h
 )
 
 target_include_directories(OpcUaCore
@@ -44,6 +47,8 @@ target_sources(OpcUaQmlApi
     PRIVATE
         qmlapi/opcuamanager.cpp
         qmlapi/opcuamanager.h
+        qmlapi/projectmanager.cpp
+        qmlapi/projectmanager.h
         qmlapi/structuredvaluehighlighter.cpp
         qmlapi/structuredvaluehighlighter.h
 )

@@ -110,13 +110,13 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     , m_attributesModel(new AttributesModel(this))
     , m_nodeDatabase(std::make_unique<NodeDatabase>())
 {
-    // The database ships in a db/ folder next to the executable so that monitored
-    // nodes persist across runs. It is created on first use if it does not exist.
+    // The legacy SQLite store is opened read-only for one-time migration into a
+    // project file. Monitored nodes are no longer seeded from it at startup; the
+    // active project is the source of truth and fills the Data Access View through
+    // applyProject(). See exportLegacyState().
     const QString databasePath =
         QCoreApplication::applicationDirPath() + QLatin1String("/db/opcua_nodes.db");
-    if (m_nodeDatabase->open(databasePath))
-        m_dataModel->setRecords(m_nodeDatabase->loadAll());
-    else
+    if (!m_nodeDatabase->open(databasePath))
         qWarning() << "OpcUaManager: failed to open node database at" << databasePath;
 
     // Restore the structured-value output format chosen in a previous session.
@@ -229,17 +229,19 @@ bool OpcUaManager::hasLastConnection() const
 }
 
 /*!
- * \brief Injects the INI settings store used for persistence.
+ * \brief Injects the INI settings store used for legacy migration and defaults.
  * \param settings Non-owning settings store, or null to disable persistence.
  *
- * Recomputes hasLastConnection() and loads any stored focus node into memory so
- * a later connectToLast() (or reconnect) can restore the focus segment.
+ * No project state is restored at injection time; the launcher opens a project
+ * later, and applyProject() restores its state then.
  */
 void OpcUaManager::setSettings(QSettings *settings)
 {
+    // The project layer owns connection and focus persistence; the injected store
+    // is retained only for reading legacy state during one-time migration and for
+    // the native value-format default. No project state is restored here at
+    // startup, because no project is active until the launcher opens one.
     m_settings = settings;
-    loadStoredFocusNode();
-    updateHasLastConnection();
 }
 
 DataAccessModel *OpcUaManager::dataModel() const
@@ -405,10 +407,12 @@ void OpcUaManager::refreshMonitoredNodeIds()
 
 /*!
  * \brief Adds or removes the node at \a treeIndex from the Data Access View.
- * \param on Whether the node should be monitored and persisted.
+ * \param on Whether the node should be monitored.
  *
- * Adding inserts the node into the database and the table and starts a live
- * subscription when connected. Removing reverses all three steps.
+ * Adding inserts the node into the table and starts a live subscription when
+ * connected; removing reverses both steps. The monitored-node set is part of the
+ * active project, so projectStateChanged() is emitted for the project manager to
+ * record an unsaved change; the set is persisted when the project is saved.
  */
 void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
 {
@@ -430,15 +434,11 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         record.displayName = model->data(treeIndex, OpcUaModel::DisplayNameRole).toString();
         record.dataType = model->data(treeIndex, OpcUaModel::DataTypeRole).toString();
 
-        if (m_nodeDatabase)
-            m_nodeDatabase->insert(record);
         m_dataModel->addRow(record);
         model->setMonitoringEnabledAt(treeIndex, true);
         if (connected())
             emit subscribeNodeRequested(nodeId);
     } else {
-        if (m_nodeDatabase)
-            m_nodeDatabase->remove(server, nodeId);
         const int row = m_dataModel->rowCount();
         for (int i = 0; i < row; ++i) {
             if (m_dataModel->nodeIdAt(i) == nodeId) {
@@ -452,10 +452,16 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
 
     // Keep both models' monitored-id sets in sync so later re-browses stay correct.
     refreshMonitoredNodeIds();
+
+    // The monitored-node set belongs to the active project; mark it changed.
+    emit projectStateChanged();
 }
 
 /*!
- * \brief Removes the Data Access View row at \a row from the table and database.
+ * \brief Removes the Data Access View row at \a row from the table.
+ *
+ * The monitored-node set is part of the active project, so projectStateChanged()
+ * is emitted; the change is persisted when the project is saved.
  */
 void OpcUaManager::removeNode(int row)
 {
@@ -463,11 +469,9 @@ void OpcUaManager::removeNode(int row)
     if (nodeId.isEmpty())
         return;
 
-    const QString server = m_dataModel->serverAt(row);
-    if (m_nodeDatabase)
-        m_nodeDatabase->remove(server, nodeId);
     m_dataModel->removeAt(row);
     emit unsubscribeNodeRequested(nodeId);
+    emit projectStateChanged();
 }
 
 /*!
@@ -582,8 +586,8 @@ void OpcUaManager::setFocusNode(const QString &nodeId,
     m_focusNodeName = displayName.isEmpty() ? nodeId : displayName;
 
     applyFocusNodeToModel();
-    persistFocusNode();
     emit focusNodeChanged();
+    emit projectStateChanged();
 }
 
 /*!
@@ -598,12 +602,8 @@ void OpcUaManager::clearFocusNode()
     if (m_focusModel)
         m_focusModel->clear();
 
-    if (m_settings) {
-        m_settings->remove(QStringLiteral("LastFocusNode"));
-        m_settings->sync();
-    }
-
     emit focusNodeChanged();
+    emit projectStateChanged();
 }
 
 /*!
@@ -646,99 +646,11 @@ void OpcUaManager::routeFetch(OpcUaModel *model,
 
 /*!
  * \internal
- * \brief Writes the current connection parameters to the INI store.
- *
- * The password is never stored; only the user name is kept for username
- * authentication so a later reconnect can prompt for the password.
- */
-void OpcUaManager::persistLastConnection()
-{
-    if (!m_settings)
-        return;
-
-    QString backend;
-    int authMode = 0;
-    {
-        QMutexLocker locker(&m_stateMutex);
-        backend = m_backend;
-        authMode = m_authMode;
-    }
-
-    m_settings->beginGroup(QStringLiteral("LastConnection"));
-    m_settings->setValue(QStringLiteral("discoveryUrl"), m_lastDiscoveryUrl);
-    m_settings->setValue(QStringLiteral("backend"), backend);
-    m_settings->setValue(QStringLiteral("server"), m_currentServer);
-    m_settings->setValue(QStringLiteral("endpoint"), m_lastEndpointDisplay);
-    m_settings->setValue(QStringLiteral("authMode"), authMode);
-    // authMode 1 is username authentication (see BsOpcUaConnectionForm mapping).
-    m_settings->setValue(QStringLiteral("userName"),
-                         authMode == 1 ? m_lastUserName : QString());
-    m_settings->endGroup();
-    m_settings->sync();
-
-    updateHasLastConnection();
-}
-
-/*!
- * \internal
- * \brief Writes the pinned focus node to the INI store, or removes it when cleared.
- */
-void OpcUaManager::persistFocusNode()
-{
-    if (!m_settings)
-        return;
-
-    if (m_focusNodeId.isEmpty()) {
-        m_settings->remove(QStringLiteral("LastFocusNode"));
-    } else {
-        m_settings->beginGroup(QStringLiteral("LastFocusNode"));
-        m_settings->setValue(QStringLiteral("nodeId"), m_focusNodeId);
-        m_settings->setValue(QStringLiteral("path"), m_focusNodePath);
-        m_settings->setValue(QStringLiteral("displayName"), m_focusNodeName);
-        m_settings->endGroup();
-    }
-    m_settings->sync();
-}
-
-/*!
- * \internal
- * \brief Loads the stored focus node into memory without touching the connection.
- *
- * The focus segment is applied to the model later, once a session is connected.
- */
-void OpcUaManager::loadStoredFocusNode()
-{
-    if (!m_settings)
-        return;
-
-    m_settings->beginGroup(QStringLiteral("LastFocusNode"));
-    const QString nodeId = m_settings->value(QStringLiteral("nodeId")).toString();
-    const QString path = m_settings->value(QStringLiteral("path")).toString();
-    const QString name = m_settings->value(QStringLiteral("displayName")).toString();
-    m_settings->endGroup();
-
-    if (nodeId.isEmpty())
-        return;
-
-    m_focusNodeId = nodeId;
-    m_focusNodePath = path;
-    m_focusNodeName = name.isEmpty() ? nodeId : name;
-    emit focusNodeChanged();
-}
-
-/*!
- * \internal
- * \brief Recomputes hasLastConnection() from the INI store and emits on change.
+ * \brief Recomputes hasLastConnection() from the active project connection.
  */
 void OpcUaManager::updateHasLastConnection()
 {
-    bool has = false;
-    if (m_settings) {
-        has = !m_settings->value(QStringLiteral("LastConnection/discoveryUrl"))
-                   .toString()
-                   .isEmpty();
-    }
-
+    const bool has = m_connection.isConfigured();
     if (has == m_hasLastConnection)
         return;
 
@@ -747,41 +659,92 @@ void OpcUaManager::updateHasLastConnection()
 }
 
 /*!
- * \brief Reconnects to the stored last connection.
+ * \internal
+ * \brief Rebuilds m_connection from the live session and emits on a real change.
  *
- * Reads the persisted parameters, selects the backend and authentication mode,
- * and starts server discovery. Username authentication needs a password, which is
- * never stored, so passwordRequired() is emitted and the run resumes once
- * provideReconnectPassword() is called.
+ * Called after a successful connect. When the resulting configuration differs
+ * from the one currently held (for example, a brand-new project connecting for
+ * the first time), projectStateChanged() is emitted so the project manager can
+ * record the unsaved change. Reconnecting with the same parameters an opened
+ * project already carries produces no change and no dirty flag.
+ */
+void OpcUaManager::updateConnectionFromLiveState()
+{
+    ProjectConnectionConfig live;
+    {
+        QMutexLocker locker(&m_stateMutex);
+        live.backend = m_backend;
+        live.authMode = m_authMode;
+        live.endpointUrlRewriteEnabled = m_endpointUrlRewriteEnabled;
+    }
+    live.discoveryUrl = m_lastDiscoveryUrl;
+    live.server = m_currentServer;
+    live.endpoint = m_lastEndpointDisplay;
+    live.userName = live.authMode == 1 ? m_lastUserName : QString();
+
+    const bool changed = live != m_connection;
+    m_connection = live;
+    updateHasLastConnection();
+    if (changed)
+        emit projectStateChanged();
+}
+
+/*!
+ * \brief Reconnects using the active project's stored connection configuration.
+ *
+ * Selects the backend and authentication mode and starts server discovery.
+ * Username authentication needs a password, which is never stored, so
+ * passwordRequired() is emitted and the run resumes in provideReconnectPassword().
  */
 void OpcUaManager::connectToLast()
 {
-    if (!m_settings) {
+    if (!m_connection.isConfigured()) {
         applyLastError(tr("No stored connection is available."));
         return;
     }
+    connectUsingConfig(m_connection);
+}
+
+/*!
+ * \brief Connects using the active project's stored connection configuration, if any.
+ *
+ * Called right after a project is opened. Does nothing when the project has no
+ * connection configured, so a freshly created project stays disconnected until
+ * the user configures a connection.
+ */
+void OpcUaManager::connectToProjectConnection()
+{
+    if (!m_connection.isConfigured())
+        return;
+    connectUsingConfig(m_connection);
+}
+
+/*!
+ * \internal
+ * \brief Seeds the reconnect state machine from \a config and starts connecting.
+ *
+ * Shared by connectToLast() and connectToProjectConnection(). The pinned focus
+ * node is not restored here; applyProject() already loaded it before this runs.
+ */
+void OpcUaManager::connectUsingConfig(const ProjectConnectionConfig &config)
+{
     if (connected() || busy())
         return;
-
-    m_settings->beginGroup(QStringLiteral("LastConnection"));
-    m_reconnectDiscoveryUrl = m_settings->value(QStringLiteral("discoveryUrl")).toString();
-    const QString backend = m_settings->value(QStringLiteral("backend")).toString();
-    m_reconnectServer = m_settings->value(QStringLiteral("server")).toString();
-    m_reconnectEndpoint = m_settings->value(QStringLiteral("endpoint")).toString();
-    m_reconnectAuthMode = m_settings->value(QStringLiteral("authMode"), 0).toInt();
-    m_reconnectUser = m_settings->value(QStringLiteral("userName")).toString();
-    m_settings->endGroup();
-
-    if (m_reconnectDiscoveryUrl.isEmpty()) {
+    if (!config.isConfigured()) {
         applyLastError(tr("No stored connection is available."));
         return;
     }
 
-    // Restore the pinned focus node so the focus segment returns after connecting.
-    loadStoredFocusNode();
+    m_reconnectDiscoveryUrl = config.discoveryUrl;
+    m_reconnectServer = config.server;
+    m_reconnectEndpoint = config.endpoint;
+    m_reconnectAuthMode = config.authMode;
+    m_reconnectUser = config.userName;
 
-    if (!backend.isEmpty())
-        setBackend(backend);
+    setEndpointUrlRewriteEnabled(config.endpointUrlRewriteEnabled);
+
+    if (!config.backend.isEmpty())
+        setBackend(config.backend);
 
     // Username authentication (authMode 1) needs a password, which is never
     // stored: ask QML for it and continue in provideReconnectPassword().
@@ -881,6 +844,7 @@ void OpcUaManager::setValueFormat(ValueFormat format)
     m_valueFormat = format;
     QSettings().setValue(QLatin1String(kValueFormatSettingsKey), static_cast<int>(format));
     emit valueFormatChanged();
+    emit projectStateChanged();
 
     if (m_structuredValueHighlighter)
         m_structuredValueHighlighter->setLanguage(toHighlighterLanguage(m_valueFormat));
@@ -950,6 +914,155 @@ void OpcUaManager::writeValue(int row, const QVariant &value)
         return;
 
     emit writeValueRequested(nodeId, value);
+}
+
+/*!
+ * \brief Applies \a data as the active project's runtime state.
+ *
+ * Stores the connection configuration for a later connect, restores the pinned
+ * focus node and value format into memory, and loads the monitored nodes into the
+ * Data Access View. No connection is started and projectStateChanged() is not
+ * emitted, because loading a project is not an unsaved change.
+ */
+void OpcUaManager::applyProject(const ProjectData &data)
+{
+    m_connection = data.connection;
+    updateHasLastConnection();
+
+    // Restore the pinned focus node into memory; it is applied to the focus model
+    // once a session connects, in applyFocusNodeToModel().
+    m_focusNodeId = data.focusNode.nodeId;
+    m_focusNodePath = data.focusNode.path;
+    m_focusNodeName = data.focusNode.displayName.isEmpty()
+                          ? data.focusNode.nodeId
+                          : data.focusNode.displayName;
+    emit focusNodeChanged();
+
+    // Restore the per-project value format without re-persisting it.
+    const ValueFormat format = data.settings.valueFormat == FormatXml ? FormatXml : FormatJson;
+    if (format != m_valueFormat) {
+        m_valueFormat = format;
+        if (m_structuredValueHighlighter)
+            m_structuredValueHighlighter->setLanguage(toHighlighterLanguage(m_valueFormat));
+        emit valueFormatChanged();
+    }
+
+    // Load the monitored nodes into the Data Access View and seed the tree so the
+    // monitoring checkbox is restored for those nodes when the address space is
+    // browsed after connecting.
+    m_dataModel->setRecords(data.monitoredNodes);
+    refreshMonitoredNodeIds();
+}
+
+/*!
+ * \brief Snapshots the current runtime state into a ProjectData for saving.
+ *
+ * The display name is left empty for the project manager to fill in, since it
+ * owns the project's identity and file path.
+ */
+ProjectData OpcUaManager::exportProject() const
+{
+    ProjectData data;
+    data.formatVersion = kProjectFormatVersion;
+    data.connection = m_connection;
+    data.focusNode.nodeId = m_focusNodeId;
+    data.focusNode.path = m_focusNodePath;
+    data.focusNode.displayName = m_focusNodeName;
+    if (m_dataModel)
+        data.monitoredNodes = m_dataModel->records();
+    data.settings.valueFormat = static_cast<int>(m_valueFormat);
+    return data;
+}
+
+/*!
+ * \brief Releases all project runtime state.
+ *
+ * Disconnects any active session, clears the tree, focus, data, and attribute
+ * models, and resets the stored connection, focus node, and selection so no stale
+ * OPC UA state remains after a project is closed or switched.
+ */
+void OpcUaManager::clearRuntimeState()
+{
+    if (connected())
+        disconnectFromServer();
+
+    if (m_treeModel)
+        m_treeModel->clear();
+    if (m_focusModel)
+        m_focusModel->clear();
+    if (m_dataModel)
+        m_dataModel->setRecords({});
+    if (m_attributesModel)
+        m_attributesModel->clear();
+
+    m_focusNodeId.clear();
+    m_focusNodePath.clear();
+    m_focusNodeName.clear();
+    emit focusNodeChanged();
+
+    if (!m_selectedNodeId.isEmpty()) {
+        m_selectedNodeId.clear();
+        emit selectedNodeIdChanged();
+    }
+
+    m_connection = ProjectConnectionConfig{};
+    updateHasLastConnection();
+    m_reconnectStage = ReconnectStage::Idle;
+}
+
+/*!
+ * \brief Returns whether legacy pre-project state exists to migrate into a project.
+ */
+bool OpcUaManager::hasLegacyState() const
+{
+    if (m_settings) {
+        if (!m_settings->value(QStringLiteral("LastConnection/discoveryUrl")).toString().isEmpty())
+            return true;
+        if (!m_settings->value(QStringLiteral("LastFocusNode/nodeId")).toString().isEmpty())
+            return true;
+    }
+    if (m_nodeDatabase && m_nodeDatabase->isOpen() && !m_nodeDatabase->loadAll().isEmpty())
+        return true;
+    return false;
+}
+
+/*!
+ * \brief Builds a ProjectData from legacy INI, native, and SQLite state.
+ *
+ * Reads the INI last-connection and focus-node groups, the native value format,
+ * and the SQLite monitored-node table so a one-time migration can preserve the
+ * previous single-session state as a Default project. The password is not part of
+ * the legacy state and is never migrated.
+ */
+ProjectData OpcUaManager::exportLegacyState() const
+{
+    ProjectData data;
+    data.formatVersion = kProjectFormatVersion;
+
+    if (m_settings) {
+        m_settings->beginGroup(QStringLiteral("LastConnection"));
+        data.connection.discoveryUrl = m_settings->value(QStringLiteral("discoveryUrl")).toString();
+        data.connection.backend = m_settings->value(QStringLiteral("backend")).toString();
+        data.connection.server = m_settings->value(QStringLiteral("server")).toString();
+        data.connection.endpoint = m_settings->value(QStringLiteral("endpoint")).toString();
+        data.connection.authMode = m_settings->value(QStringLiteral("authMode"), 0).toInt();
+        data.connection.userName = m_settings->value(QStringLiteral("userName")).toString();
+        m_settings->endGroup();
+
+        m_settings->beginGroup(QStringLiteral("LastFocusNode"));
+        data.focusNode.nodeId = m_settings->value(QStringLiteral("nodeId")).toString();
+        data.focusNode.path = m_settings->value(QStringLiteral("path")).toString();
+        data.focusNode.displayName = m_settings->value(QStringLiteral("displayName")).toString();
+        m_settings->endGroup();
+    }
+
+    data.settings.valueFormat =
+        QSettings().value(QLatin1String(kValueFormatSettingsKey), FormatJson).toInt();
+
+    if (m_nodeDatabase && m_nodeDatabase->isOpen())
+        data.monitoredNodes = m_nodeDatabase->loadAll();
+
+    return data;
 }
 
 /*!
@@ -1175,9 +1288,9 @@ void OpcUaManager::applyConnected(bool connected)
         // Restore the pinned focus segment now that the session is active.
         applyFocusNodeToModel();
 
-        // Persist the parameters that produced this successful connection and mark
-        // any in-progress reconnect as finished.
-        persistLastConnection();
+        // Capture the parameters that produced this successful connection into the
+        // active project's connection config and mark any reconnect as finished.
+        updateConnectionFromLiveState();
         m_reconnectStage = ReconnectStage::Idle;
 
         // Re-establish subscriptions for every persisted monitored node so the

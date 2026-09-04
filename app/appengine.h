@@ -6,6 +6,7 @@
 
 class OpcUaManager;
 class OpcUaService;
+class ProjectManager;
 class QThread;
 
 QT_BEGIN_NAMESPACE
@@ -44,6 +45,9 @@ private:
 
     /** GUI-thread facade exposed to QML as \c cppManagerOpcUa; owned by this engine. */
     OpcUaManager* m_opcUaManager = nullptr;
+
+    /** Project facade exposed to QML as \c cppProjectManager; owned by this engine. */
+    ProjectManager* m_projectManager = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

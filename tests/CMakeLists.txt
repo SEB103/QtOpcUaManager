@@ -36,6 +36,30 @@ target_link_libraries(tst_dataaccessmodel
 
 add_test(NAME DataAccessModel.Unit COMMAND tst_dataaccessmodel)
 
+qt_add_executable(tst_projectserializer
+    unit/tst_projectserializer.cpp
+)
+
+target_link_libraries(tst_projectserializer
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME ProjectSerializer.Unit COMMAND tst_projectserializer)
+
+qt_add_executable(tst_projectmanager
+    unit/tst_projectmanager.cpp
+)
+
+target_link_libraries(tst_projectmanager
+    PRIVATE
+        OpcUaQmlApi
+        Qt6::Test
+)
+
+add_test(NAME ProjectManager.Unit COMMAND tst_projectmanager)
+
 qt_add_executable(tst_structuredvalueformatter
     unit/tst_structuredvalueformatter.cpp
 )

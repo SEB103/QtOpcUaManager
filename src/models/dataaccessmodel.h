@@ -51,6 +51,9 @@ public:
     /** Replaces all rows with \a records, clearing any live values. */
     void setRecords(const QList<MonitoredNodeRecord> &records);
 
+    /** Returns the persistent identity and metadata of every row, in display order. */
+    QList<MonitoredNodeRecord> records() const;
+
     /** Appends \a record when it is not already present. Returns \c true if a row was added. */
     bool addRow(const MonitoredNodeRecord &record);
 

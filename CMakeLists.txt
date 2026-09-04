@@ -19,6 +19,7 @@ find_package(Qt6 6.11 REQUIRED COMPONENTS
     Qml
     Quick
     QuickControls2
+    QuickDialogs2
     Sql
     Svg
 )
@@ -82,6 +83,7 @@ target_link_libraries(appOpcUaManager
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickControls2
+        Qt6::QuickDialogs2
         Qt6::Sql
         Qt6::Svg
 )

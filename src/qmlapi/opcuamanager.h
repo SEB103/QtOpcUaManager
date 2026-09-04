@@ -15,6 +15,7 @@
 #include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
 #include "persistence/nodedatabase.h"
+#include "project/projectdata.h"
 
 class OpcUaService;
 class QQuickTextDocument;
@@ -324,6 +325,41 @@ public:
     /** Writes \a value to the node backing the Data Access View row at \a row. */
     Q_INVOKABLE void writeValue(int row, const QVariant &value);
 
+    /**
+     * Applies \a data as the active project's runtime state: loads its monitored
+     * nodes into the Data Access View, restores the pinned focus node and value
+     * format, and stores its connection configuration for a later connect. No
+     * connection is started; call connectToProjectConnection() afterwards.
+     */
+    void applyProject(const ProjectData &data);
+
+    /** Snapshots the current runtime state into a ProjectData for saving. */
+    ProjectData exportProject() const;
+
+    /**
+     * Releases all project runtime state: disconnects any session, clears the
+     * tree, focus, data, and attribute models, and resets the stored connection,
+     * focus node, and value format. Used when a project is closed or switched.
+     */
+    void clearRuntimeState();
+
+    /**
+     * Connects using the active project's stored connection configuration, if any.
+     * Username authentication emits passwordRequired() first, exactly like
+     * connectToLast(). Does nothing when no connection is configured.
+     */
+    Q_INVOKABLE void connectToProjectConnection();
+
+    /** Returns whether legacy pre-project state exists to migrate into a project. */
+    bool hasLegacyState() const;
+
+    /**
+     * Builds a ProjectData from the legacy INI connection, INI focus node, native
+     * value format, and SQLite monitored nodes, for one-time migration into a
+     * Default project. Returns an empty project when no legacy state exists.
+     */
+    ProjectData exportLegacyState() const;
+
     /** Attaches the worker-thread \a service and wires queued cross-thread signals. */
     void attachService(OpcUaService *service);
 
@@ -362,6 +398,14 @@ signals:
 
     /** Emitted when the availability of a stored connection changes. */
     void hasLastConnectionChanged();
+
+    /**
+     * Emitted when project-relevant runtime state changes through a user action
+     * (monitored nodes, focus node, value format, or a new connection). The
+     * project manager uses it to mark the active project as having unsaved
+     * changes. Not emitted while applyProject() loads project state.
+     */
+    void projectStateChanged();
 
     /**
      * Emitted while connectToLast() needs the password for username authentication
@@ -461,14 +505,12 @@ private:
     void applyFocusNodeToModel();
     /** Assigns a routed browse id for \a model and forwards the request to the service. */
     void routeFetch(OpcUaModel *model, const QString &parentNodeId, quint64 modelRequestId);
-    /** Writes the current connection parameters to the INI store. */
-    void persistLastConnection();
-    /** Writes the pinned focus node to the INI store, or removes it when cleared. */
-    void persistFocusNode();
-    /** Loads the stored focus node into the in-memory focus state without connecting. */
-    void loadStoredFocusNode();
-    /** Recomputes hasLastConnection() from the INI store and emits on change. */
+    /** Recomputes hasLastConnection() from the active project connection. */
     void updateHasLastConnection();
+    /** Seeds the reconnect state machine from \a config and starts connecting. */
+    void connectUsingConfig(const ProjectConnectionConfig &config);
+    /** Rebuilds m_connection from the live session and emits on a real change. */
+    void updateConnectionFromLiveState();
     /** Starts server discovery for an in-progress connectToLast() run. */
     void startReconnectDiscovery();
     /** Aborts an in-progress connectToLast() run and reports \a reason. */
@@ -550,6 +592,9 @@ private:
 
     /** Cached availability of a stored connection, mirrored to QML. */
     bool m_hasLastConnection {false};
+
+    /** Active project's connection configuration; the source for reconnects and saves. */
+    ProjectConnectionConfig m_connection;
 
     /** Routes service browse ids to the model that requested them. */
     QHash<quint64, BrowseRoute> m_browseRouting;

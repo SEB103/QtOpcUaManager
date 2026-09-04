@@ -15,6 +15,7 @@
 #include <QQmlContext>
 
 #include "qmlapi/opcuamanager.h"
+#include "qmlapi/projectmanager.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
@@ -137,6 +138,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     : QQmlApplicationEngine(parent)
     , m_initialUrl(initialUrl)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
+    , m_projectManager(new ProjectManager(this))
 {
     qRegisterMetaType<OpcUaNodeData>("OpcUaNodeData");
     qRegisterMetaType<QList<OpcUaNodeData>>("QList<OpcUaNodeData>");
@@ -152,6 +154,10 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<AttributesModel>("Cpp.OpcUaManager", 1, 0, "AttributesModel", QStringLiteral("AttributesModel is exposed by OpcUaManager::attributesModel."));
     rootContext()->setContextProperty("cppManagerOpcUa", m_opcUaManager);
 
+    qmlRegisterUncreatableType<ProjectManager>("Cpp.ProjectManager", 1, 0, "ProjectManager", QStringLiteral("ProjectManager should not be created in QML."));
+    m_projectManager->setOpcUaManager(m_opcUaManager);
+    rootContext()->setContextProperty("cppProjectManager", m_projectManager);
+
 #ifdef QT_NO_DEBUG
     g_prevQtMessageHandler = qInstallMessageHandler(customLogMessageHandler);
 #endif
@@ -166,6 +172,8 @@ void AppEngine::setSettings(QSettings* settings)
 {
     if (m_opcUaManager)
         m_opcUaManager->setSettings(settings);
+    if (m_projectManager)
+        m_projectManager->setSettings(settings);
 }
 
 void AppEngine::createOpcUaRuntime()
@@ -209,6 +217,7 @@ AppEngine::~AppEngine()
     }
     m_opcUaService = nullptr;
     m_opcUaManager = nullptr;
+    m_projectManager = nullptr;
 
     qInstallMessageHandler(g_prevQtMessageHandler);
     g_prevQtMessageHandler = nullptr;
