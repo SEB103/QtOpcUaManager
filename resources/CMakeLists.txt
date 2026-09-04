@@ -19,6 +19,7 @@ qt_add_resources(appOpcUaManager "application_resources"
         images/svg/logout.svg
         images/svg/play_arrow.svg
         images/svg/power_settings_new.svg
+        images/svg/save.svg
         images/svg/search.svg
         images/svg/settings.svg
         images/svg/stop.svg

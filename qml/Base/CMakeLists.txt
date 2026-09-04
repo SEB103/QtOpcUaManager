@@ -12,6 +12,7 @@ qt_add_qml_module(Base
         BsNodeDataView.qml
         BsOpcUaBrowser.qml
         BsOpcUaConnectionForm.qml
+        BsTopBarActions.qml
 )
 
 target_link_libraries(Base

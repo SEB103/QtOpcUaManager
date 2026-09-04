@@ -139,6 +139,29 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: mainScreen.topActions
+
+        function onConnectToggleRequested() {
+            if (cppManagerOpcUa.connected)
+                cppManagerOpcUa.disconnectFromServer()
+            else
+                apiServerDialog.open()
+        }
+
+        function onConnectToLastRequested() {
+            cppManagerOpcUa.connectToLast()
+        }
+
+        function onConnectionSettingsRequested() {
+            apiServerDialog.open()
+        }
+
+        function onSaveProjectRequested() {
+            cppProjectManager.saveProject()
+        }
+    }
+
     FileDialog {
         id: openProjectDialog
 
