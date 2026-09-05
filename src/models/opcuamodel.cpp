@@ -1,11 +1,50 @@
+#include <QRegularExpression>
+#include <QSet>
 #include <QTimer>
+#include <utility>
 #include "opcuamodel.h"
 #include "treeitem.h"
 using namespace Qt::Literals::StringLiterals;
 
+namespace {
+
+/*!
+ * \internal
+ * \brief Builds the case-insensitive matcher for the search \a query.
+ *
+ * A query containing \c * or \c ? is converted to an anchored wildcard pattern,
+ * so "st*" means "starts with st". Any other query is escaped and matched as a
+ * substring anywhere in the display name, which is the forgiving behaviour
+ * expected while typing. An empty query yields a default-constructed expression
+ * that callers must not use for matching.
+ */
+QRegularExpression searchExpression(const QString &query)
+{
+    if (query.isEmpty())
+        return {};
+
+    const QString pattern = (query.contains(u'*') || query.contains(u'?'))
+        ? QRegularExpression::wildcardToRegularExpression(query)
+        : QRegularExpression::escape(query);
+
+    return QRegularExpression(pattern, QRegularExpression::CaseInsensitiveOption);
+}
+
+} // namespace
+
 /*!
  * \property OpcUaModel::autoMonitor
  * \brief Whether newly discovered monitorable nodes should be treated as auto-monitored.
+ */
+
+/*!
+ * \property OpcUaModel::searchQuery
+ * \brief Display-name search query; empty disables search highlighting.
+ */
+
+/*!
+ * \property OpcUaModel::searchMatchCount
+ * \brief Number of already-loaded nodes matching the current search query.
  */
 
 /*!
@@ -36,6 +75,90 @@ void OpcUaModel::setAutoMonitor(bool enabled)
 }
 
 /*!
+ * \brief Sets the display-name search query and recomputes the match list.
+ * \param query The search text; empty clears the current highlighting.
+ */
+void OpcUaModel::setSearchQuery(const QString &query)
+{
+    if (m_searchQuery == query)
+        return;
+
+    m_searchQuery = query;
+    emit searchQueryChanged();
+    rebuildSearchMatches();
+}
+
+/*!
+ * \brief Returns the column-0 index of search match \a position.
+ * \param position Zero-based position in the depth-first ordered match list.
+ */
+QModelIndex OpcUaModel::searchMatchAt(int position) const
+{
+    if (position < 0 || position >= m_searchMatches.size())
+        return {};
+
+    return QModelIndex(m_searchMatches.at(position));
+}
+
+/*!
+ * \brief Re-evaluates the search query against every loaded node.
+ *
+ * Walks the materialized snapshot depth-first, which yields matches in the same
+ * top-to-bottom order the tree displays them, and never triggers a lazy browse:
+ * only branches the user has expanded are searchable. The per-item match flag is
+ * refreshed during the same walk so data() stays O(1), and dataChanged() is
+ * emitted for the union of the previous and the new match set, which is exactly
+ * the set of rows whose highlighting can have changed.
+ */
+void OpcUaModel::rebuildSearchMatches()
+{
+    // Nothing highlighted and nothing to clear: skip the walk entirely so an
+    // ordinary browse does not pay for the search feature.
+    if (m_searchQuery.isEmpty() && m_searchMatches.isEmpty())
+        return;
+
+    const QList<QPersistentModelIndex> previous = m_searchMatches;
+    m_searchMatches.clear();
+
+    const QRegularExpression expression = searchExpression(m_searchQuery);
+    const bool matching = !m_searchQuery.isEmpty() && expression.isValid();
+
+    if (mRootItem) {
+        std::vector<TreeItem *> stack;
+        for (int i = mRootItem->childCount() - 1; i >= 0; --i)
+            stack.push_back(mRootItem->child(i));
+
+        while (!stack.empty()) {
+            TreeItem *item = stack.back();
+            stack.pop_back();
+            if (!item)
+                continue;
+
+            const bool matched =
+                matching && expression.match(item->displayName()).hasMatch();
+            item->setSearchMatch(matched);
+            if (matched)
+                m_searchMatches.append(QPersistentModelIndex(indexForItem(item, 0)));
+
+            for (int i = item->childCount() - 1; i >= 0; --i)
+                stack.push_back(item->child(i));
+        }
+    }
+
+    QSet<QPersistentModelIndex> touched(previous.cbegin(), previous.cend());
+    touched.unite(QSet<QPersistentModelIndex>(m_searchMatches.cbegin(),
+                                              m_searchMatches.cend()));
+    for (const QPersistentModelIndex &persistent : std::as_const(touched)) {
+        if (!persistent.isValid())
+            continue;
+        const QModelIndex changed(persistent);
+        emit dataChanged(changed, changed, {SearchMatchRole});
+    }
+
+    emit searchMatchesChanged();
+}
+
+/*!
  * \brief Applies the current connection state.
  * \param active Whether the service has an active connection.
  * A live session creates an empty logical root item and triggers an initial
@@ -58,6 +181,7 @@ void OpcUaModel::setConnectionActive(bool active)
         mRootItem.reset();
 
     endResetModel();
+    rebuildSearchMatches();
 
     if (m_connectionActive && mRootItem) {
         QTimer::singleShot(0, this, [this]() {
@@ -91,6 +215,7 @@ void OpcUaModel::setRootNode(const QString &nodeId, const QString &displayName)
     beginResetModel();
     mRootItem = std::make_unique<TreeItem>(this, m_rootNodeId, m_rootDisplayName);
     endResetModel();
+    rebuildSearchMatches();
 
     QTimer::singleShot(0, this, [this]() {
         if (mRootItem && canFetchMore(QModelIndex()))
@@ -210,6 +335,7 @@ void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
 
     if (children.isEmpty()) {
         parentItem->setFetchState(TreeItem::FetchState::Fetched);
+        rebuildSearchMatches();
         maybeResumeReveal(parentNodeId, true);
         return;
     }
@@ -227,6 +353,9 @@ void OpcUaModel::applyChildrenSnapshot(const QString &parentNodeId,
     parentItem->replaceChildren(std::move(newChildren));
     parentItem->setFetchState(TreeItem::FetchState::Fetched);
     endInsertRows();
+
+    // Newly materialized nodes have to be considered by an active search.
+    rebuildSearchMatches();
 
     maybeResumeReveal(parentNodeId, true);
 }
@@ -472,6 +601,7 @@ QVariant OpcUaModel::data(const QModelIndex &index, int role) const
     case CanMonitorRole: return item->supportsMonitoring();
     case MonitoringEnabledRole: return item->monitoringEnabled();
     case FetchStateRole: return int(item->fetchState());
+    case SearchMatchRole: return item->searchMatch();
     default:
         break;
     }
@@ -600,6 +730,7 @@ QHash<int, QByteArray> OpcUaModel::roleNames() const
     roles[CanMonitorRole] = "canMonitor";
     roles[MonitoringEnabledRole] = "monitoringEnabled";
     roles[FetchStateRole] = "fetchState";
+    roles[SearchMatchRole] = "searchMatch";
     return roles;
 }
 

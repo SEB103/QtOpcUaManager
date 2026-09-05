@@ -3,11 +3,18 @@
 
 #include <QList>
 #include <QString>
+#include <QVariantMap>
 
 #include "persistence/nodedatabase.h"
 
-/** Current .uaproj JSON schema version written by this build. */
-inline constexpr int kProjectFormatVersion = 1;
+/**
+ * Current .uaproj JSON schema version written by this build.
+ *
+ * Version 2 added the per-node \c interval field and the \c settings.dataView
+ * object. Older version 1 files still load; their missing fields fall back to
+ * the defaults below.
+ */
+inline constexpr int kProjectFormatVersion = 2;
 
 /** OPC UA connection configuration persisted inside a project file. */
 struct ProjectConnectionConfig
@@ -62,6 +69,15 @@ struct ProjectSettings
 {
     /** Structured-value output format (OpcUaManager::ValueFormat) as an integer. */
     int valueFormat {0};
+
+    /**
+     * Opaque Data Access View layout state (column widths, visibility, sorting).
+     *
+     * The map is written and read by the QML table, which owns the layout
+     * vocabulary; the project layer only persists it verbatim so the table can
+     * evolve without a schema change here. An empty map selects the defaults.
+     */
+    QVariantMap dataView;
 };
 
 /**

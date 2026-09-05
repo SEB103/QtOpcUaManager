@@ -90,6 +90,7 @@ QJsonObject monitoredNodeToJson(const MonitoredNodeRecord &record)
     object.insert(QStringLiteral("nodePath"), record.nodePath);
     object.insert(QStringLiteral("displayName"), record.displayName);
     object.insert(QStringLiteral("dataType"), record.dataType);
+    object.insert(QStringLiteral("interval"), record.samplingIntervalMs);
     return object;
 }
 
@@ -105,6 +106,8 @@ MonitoredNodeRecord monitoredNodeFromJson(const QJsonObject &object)
     record.nodePath = object.value(QStringLiteral("nodePath")).toString();
     record.displayName = object.value(QStringLiteral("displayName")).toString();
     record.dataType = object.value(QStringLiteral("dataType")).toString();
+    // Absent in version 1 files; zero keeps the service default interval.
+    record.samplingIntervalMs = object.value(QStringLiteral("interval")).toInt();
     return record;
 }
 
@@ -128,6 +131,8 @@ QJsonObject ProjectSerializer::toJson(const ProjectData &data)
 
     QJsonObject settings;
     settings.insert(QStringLiteral("valueFormat"), data.settings.valueFormat);
+    settings.insert(QStringLiteral("dataView"),
+                    QJsonObject::fromVariantMap(data.settings.dataView));
     root.insert(QStringLiteral("settings"), settings);
 
     return root;
@@ -201,6 +206,8 @@ ProjectSerializer::LoadResult ProjectSerializer::load(const QString &filePath)
 
     const QJsonObject settings = root.value(QStringLiteral("settings")).toObject();
     data.settings.valueFormat = settings.value(QStringLiteral("valueFormat")).toInt();
+    // Absent in version 1 files; an empty map selects the table defaults.
+    data.settings.dataView = settings.value(QStringLiteral("dataView")).toObject().toVariantMap();
 
     result.ok = true;
     result.data = data;

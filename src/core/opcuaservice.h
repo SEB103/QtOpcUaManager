@@ -89,8 +89,8 @@ public slots:
     void readNodeAttributes(const QString &nodeId, quint64 requestId);
     /** Reads and decodes the value of \a nodeId into a structured tree for GUI request \a requestId. */
     void readStructuredValue(const QString &nodeId, quint64 requestId);
-    /** Starts value-attribute monitoring for \a nodeId. */
-    void subscribeNode(const QString &nodeId);
+    /** Starts value-attribute monitoring for \a nodeId at \a intervalMs; 0 uses the default. */
+    void subscribeNode(const QString &nodeId, double intervalMs = 0.0);
     /** Stops value-attribute monitoring for \a nodeId. */
     void unsubscribeNode(const QString &nodeId);
     /** Writes \a value to the value attribute of \a nodeId. */

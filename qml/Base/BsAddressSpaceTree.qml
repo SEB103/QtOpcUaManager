@@ -56,6 +56,7 @@ Item {
 
             paneModel: cppManagerOpcUa.treeModel
             titleText: qsTr("ADDRESS SPACE")
+            searchEnabled: true
             emptyText: cppManagerOpcUa.connected
                        ? ""
                        : qsTr("Connect to an OPC UA endpoint to browse the address space.")

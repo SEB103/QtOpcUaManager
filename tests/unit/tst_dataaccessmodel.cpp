@@ -38,6 +38,21 @@ private slots:
 
     /*! Verifies that setRecords() replaces all rows. */
     void setRecordsReplacesRows();
+
+    /*! Verifies that the model exposes one column per table column with a title. */
+    void exposesTitledColumns();
+
+    /*! Verifies that each column renders the expected display text. */
+    void columnsRenderTheExpectedText();
+
+    /*! Verifies that the status text is classified into a severity. */
+    void statusTextIsClassified();
+
+    /*! Verifies that the sampling interval is stored, shown, and persisted. */
+    void samplingIntervalIsStoredAndShown();
+
+    /*! Verifies that numeric columns expose a numeric sort value. */
+    void numericColumnsSortNumerically();
 };
 
 /*!
@@ -140,6 +155,170 @@ void DataAccessModelTest::setRecordsReplacesRows()
     QCOMPARE(model.rowCount(), 2);
     QCOMPARE(model.nodeIdAt(0), QStringLiteral("ns=1;s=X"));
     QCOMPARE(model.nodeIdAt(1), QStringLiteral("ns=1;s=Y"));
+}
+
+/*!
+ * \brief Verifies that the model exposes one column per table column with a title.
+ */
+void DataAccessModelTest::exposesTitledColumns()
+{
+    DataAccessModel model;
+
+    QCOMPARE(model.columnCount(), int(DataAccessModel::ColumnCount));
+
+    // Every declared column must carry a header title, and nothing beyond them.
+    for (int column = 0; column < DataAccessModel::ColumnCount; ++column) {
+        QVERIFY2(!model.columnTitle(column).isEmpty(),
+                 qPrintable(QStringLiteral("column %1 has no title").arg(column)));
+        QCOMPARE(model.headerData(column, Qt::Horizontal, Qt::DisplayRole).toString(),
+                 model.columnTitle(column));
+    }
+    QVERIFY(model.columnTitle(DataAccessModel::ColumnCount).isEmpty());
+
+    // Vertical headers are not used by the table.
+    QVERIFY(!model.headerData(0, Qt::Vertical, Qt::DisplayRole).isValid());
+}
+
+/*!
+ * \brief Verifies that each column renders the expected display text.
+ */
+void DataAccessModelTest::columnsRenderTheExpectedText()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+
+    OpcUaValueUpdate update;
+    update.nodeId = QStringLiteral("ns=1;s=A");
+    update.value = QStringLiteral("42");
+    update.dataType = QStringLiteral("DINT");
+    update.sourceTimestamp = QStringLiteral("2026-09-05T10:00:00");
+    update.serverTimestamp = QStringLiteral("2026-09-05T10:00:01");
+    update.statusCode = QStringLiteral("Good");
+    model.updateValue(update);
+
+    const auto text = [&model](DataAccessModel::Column column) {
+        return model.data(model.index(0, column), Qt::DisplayRole).toString();
+    };
+
+    QCOMPARE(text(DataAccessModel::RowNumberColumn), QStringLiteral("1"));
+    QCOMPARE(text(DataAccessModel::DisplayNameColumn), QStringLiteral("ns=1;s=A"));
+    QCOMPARE(text(DataAccessModel::ValueColumn), QStringLiteral("42"));
+    QCOMPARE(text(DataAccessModel::DataTypeColumn), QStringLiteral("DINT"));
+    QCOMPARE(text(DataAccessModel::StatusColumn), QStringLiteral("Good"));
+    QCOMPARE(text(DataAccessModel::SourceTimestampColumn),
+             QStringLiteral("2026-09-05T10:00:00"));
+    QCOMPARE(text(DataAccessModel::ServerTimestampColumn),
+             QStringLiteral("2026-09-05T10:00:01"));
+    QCOMPARE(text(DataAccessModel::NodePathColumn), QStringLiteral("Objects/ns=1;s=A"));
+    QCOMPARE(text(DataAccessModel::NodeIdColumn), QStringLiteral("ns=1;s=A"));
+    QCOMPARE(text(DataAccessModel::ServerColumn), QStringLiteral("srv"));
+
+    // Row-level roles describe the row and stay the same in every column.
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ServerColumn),
+                        DataAccessModel::NodeIdRole).toString(),
+             QStringLiteral("ns=1;s=A"));
+
+    // An update also records its arrival, which the view uses to dim rows that
+    // have not received anything yet.
+    QVERIFY(model.data(model.index(0, 0), DataAccessModel::LastUpdateMsRole).toLongLong() > 0);
+
+    model.clearValues();
+    QCOMPARE(model.data(model.index(0, 0), DataAccessModel::LastUpdateMsRole).toLongLong(), 0);
+}
+
+/*!
+ * \brief Verifies that the status text is classified into a severity.
+ */
+void DataAccessModelTest::statusTextIsClassified()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+
+    const auto severityFor = [&model](const QString &statusCode) {
+        OpcUaValueUpdate update;
+        update.nodeId = QStringLiteral("ns=1;s=A");
+        update.statusCode = statusCode;
+        model.updateValue(update);
+        return model.data(model.index(0, 0), DataAccessModel::StatusSeverityRole).toInt();
+    };
+
+    QCOMPARE(severityFor(QStringLiteral("Good")), int(DataAccessModel::StatusGood));
+    QCOMPARE(severityFor(QStringLiteral("GoodClamped")), int(DataAccessModel::StatusGood));
+    QCOMPARE(severityFor(QStringLiteral("UncertainLastUsableValue")),
+             int(DataAccessModel::StatusUncertain));
+    QCOMPARE(severityFor(QStringLiteral("BadNodeIdUnknown")), int(DataAccessModel::StatusBad));
+
+    // No reported status is not an error; it means nothing has arrived yet.
+    QCOMPARE(severityFor(QString()), int(DataAccessModel::StatusUnknown));
+}
+
+/*!
+ * \brief Verifies that the sampling interval is stored, shown, and persisted.
+ */
+void DataAccessModelTest::samplingIntervalIsStoredAndShown()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+
+    const QModelIndex intervalIndex = model.index(0, DataAccessModel::IntervalColumn);
+
+    // An unset interval follows the service default and must not read as 0 ms.
+    QCOMPARE(model.samplingIntervalAt(0), 0);
+    QCOMPARE(model.data(intervalIndex, Qt::DisplayRole).toString(),
+             QString::fromUtf8("\xE2\x80\x94"));
+
+    QSignalSpy changedSpy(&model, &DataAccessModel::dataChanged);
+    QVERIFY(model.setSamplingIntervalAt(0, 500));
+    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(model.samplingIntervalAt(0), 500);
+    QCOMPARE(model.data(intervalIndex, Qt::DisplayRole).toString(), QStringLiteral("500"));
+
+    // Writing the same value again changes nothing, so no re-subscribe is asked for.
+    QVERIFY(!model.setSamplingIntervalAt(0, 500));
+
+    // A non-positive interval restores the default.
+    QVERIFY(model.setSamplingIntervalAt(0, 0));
+    QCOMPARE(model.samplingIntervalAt(0), 0);
+
+    QVERIFY(model.setSamplingIntervalAt(0, 250));
+    QCOMPARE(model.records().at(0).samplingIntervalMs, 250);
+
+    // Out-of-range rows are ignored rather than crashing.
+    QVERIFY(!model.setSamplingIntervalAt(7, 100));
+    QCOMPARE(model.samplingIntervalAt(7), 0);
+}
+
+/*!
+ * \brief Verifies that numeric columns expose a numeric sort value.
+ */
+void DataAccessModelTest::numericColumnsSortNumerically()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+    model.setSamplingIntervalAt(0, 500);
+
+    OpcUaValueUpdate update;
+    update.nodeId = QStringLiteral("ns=1;s=A");
+    update.value = QStringLiteral("9.5");
+    model.updateValue(update);
+
+    const QVariant valueSort =
+        model.data(model.index(0, DataAccessModel::ValueColumn),
+                   DataAccessModel::SortValueRole);
+    QCOMPARE(valueSort.toDouble(), 9.5);
+    QCOMPARE(valueSort.typeId(), int(QMetaType::Double));
+
+    QCOMPARE(model.data(model.index(0, DataAccessModel::RowNumberColumn),
+                        DataAccessModel::SortValueRole).toInt(), 1);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::IntervalColumn),
+                        DataAccessModel::SortValueRole).toInt(), 500);
+
+    // A value that is not a number keeps its text so the column still sorts.
+    update.value = QStringLiteral("RUNNING");
+    model.updateValue(update);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ValueColumn),
+                        DataAccessModel::SortValueRole).toString(),
+             QStringLiteral("RUNNING"));
 }
 
 QTEST_MAIN(DataAccessModelTest)

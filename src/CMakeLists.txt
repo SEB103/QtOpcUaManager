@@ -14,6 +14,8 @@ target_sources(OpcUaCore
         models/attributesmodel.h
         models/dataaccessmodel.cpp
         models/dataaccessmodel.h
+        models/dataviewfiltermodel.cpp
+        models/dataviewfiltermodel.h
         models/opcuamodel.cpp
         models/opcuamodel.h
         models/structuredvalueformatter.cpp

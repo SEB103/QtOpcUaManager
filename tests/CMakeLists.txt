@@ -36,6 +36,18 @@ target_link_libraries(tst_dataaccessmodel
 
 add_test(NAME DataAccessModel.Unit COMMAND tst_dataaccessmodel)
 
+qt_add_executable(tst_dataviewfiltermodel
+    unit/tst_dataviewfiltermodel.cpp
+)
+
+target_link_libraries(tst_dataviewfiltermodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME DataViewFilterModel.Unit COMMAND tst_dataviewfiltermodel)
+
 qt_add_executable(tst_projectserializer
     unit/tst_projectserializer.cpp
 )
@@ -90,6 +102,7 @@ qt_add_executable(tst_qml
 
 target_sources(tst_qml
     PRIVATE
+        qml/tst_dataview.qml
         qml/tst_menubar.qml
         qml/README.md
 )
@@ -101,6 +114,7 @@ target_compile_definitions(tst_qml
 target_link_libraries(tst_qml
     PRIVATE
         Baseplugin
+        OpcUaCore
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickTest

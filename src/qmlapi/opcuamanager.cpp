@@ -1,6 +1,12 @@
+#include <QClipboard>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QGuiApplication>
+#include <QSaveFile>
+#include <algorithm>
+#include <functional>
+#include <utility>
 #include <QMutexLocker>
 #include <QSet>
 #include <QSettings>
@@ -18,6 +24,44 @@ namespace {
  * \brief QSettings key storing the persisted structured-value output format.
  */
 constexpr auto kValueFormatSettingsKey = "view/valueFormat";
+
+/*!
+ * \internal
+ * \brief Returns \a text quoted and escaped for one CSV field.
+ *
+ * A field is quoted only when it contains a separator, a quote, or a line break,
+ * which keeps ordinary values readable in the exported file. Embedded quotes are
+ * doubled, as RFC 4180 requires.
+ */
+QString csvField(const QString &text)
+{
+    const bool needsQuotes = text.contains(QLatin1Char(','))
+                             || text.contains(QLatin1Char('"'))
+                             || text.contains(QLatin1Char('\n'))
+                             || text.contains(QLatin1Char('\r'));
+    if (!needsQuotes)
+        return text;
+
+    QString escaped = text;
+    escaped.replace(QLatin1Char('"'), QLatin1String("\"\""));
+    return QLatin1Char('"') + escaped + QLatin1Char('"');
+}
+
+/*!
+ * \internal
+ * \brief Returns \a text flattened to a single tab-separated cell.
+ *
+ * Tabs and line breaks would break the row and column structure of clipboard
+ * text, so they collapse to spaces.
+ */
+QString plainCell(const QString &text)
+{
+    QString flattened = text;
+    flattened.replace(QLatin1Char('\t'), QLatin1Char(' '));
+    flattened.replace(QLatin1Char('\r'), QLatin1Char(' '));
+    flattened.replace(QLatin1Char('\n'), QLatin1Char(' '));
+    return flattened;
+}
 
 /*!
  * \internal
@@ -107,9 +151,12 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     , m_treeModel(new OpcUaModel(this))
     , m_focusModel(new OpcUaModel(this))
     , m_dataModel(new DataAccessModel(this))
+    , m_dataViewModel(new DataViewFilterModel(this))
     , m_attributesModel(new AttributesModel(this))
     , m_nodeDatabase(std::make_unique<NodeDatabase>())
 {
+    m_dataViewModel->setSourceModel(m_dataModel);
+
     // The legacy SQLite store is opened read-only for one-time migration into a
     // project file. Monitored nodes are no longer seeded from it at startup; the
     // active project is the source of truth and fills the Data Access View through
@@ -247,6 +294,43 @@ void OpcUaManager::setSettings(QSettings *settings)
 DataAccessModel *OpcUaManager::dataModel() const
 {
     return m_dataModel;
+}
+
+/*!
+ * \brief Returns the owned sorted and filtered view of the Data Access View model.
+ */
+DataViewFilterModel *OpcUaManager::dataViewModel() const
+{
+    return m_dataViewModel;
+}
+
+/*!
+ * \brief Sets whether subscription updates are withheld from the table.
+ * \param paused Whether incoming values should stop reaching the table.
+ */
+void OpcUaManager::setUpdatesPaused(bool paused)
+{
+    if (m_updatesPaused == paused)
+        return;
+
+    m_updatesPaused = paused;
+    emit updatesPausedChanged();
+}
+
+/*!
+ * \brief Stores the Data Access View layout \a state and marks the project changed.
+ *
+ * Called by the table whenever the user resizes, hides, shows, or re-sorts a
+ * column, so the layout is saved with the project like any other project state.
+ */
+void OpcUaManager::setDataViewState(const QVariantMap &state)
+{
+    if (m_dataViewState == state)
+        return;
+
+    m_dataViewState = state;
+    emit dataViewStateChanged();
+    emit projectStateChanged();
 }
 
 AttributesModel *OpcUaManager::attributesModel() const
@@ -437,7 +521,7 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         m_dataModel->addRow(record);
         model->setMonitoringEnabledAt(treeIndex, true);
         if (connected())
-            emit subscribeNodeRequested(nodeId);
+            emit subscribeNodeRequested(nodeId, double(record.samplingIntervalMs));
     } else {
         const int row = m_dataModel->rowCount();
         for (int i = 0; i < row; ++i) {
@@ -458,6 +542,60 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
 }
 
 /*!
+ * \brief Adds every loaded monitorable child of \a treeIndex to the Data Access View.
+ * \return The number of nodes that were added.
+ *
+ * Reuses setNodeMonitored() per child so a bulk add behaves exactly like ticking
+ * each checkbox by hand, including subscription start and project dirty tracking.
+ * Children that are already monitored are skipped, which makes repeated calls on
+ * the same branch idempotent.
+ */
+int OpcUaManager::monitorChildVariables(const QModelIndex &treeIndex)
+{
+    if (!treeIndex.isValid())
+        return 0;
+
+    OpcUaModel *model = modelForIndex(treeIndex);
+    if (!model)
+        return 0;
+
+    const int rows = model->rowCount(treeIndex);
+
+    int added = 0;
+    for (int row = 0; row < rows; ++row) {
+        const QModelIndex child = model->index(row, 0, treeIndex);
+        if (!child.isValid())
+            continue;
+        if (!model->data(child, OpcUaModel::CanMonitorRole).toBool())
+            continue;
+        if (model->monitoringEnabledAt(child))
+            continue;
+
+        setNodeMonitored(child, true);
+        ++added;
+    }
+
+    return added;
+}
+
+/*!
+ * \brief Returns the server-absolute browse path of the node at \a treeIndex.
+ */
+QString OpcUaManager::browsePathAt(const QModelIndex &treeIndex) const
+{
+    return buildNodePath(treeIndex);
+}
+
+/*!
+ * \brief Copies \a text to the system clipboard.
+ */
+void OpcUaManager::copyToClipboard(const QString &text) const
+{
+    if (auto *clipboard = QGuiApplication::clipboard())
+        clipboard->setText(text);
+}
+
+/*!
  * \brief Removes the Data Access View row at \a row from the table.
  *
  * The monitored-node set is part of the active project, so projectStateChanged()
@@ -472,6 +610,160 @@ void OpcUaManager::removeNode(int row)
     m_dataModel->removeAt(row);
     emit unsubscribeNodeRequested(nodeId);
     emit projectStateChanged();
+}
+
+/*!
+ * \brief Removes every Data Access View source row in \a rows.
+ *
+ * Duplicates are ignored and the rows are removed from the highest index down,
+ * so the indexes still to be processed keep pointing at the intended rows.
+ */
+void OpcUaManager::removeNodes(const QList<int> &rows)
+{
+    QList<int> ordered = rows;
+    std::sort(ordered.begin(), ordered.end(), std::greater<int>());
+    ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
+
+    for (const int row : std::as_const(ordered))
+        removeNode(row);
+}
+
+/*!
+ * \brief Adds the already-browsed node \a nodeId to the Data Access View.
+ * \return \c true when a row was added.
+ */
+bool OpcUaManager::monitorNodeById(const QString &nodeId)
+{
+    if (nodeId.isEmpty())
+        return false;
+
+    QModelIndex treeIndex;
+    if (m_treeModel)
+        treeIndex = m_treeModel->indexForNodeId(nodeId);
+    if (!treeIndex.isValid() && m_focusModel)
+        treeIndex = m_focusModel->indexForNodeId(nodeId);
+    if (!treeIndex.isValid())
+        return false;
+
+    OpcUaModel *model = modelForIndex(treeIndex);
+    if (!model)
+        return false;
+    if (!model->data(treeIndex, OpcUaModel::CanMonitorRole).toBool())
+        return false;
+    if (model->monitoringEnabledAt(treeIndex))
+        return false;
+
+    setNodeMonitored(treeIndex, true);
+    return true;
+}
+
+/*!
+ * \brief Sets the sampling interval of source row \a row to \a intervalMs.
+ *
+ * The backend cannot retune a live monitored item, so a changed interval drops
+ * the subscription and creates a new one. Nothing happens while disconnected
+ * beyond storing the value; the interval is applied when the session reconnects.
+ */
+void OpcUaManager::setSamplingInterval(int row, int intervalMs)
+{
+    if (!m_dataModel || !m_dataModel->setSamplingIntervalAt(row, intervalMs))
+        return;
+
+    const QString nodeId = m_dataModel->nodeIdAt(row);
+    if (!nodeId.isEmpty() && connected()) {
+        emit unsubscribeNodeRequested(nodeId);
+        emit subscribeNodeRequested(nodeId, double(m_dataModel->samplingIntervalAt(row)));
+    }
+
+    emit projectStateChanged();
+}
+
+/*!
+ * \brief Writes the Data Access View to \a fileUrl as UTF-8 CSV.
+ * \param fileUrl Target file, as a local file URL.
+ * \param viewRows View rows to export, in display order.
+ * \param columns Column indexes to export, in display order.
+ * \return \c true on success.
+ *
+ * Exports exactly what the table shows, so the current sorting, quick filter,
+ * and column selection all carry over into the file. A byte order mark is
+ * written because spreadsheet applications otherwise misread UTF-8 on Windows.
+ */
+bool OpcUaManager::exportDataViewCsv(const QUrl &fileUrl,
+                                     const QList<int> &viewRows,
+                                     const QList<int> &columns)
+{
+    const QString path = fileUrl.isLocalFile() ? fileUrl.toLocalFile() : fileUrl.toString();
+    if (path.isEmpty()) {
+        applyLastError(tr("No target file was selected for the CSV export."));
+        return false;
+    }
+
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) {
+        applyLastError(tr("The CSV file could not be opened for writing: %1")
+                           .arg(file.errorString()));
+        return false;
+    }
+
+    QString text;
+    text.append(QChar(0xFEFF));
+
+    QStringList headerCells;
+    headerCells.reserve(columns.size());
+    for (const int column : columns)
+        headerCells.append(csvField(m_dataModel->columnTitle(column)));
+    text.append(headerCells.join(QLatin1Char(',')));
+    text.append(QLatin1String("\r\n"));
+
+    for (const int viewRow : viewRows) {
+        QStringList cells;
+        cells.reserve(columns.size());
+        for (const int column : columns) {
+            const QModelIndex index = m_dataViewModel->index(viewRow, column);
+            cells.append(csvField(m_dataViewModel->data(index, Qt::DisplayRole).toString()));
+        }
+        text.append(cells.join(QLatin1Char(',')));
+        text.append(QLatin1String("\r\n"));
+    }
+
+    file.write(text.toUtf8());
+    if (!file.commit()) {
+        applyLastError(tr("The CSV file could not be written: %1").arg(file.errorString()));
+        return false;
+    }
+
+    return true;
+}
+
+/*!
+ * \brief Returns \a viewRows rendered as tab-separated text with a header line.
+ * \param viewRows View rows to render, in display order.
+ * \param columns Column indexes to render, in display order.
+ */
+QString OpcUaManager::dataViewRowsAsText(const QList<int> &viewRows,
+                                         const QList<int> &columns) const
+{
+    QStringList lines;
+    lines.reserve(viewRows.size() + 1);
+
+    QStringList headerCells;
+    headerCells.reserve(columns.size());
+    for (const int column : columns)
+        headerCells.append(plainCell(m_dataModel->columnTitle(column)));
+    lines.append(headerCells.join(QLatin1Char('\t')));
+
+    for (const int viewRow : viewRows) {
+        QStringList cells;
+        cells.reserve(columns.size());
+        for (const int column : columns) {
+            const QModelIndex index = m_dataViewModel->index(viewRow, column);
+            cells.append(plainCell(m_dataViewModel->data(index, Qt::DisplayRole).toString()));
+        }
+        lines.append(cells.join(QLatin1Char('\t')));
+    }
+
+    return lines.join(QLatin1Char('\n'));
 }
 
 /*!
@@ -952,6 +1244,13 @@ void OpcUaManager::applyProject(const ProjectData &data)
     // browsed after connecting.
     m_dataModel->setRecords(data.monitoredNodes);
     refreshMonitoredNodeIds();
+
+    // Restore the table layout without re-persisting it; an empty map from a
+    // version 1 project leaves the table on its built-in defaults.
+    if (m_dataViewState != data.settings.dataView) {
+        m_dataViewState = data.settings.dataView;
+        emit dataViewStateChanged();
+    }
 }
 
 /*!
@@ -971,6 +1270,7 @@ ProjectData OpcUaManager::exportProject() const
     if (m_dataModel)
         data.monitoredNodes = m_dataModel->records();
     data.settings.valueFormat = static_cast<int>(m_valueFormat);
+    data.settings.dataView = m_dataViewState;
     return data;
 }
 
@@ -992,8 +1292,18 @@ void OpcUaManager::clearRuntimeState()
         m_focusModel->clear();
     if (m_dataModel)
         m_dataModel->setRecords({});
+    if (m_dataViewModel) {
+        m_dataViewModel->setFilterText(QString());
+        m_dataViewModel->applySort(-1, Qt::AscendingOrder);
+    }
     if (m_attributesModel)
         m_attributesModel->clear();
+
+    if (!m_dataViewState.isEmpty()) {
+        m_dataViewState.clear();
+        emit dataViewStateChanged();
+    }
+    setUpdatesPaused(false);
 
     m_focusNodeId.clear();
     m_focusNodePath.clear();
@@ -1310,7 +1620,8 @@ void OpcUaManager::applyConnected(bool connected)
         for (int i = 0; i < rows; ++i) {
             const QString nodeId = m_dataModel->nodeIdAt(i);
             if (!nodeId.isEmpty())
-                emit subscribeNodeRequested(nodeId);
+                emit subscribeNodeRequested(nodeId,
+                                            double(m_dataModel->samplingIntervalAt(i)));
         }
     } else {
         if (m_focusModel)
@@ -1487,6 +1798,11 @@ void OpcUaManager::applyStructuredValue(quint64 requestId,
  */
 void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
 {
+    // While paused the table keeps the values the user is reading. The
+    // subscription stays active, so the row catches up on the next data change.
+    if (m_updatesPaused)
+        return;
+
     m_dataModel->updateValue(update);
 }
 

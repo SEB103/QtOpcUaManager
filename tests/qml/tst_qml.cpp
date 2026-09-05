@@ -1,6 +1,10 @@
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QVariantMap>
 #include <QtQuickTest/quicktest.h>
+
+#include "models/dataaccessmodel.h"
+#include "models/dataviewfiltermodel.h"
 
 /*! Mock QML-facing OPC UA manager used by Quick Test components. */
 class MockOpcUaManager : public QObject
@@ -42,8 +46,36 @@ class MockOpcUaManager : public QObject
     /*! Mock authentication mode. */
     Q_PROPERTY(int authMode READ authMode CONSTANT)
 
+    /*! Real Data Access View model so the table delegates see genuine roles. */
+    Q_PROPERTY(QObject *dataModel READ dataModel CONSTANT)
+
+    /*! Real sorted and filtered view of the Data Access View model. */
+    Q_PROPERTY(QObject *dataViewModel READ dataViewModel CONSTANT)
+
+    /*! Mock focus-segment model object; null because smoke tests do not inspect rows. */
+    Q_PROPERTY(QObject *focusModel READ focusModel CONSTANT)
+
+    /*! Mock shared node selection. */
+    Q_PROPERTY(QString selectedNodeId READ selectedNodeId CONSTANT)
+
+    /*! Mock pinned focus node id. */
+    Q_PROPERTY(QString focusNodeId READ focusNodeId CONSTANT)
+
+    /*! Mock paused state of table updates. */
+    Q_PROPERTY(bool updatesPaused READ updatesPaused WRITE setUpdatesPaused
+                   NOTIFY updatesPausedChanged)
+
+    /*! Mock Data Access View layout state, writable so the table can persist it. */
+    Q_PROPERTY(QVariantMap dataViewState READ dataViewState WRITE setDataViewState
+                   NOTIFY dataViewStateChanged)
+
 public:
-    using QObject::QObject;
+    /*! Creates the mock and wires the filter proxy onto the data model. */
+    explicit MockOpcUaManager(QObject *parent = nullptr)
+        : QObject(parent)
+    {
+        m_dataViewModel.setSourceModel(&m_dataModel);
+    }
 
     /*! Returns one mock backend name. */
     QStringList opcUaBackend() const { return {QStringLiteral("open62541")}; }
@@ -77,6 +109,45 @@ public:
 
     /*! Returns anonymous authentication mode. */
     int authMode() const { return 0; }
+
+    /*! Returns the real Data Access View model. */
+    QObject *dataModel() { return &m_dataModel; }
+
+    /*! Returns the real sorted and filtered Data Access View model. */
+    QObject *dataViewModel() { return &m_dataViewModel; }
+
+    /*! Returns no focus model because QML smoke tests only create components. */
+    QObject *focusModel() const { return nullptr; }
+
+    /*! Returns an empty mock node selection. */
+    QString selectedNodeId() const { return {}; }
+
+    /*! Returns an empty mock focus node id. */
+    QString focusNodeId() const { return {}; }
+
+    /*! Returns whether table updates are paused in the mock. */
+    bool updatesPaused() const { return m_updatesPaused; }
+
+    /*! Updates the mock paused state to  paused. */
+    void setUpdatesPaused(bool paused)
+    {
+        if (m_updatesPaused == paused)
+            return;
+        m_updatesPaused = paused;
+        emit updatesPausedChanged();
+    }
+
+    /*! Returns the mock Data Access View layout state. */
+    QVariantMap dataViewState() const { return m_dataViewState; }
+
+    /*! Stores the Data Access View layout  state written by the table. */
+    void setDataViewState(const QVariantMap &state)
+    {
+        if (m_dataViewState == state)
+            return;
+        m_dataViewState = state;
+        emit dataViewStateChanged();
+    }
 
     /*! Updates the mock selected \a backend and emits backendChanged(). */
     void setBackend(const QString &backend)
@@ -120,9 +191,45 @@ public:
     /*! Mock no-op for disconnection requests. */
     Q_INVOKABLE void disconnectFromServer() {}
 
+    /*! Mock no-op for Data Access View row selection. */
+    Q_INVOKABLE void selectDataRow(int) {}
+
+    /*! Mock no-op for value writes. */
+    Q_INVOKABLE void writeValue(int, const QVariant &) {}
+
+    /*! Mock no-op for bulk row removal. */
+    Q_INVOKABLE void removeNodes(const QList<int> &) {}
+
+    /*! Mock no-op for sampling-interval changes. */
+    Q_INVOKABLE void setSamplingInterval(int, int) {}
+
+    /*! Mock clipboard write that discards the text. */
+    Q_INVOKABLE void copyToClipboard(const QString &) {}
+
+    /*! Mock row-to-text conversion returning an empty string. */
+    Q_INVOKABLE QString dataViewRowsAsText(const QList<int> &, const QList<int> &) const
+    {
+        return {};
+    }
+
+    /*! Mock CSV export that reports failure without touching the file system. */
+    Q_INVOKABLE bool exportDataViewCsv(const QUrl &, const QList<int> &, const QList<int> &)
+    {
+        return false;
+    }
+
+    /*! Mock drop handler that never adds a node. */
+    Q_INVOKABLE bool monitorNodeById(const QString &) { return false; }
+
 signals:
     /*! Emitted when the mock backend changes. */
     void backendChanged();
+
+    /*! Emitted when the mock paused state changes. */
+    void updatesPausedChanged();
+
+    /*! Emitted when the mock Data Access View layout state changes. */
+    void dataViewStateChanged();
 
     /*! Emitted when the mock endpoint URL rewriting state changes. */
     void endpointUrlRewriteEnabledChanged();
@@ -133,6 +240,18 @@ private:
 
     /*! Mock endpoint URL rewriting state. */
     bool m_endpointUrlRewriteEnabled {false};
+
+    /*! Real Data Access View model backing the table under test. */
+    DataAccessModel m_dataModel;
+
+    /*! Real sorting and filtering proxy shown by the table under test. */
+    DataViewFilterModel m_dataViewModel;
+
+    /*! Mock paused state of table updates. */
+    bool m_updatesPaused {false};
+
+    /*! Mock Data Access View layout state written back by the table. */
+    QVariantMap m_dataViewState;
 };
 
 /*! Quick Test setup object that injects C++ context properties into each engine. */

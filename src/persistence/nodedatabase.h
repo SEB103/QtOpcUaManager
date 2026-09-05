@@ -28,6 +28,14 @@ struct MonitoredNodeRecord
 
     /** Cached data type text shown before the first live value arrives. */
     QString dataType;
+
+    /**
+     * Per-node sampling interval in milliseconds requested for the subscription.
+     *
+     * Zero means "use the service default", which keeps records written by older
+     * project files working without a migration step.
+     */
+    int samplingIntervalMs {0};
 };
 
 /**

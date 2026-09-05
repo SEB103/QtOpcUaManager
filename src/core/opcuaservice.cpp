@@ -1161,16 +1161,21 @@ void OpcUaService::startStructuredBrowseRead(const QString &nodeId, quint64 requ
 
 /*!
  * \brief Starts value-attribute monitoring for \a nodeId.
+ * \param nodeId The node whose Value attribute is monitored.
+ * \param intervalMs The requested sampling interval in milliseconds; a
+ *        non-positive value selects the service-wide default interval.
  *
  * The monitored QOpcUaNode is kept alive in this service and reused for writes.
  * Duplicate requests for an already monitored node are ignored. Each data change
  * is converted into an OpcUaValueUpdate and emitted to the GUI thread.
  */
-void OpcUaService::subscribeNode(const QString &nodeId)
+void OpcUaService::subscribeNode(const QString &nodeId, double intervalMs)
 {
     if (!isInObjectThread()) {
         QMetaObject::invokeMethod(this,
-                                  [this, nodeId]() { subscribeNode(nodeId); },
+                                  [this, nodeId, intervalMs]() {
+                                      subscribeNode(nodeId, intervalMs);
+                                  },
                                   Qt::QueuedConnection);
         return;
     }
@@ -1197,8 +1202,11 @@ void OpcUaService::subscribeNode(const QString &nodeId)
                 emit monitoredValueChanged(buildValueUpdate(nodeId, node));
             });
 
+    // A non-positive request means "no per-node override", so the node falls back
+    // to the service-wide default publishing interval.
+    const double effectiveInterval = intervalMs > 0.0 ? intervalMs : m_monitoringIntervalMs;
     node->enableMonitoring(QOpcUa::NodeAttribute::Value,
-                           QOpcUaMonitoringParameters(m_monitoringIntervalMs));
+                           QOpcUaMonitoringParameters(effectiveInterval));
 }
 
 /*!

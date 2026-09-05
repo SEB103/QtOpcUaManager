@@ -116,6 +116,12 @@ public:
     /** Sets the GUI snapshot monitoring state. */
     void setMonitoringEnabled(bool active) { m_monitoringEnabled = active; }
 
+    /** Returns whether the node matches the current address-space search query. */
+    bool searchMatch() const { return m_searchMatch; }
+
+    /** Sets whether the node matches the current address-space search query. */
+    void setSearchMatch(bool matched) { m_searchMatch = matched; }
+
     /** Returns whether the service reported that children may exist. */
     bool mayHaveChildren() const { return m_hasChildren; }
 
@@ -167,6 +173,8 @@ private:
     bool m_hasChildren {false};
     /** Local GUI snapshot of monitoring state. */
     bool m_monitoringEnabled {false};
+    /** Whether the display name matches the model's current search query. */
+    bool m_searchMatch {false};
 
     /** Current lazy-fetch state. */
     FetchState m_fetchState {FetchState::NotFetched};

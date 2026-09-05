@@ -71,6 +71,15 @@ private slots:
 
     /*! Verifies that requestRevealPath browses a collapsed branch to the target. */
     void requestRevealPathExpandsCollapsedBranch();
+
+    /*! Verifies that a plain query matches loaded display names as a substring. */
+    void searchMatchesLoadedNodesBySubstring();
+
+    /*! Verifies that a wildcard query is anchored to the whole display name. */
+    void searchWildcardMatchesWholeDisplayName();
+
+    /*! Verifies that browsing a branch adds its nodes to an active search. */
+    void searchMatchesFollowNewlyBrowsedNodes();
 };
 
 void OpcUaModelTest::initialStateIsEmpty()
@@ -359,6 +368,134 @@ void OpcUaModelTest::requestRevealPathExpandsCollapsedBranch()
     QVERIFY(revealed.isValid());
     QCOMPARE(model.data(revealed, OpcUaModel::NodeIdRole).toString(),
              QStringLiteral("ns=2;s=Temperature"));
+}
+
+void OpcUaModelTest::searchMatchesLoadedNodesBySubstring()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=stTestList"),
+                        QStringLiteral("stTestList"),
+                        QStringLiteral("stTestList"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    children.push_back({QStringLiteral("ns=2;s=Machine"),
+                        QStringLiteral("Machine"),
+                        QStringLiteral("Machine"),
+                        int(QOpcUa::NodeClass::Object),
+                        true});
+    children.push_back({QStringLiteral("ns=2;s=stTestBool"),
+                        QStringLiteral("stTestBool"),
+                        QStringLiteral("stTestBool"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
+
+    QSignalSpy matchesSpy(&model, &OpcUaModel::searchMatchesChanged);
+    model.setSearchQuery(QStringLiteral("sttest"));
+
+    QCOMPARE(matchesSpy.count(), 1);
+    QCOMPARE(model.searchMatchCount(), 2);
+
+    // Matches are ordered depth-first, so they follow the displayed row order.
+    QCOMPARE(model.searchMatchAt(0), model.index(0, 0));
+    QCOMPARE(model.searchMatchAt(1), model.index(2, 0));
+    QVERIFY(!model.searchMatchAt(2).isValid());
+    QVERIFY(!model.searchMatchAt(-1).isValid());
+
+    QVERIFY(model.data(model.index(0, 0), OpcUaModel::SearchMatchRole).toBool());
+    QVERIFY(!model.data(model.index(1, 0), OpcUaModel::SearchMatchRole).toBool());
+    QVERIFY(model.data(model.index(2, 0), OpcUaModel::SearchMatchRole).toBool());
+
+    // Clearing the query removes every highlight again.
+    model.setSearchQuery(QString());
+    QCOMPARE(model.searchMatchCount(), 0);
+    QVERIFY(!model.data(model.index(0, 0), OpcUaModel::SearchMatchRole).toBool());
+    QVERIFY(!model.data(model.index(2, 0), OpcUaModel::SearchMatchRole).toBool());
+}
+
+void OpcUaModelTest::searchWildcardMatchesWholeDisplayName()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=stTestList"),
+                        QStringLiteral("stTestList"),
+                        QStringLiteral("stTestList"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    children.push_back({QStringLiteral("ns=2;s=MyStTest"),
+                        QStringLiteral("MyStTest"),
+                        QStringLiteral("MyStTest"),
+                        int(QOpcUa::NodeClass::Variable),
+                        false});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
+
+    // A wildcard query is anchored, so "st*" means "starts with st" and skips
+    // the node that only contains the text in the middle.
+    model.setSearchQuery(QStringLiteral("st*"));
+    QCOMPARE(model.searchMatchCount(), 1);
+    QCOMPARE(model.searchMatchAt(0), model.index(0, 0));
+
+    // The same text without a wildcard is matched anywhere in the name.
+    model.setSearchQuery(QStringLiteral("st"));
+    QCOMPARE(model.searchMatchCount(), 2);
+}
+
+void OpcUaModelTest::searchMatchesFollowNewlyBrowsedNodes()
+{
+    OpcUaModel model;
+    QSignalSpy fetchSpy(&model, &OpcUaModel::fetchChildrenRequested);
+    model.setConnectionActive(true);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest rootRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> children;
+    children.push_back({QStringLiteral("ns=2;s=Machine"),
+                        QStringLiteral("Machine"),
+                        QStringLiteral("Machine"),
+                        int(QOpcUa::NodeClass::Object),
+                        true});
+    model.applyChildrenSnapshot(rootRequest.parentNodeId, rootRequest.requestId, children, true);
+
+    // The target lives in a branch that was never expanded, so it is not found.
+    model.setSearchQuery(QStringLiteral("temp"));
+    QCOMPARE(model.searchMatchCount(), 0);
+
+    const QModelIndex machineIndex = model.index(0, 0);
+    model.fetchMore(machineIndex);
+    QTRY_COMPARE(fetchSpy.count(), 1);
+    const FetchRequest machineRequest = takeFetchRequest(fetchSpy);
+
+    QList<OpcUaNodeData> machineChildren;
+    machineChildren.push_back({QStringLiteral("ns=2;s=Temperature"),
+                               QStringLiteral("Temperature"),
+                               QStringLiteral("Temperature"),
+                               int(QOpcUa::NodeClass::Variable),
+                               false});
+    model.applyChildrenSnapshot(machineRequest.parentNodeId,
+                                machineRequest.requestId,
+                                machineChildren,
+                                true);
+
+    // Browsing the branch makes the node searchable without retyping the query.
+    QCOMPARE(model.searchMatchCount(), 1);
+    const QModelIndex temperatureIndex = model.index(0, 0, machineIndex);
+    QCOMPARE(model.searchMatchAt(0), temperatureIndex);
+    QVERIFY(model.data(temperatureIndex, OpcUaModel::SearchMatchRole).toBool());
+
+    // Disconnecting drops the tree, so no match survives.
+    model.setConnectionActive(false);
+    QCOMPARE(model.searchMatchCount(), 0);
 }
 
 QTEST_GUILESS_MAIN(OpcUaModelTest)

@@ -3,6 +3,7 @@
 
 #include <QAbstractItemModel>
 #include <QHash>
+#include <QList>
 #include <QPersistentModelIndex>
 #include <QSet>
 #include <QStringList>
@@ -23,6 +24,12 @@ class OpcUaModel : public QAbstractItemModel
 
     /** Whether newly discovered monitorable nodes should be treated as auto-monitored. */
     Q_PROPERTY(bool autoMonitor READ autoMonitor WRITE setAutoMonitor NOTIFY autoMonitorChanged)
+
+    /** Display-name search query; empty disables search highlighting. */
+    Q_PROPERTY(QString searchQuery READ searchQuery WRITE setSearchQuery NOTIFY searchQueryChanged)
+
+    /** Number of already-loaded nodes matching the current search query. */
+    Q_PROPERTY(int searchMatchCount READ searchMatchCount NOTIFY searchMatchesChanged)
 
 public:
     /** Custom roles exposed to QML TreeView delegates. */
@@ -50,7 +57,9 @@ public:
         /** Whether monitoring is enabled in the GUI snapshot. */
         MonitoringEnabledRole,
         /** Lazy-fetch state as a TreeItem::FetchState integer. */
-        FetchStateRole
+        FetchStateRole,
+        /** Whether the node matches the current search query. */
+        SearchMatchRole
     };
     Q_ENUM(Role)
 
@@ -65,6 +74,29 @@ public:
 
     /** Sets automatic monitoring. */
     void setAutoMonitor(bool enabled);
+
+    /** Returns the current display-name search query. */
+    QString searchQuery() const { return m_searchQuery; }
+
+    /**
+     * Sets the display-name search query and recomputes the match list.
+     *
+     * A query containing \c * or \c ? is matched as a wildcard pattern against
+     * the whole display name; any other query is matched as a case-insensitive
+     * substring. Only nodes already materialized in the snapshot tree are
+     * searched, so a collapsed branch has to be expanded to become reachable.
+     */
+    void setSearchQuery(const QString &query);
+
+    /** Returns the number of already-loaded nodes matching the search query. */
+    int searchMatchCount() const { return int(m_searchMatches.size()); }
+
+    /**
+     * Returns the column-0 index of search match \a position, or an invalid
+     * index when \a position is out of range. Matches are ordered depth-first,
+     * so stepping through them walks the tree from top to bottom.
+     */
+    Q_INVOKABLE QModelIndex searchMatchAt(int position) const;
 
     /** Applies the current connection state. */
     void setConnectionActive(bool active);
@@ -150,6 +182,12 @@ signals:
     /** Emitted when automatic monitoring changes. */
     void autoMonitorChanged();
 
+    /** Emitted when the display-name search query changes. */
+    void searchQueryChanged();
+
+    /** Emitted when the set of search matches changes. */
+    void searchMatchesChanged();
+
     /** Requests lazy children for the given node id. */
     void fetchChildrenRequested(const QString &parentNodeId, quint64 requestId);
 
@@ -184,6 +222,12 @@ private:
     /** Resumes a waiting reveal when the snapshot for \a parentNodeId arrives. */
     void maybeResumeReveal(const QString &parentNodeId, bool success);
 
+    /**
+     * Re-evaluates the search query against every loaded node, refreshes the
+     * per-item match flag, and repaints the rows whose match state changed.
+     */
+    void rebuildSearchMatches();
+
 private:
     /** Invisible root item for the connected-session snapshot tree. */
     std::unique_ptr<TreeItem> mRootItem;
@@ -201,6 +245,11 @@ private:
     bool m_connectionActive {false};
     /** Node ids known to be monitored, used to restore the checkbox on browse. */
     QSet<QString> m_monitoredNodeIds;
+
+    /** Current display-name search query; empty disables search highlighting. */
+    QString m_searchQuery;
+    /** Depth-first ordered indexes of the loaded nodes matching m_searchQuery. */
+    QList<QPersistentModelIndex> m_searchMatches;
 
     /** Whether a requestRevealPath() run is currently in progress. */
     bool m_revealActive {false};

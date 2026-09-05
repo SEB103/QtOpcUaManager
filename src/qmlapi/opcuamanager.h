@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QPointer>
 #include <QStringList>
+#include <QUrl>
+#include <QVariantMap>
 #include <memory>
 
 #include "core/opcuanodedata.h"
@@ -13,6 +15,7 @@
 #include "core/opcuavaluetree.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
+#include "models/dataviewfiltermodel.h"
 #include "models/opcuamodel.h"
 #include "persistence/nodedatabase.h"
 #include "project/projectdata.h"
@@ -83,6 +86,35 @@ class OpcUaManager : public QObject
 
     /** Data Access View table model exposed to QML; owned by this manager. */
     Q_PROPERTY(DataAccessModel *dataModel READ dataModel CONSTANT)
+
+    /**
+     * Sorted and filtered view of \l dataModel that the Data Access View shows.
+     *
+     * Row positions in this model differ from \l dataModel whenever a sort or a
+     * quick filter is active, so a view row must be mapped with
+     * DataViewFilterModel::toSourceRow() before it is passed to any method of
+     * this class that takes a table row.
+     */
+    Q_PROPERTY(DataViewFilterModel *dataViewModel READ dataViewModel CONSTANT)
+
+    /**
+     * Whether incoming subscription updates are withheld from the table.
+     *
+     * Pausing freezes the displayed values so a fast-changing variable can be
+     * read; the subscriptions themselves stay active, so after resuming a row
+     * refreshes on the server's next data change rather than immediately.
+     */
+    Q_PROPERTY(bool updatesPaused READ updatesPaused WRITE setUpdatesPaused
+                   NOTIFY updatesPausedChanged)
+
+    /**
+     * Opaque Data Access View layout state persisted with the project.
+     *
+     * The table owns the meaning of the map; this class only stores it, reports
+     * changes as project changes, and round-trips it through the project file.
+     */
+    Q_PROPERTY(QVariantMap dataViewState READ dataViewState WRITE setDataViewState
+                   NOTIFY dataViewStateChanged)
 
     /** Attributes panel model exposed to QML; owned by this manager. */
     Q_PROPERTY(AttributesModel *attributesModel READ attributesModel CONSTANT)
@@ -204,6 +236,21 @@ public:
     /** Returns the owned Data Access View table model exposed to QML. */
     DataAccessModel *dataModel() const;
 
+    /** Returns the owned sorted and filtered view of the Data Access View model. */
+    DataViewFilterModel *dataViewModel() const;
+
+    /** Returns whether subscription updates are currently withheld from the table. */
+    bool updatesPaused() const { return m_updatesPaused; }
+
+    /** Sets whether subscription updates are withheld from the table. */
+    void setUpdatesPaused(bool paused);
+
+    /** Returns the persisted Data Access View layout state. */
+    QVariantMap dataViewState() const { return m_dataViewState; }
+
+    /** Sets the Data Access View layout state and marks the project changed. */
+    void setDataViewState(const QVariantMap &state);
+
     /** Returns the owned Attributes panel model exposed to QML. */
     AttributesModel *attributesModel() const;
 
@@ -291,8 +338,69 @@ public:
      */
     Q_INVOKABLE void setNodeMonitored(const QModelIndex &treeIndex, bool on);
 
+    /**
+     * Adds every already-loaded, monitorable direct child of \a treeIndex to the
+     * Data Access View and returns how many nodes were added.
+     *
+     * Children that are already monitored are skipped. Only materialized children
+     * are considered, so a branch that was never expanded contributes nothing.
+     */
+    Q_INVOKABLE int monitorChildVariables(const QModelIndex &treeIndex);
+
     /** Removes the Data Access View row at \a row from the table and the database. */
     Q_INVOKABLE void removeNode(int row);
+
+    /**
+     * Removes every Data Access View source row in \a rows in one step.
+     *
+     * The rows are removed from the highest index down so earlier removals do
+     * not shift the indexes still to be processed.
+     */
+    Q_INVOKABLE void removeNodes(const QList<int> &rows);
+
+    /**
+     * Adds the already-browsed node \a nodeId to the Data Access View.
+     * \return \c true when a row was added.
+     *
+     * Used by the drag-and-drop path, where only the node id survives the drop.
+     * The node is looked up in the address-space and focus trees, so a node that
+     * is not currently materialized cannot be added this way.
+     */
+    Q_INVOKABLE bool monitorNodeById(const QString &nodeId);
+
+    /**
+     * Sets the sampling interval of the Data Access View source row \a row to
+     * \a intervalMs milliseconds and re-subscribes so the change takes effect.
+     *
+     * A non-positive interval restores the service default.
+     */
+    Q_INVOKABLE void setSamplingInterval(int row, int intervalMs);
+
+    /**
+     * Writes the Data Access View to \a fileUrl as UTF-8 CSV.
+     * \param fileUrl Target file, as a local file URL.
+     * \param viewRows View rows to export, in the order they are displayed.
+     * \param columns Column indexes to export, in the order they are displayed.
+     * \return \c true on success; on failure lastError() describes the reason.
+     */
+    Q_INVOKABLE bool exportDataViewCsv(const QUrl &fileUrl,
+                                       const QList<int> &viewRows,
+                                       const QList<int> &columns);
+
+    /**
+     * Returns \a viewRows rendered as tab-separated text with a header line,
+     * ready to be placed on the clipboard.
+     * \param viewRows View rows to render, in the order they are displayed.
+     * \param columns Column indexes to render, in the order they are displayed.
+     */
+    Q_INVOKABLE QString dataViewRowsAsText(const QList<int> &viewRows,
+                                           const QList<int> &columns) const;
+
+    /** Returns the server-absolute browse path of the node at \a treeIndex. */
+    Q_INVOKABLE QString browsePathAt(const QModelIndex &treeIndex) const;
+
+    /** Copies \a text to the system clipboard. */
+    Q_INVOKABLE void copyToClipboard(const QString &text) const;
 
     /** Requests the attributes of the node at the tree \a treeIndex for the panel. */
     Q_INVOKABLE void requestAttributes(const QModelIndex &treeIndex);
@@ -407,6 +515,12 @@ signals:
      */
     void projectStateChanged();
 
+    /** Emitted when the paused state of table updates changes. */
+    void updatesPausedChanged();
+
+    /** Emitted when the persisted Data Access View layout state changes. */
+    void dataViewStateChanged();
+
     /**
      * Emitted while connectToLast() needs the password for username authentication
      * with \a userName. QML shows a prompt and calls provideReconnectPassword().
@@ -444,7 +558,7 @@ signals:
     /** Requests reading the structured value of \a nodeId for panel request \a requestId. */
     void readStructuredValueRequested(const QString &nodeId, quint64 requestId);
     /** Requests starting a value subscription for \a nodeId on the worker service. */
-    void subscribeNodeRequested(const QString &nodeId);
+    void subscribeNodeRequested(const QString &nodeId, double intervalMs);
     /** Requests stopping the value subscription for \a nodeId on the worker service. */
     void unsubscribeNodeRequested(const QString &nodeId);
     /** Requests writing \a value to \a nodeId on the worker service. */
@@ -623,6 +737,15 @@ private:
 
     /** Owned Data Access View table model exposed to QML. */
     DataAccessModel *m_dataModel {nullptr};
+
+    /** Owned sorted and filtered view of m_dataModel shown by the table. */
+    DataViewFilterModel *m_dataViewModel {nullptr};
+
+    /** Whether subscription updates are currently withheld from the table. */
+    bool m_updatesPaused {false};
+
+    /** Opaque Data Access View layout state round-tripped through the project file. */
+    QVariantMap m_dataViewState;
 
     /** Owned Attributes panel model exposed to QML. */
     AttributesModel *m_attributesModel {nullptr};

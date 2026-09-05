@@ -1,10 +1,38 @@
+#include <QDateTime>
+
 #include "dataaccessmodel.h"
+
+namespace {
+
+/*!
+ * \internal
+ * \brief Classifies the OPC UA status text \a statusCode into a severity.
+ *
+ * QOpcUa::statusToString() produces names such as "Good", "UncertainLastUsableValue",
+ * or "BadNodeIdUnknown", so the leading word carries the quality. An empty text
+ * means no value has been reported yet and stays Unknown rather than being
+ * treated as an error.
+ */
+DataAccessModel::StatusSeverity severityForStatus(const QString &statusCode)
+{
+    if (statusCode.isEmpty())
+        return DataAccessModel::StatusUnknown;
+    if (statusCode.startsWith(QLatin1String("Good"), Qt::CaseInsensitive))
+        return DataAccessModel::StatusGood;
+    if (statusCode.startsWith(QLatin1String("Uncertain"), Qt::CaseInsensitive))
+        return DataAccessModel::StatusUncertain;
+    if (statusCode.startsWith(QLatin1String("Bad"), Qt::CaseInsensitive))
+        return DataAccessModel::StatusBad;
+    return DataAccessModel::StatusUnknown;
+}
+
+} // namespace
 
 /*!
  * \brief Constructs an empty Data Access View model.
  */
 DataAccessModel::DataAccessModel(QObject *parent)
-    : QAbstractListModel(parent)
+    : QAbstractTableModel(parent)
 {}
 
 /*!
@@ -19,7 +47,7 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
     m_rows.clear();
     m_rows.reserve(records.size());
     for (const auto &record : records)
-        m_rows.push_back(Row{record, {}, {}, {}, {}});
+        m_rows.push_back(Row{record, {}, {}, {}, {}, 0});
     endResetModel();
 }
 
@@ -49,7 +77,7 @@ bool DataAccessModel::addRow(const MonitoredNodeRecord &record)
 
     const int row = m_rows.size();
     beginInsertRows(QModelIndex(), row, row);
-    m_rows.push_back(Row{record, {}, {}, {}, {}});
+    m_rows.push_back(Row{record, {}, {}, {}, {}, 0});
     endInsertRows();
     return true;
 }
@@ -66,11 +94,11 @@ void DataAccessModel::removeAt(int row)
     m_rows.removeAt(row);
     endRemoveRows();
 
-    // Row numbers shift, so refresh the RowNumberRole for the remaining rows.
+    // Row numbers shift, so refresh the whole first column for the remaining rows.
     if (!m_rows.isEmpty()) {
-        const QModelIndex top = index(0, 0);
-        const QModelIndex bottom = index(m_rows.size() - 1, 0);
-        emit dataChanged(top, bottom, {RowNumberRole});
+        const QModelIndex top = index(0, RowNumberColumn);
+        const QModelIndex bottom = index(m_rows.size() - 1, RowNumberColumn);
+        emit dataChanged(top, bottom, {Qt::DisplayRole, RowNumberRole, SortValueRole});
     }
 }
 
@@ -78,7 +106,9 @@ void DataAccessModel::removeAt(int row)
  * \brief Applies live value \a update to the matching row.
  *
  * The row is located by node id; unknown node ids are ignored so that stale
- * updates after a row was removed do not resurrect it.
+ * updates after a row was removed do not resurrect it. The arrival time is
+ * recorded so the view can tell a row that has received a value from one that
+ * is still waiting for its first update.
  */
 void DataAccessModel::updateValue(const OpcUaValueUpdate &update)
 {
@@ -91,13 +121,17 @@ void DataAccessModel::updateValue(const OpcUaValueUpdate &update)
     target.sourceTimestamp = update.sourceTimestamp;
     target.serverTimestamp = update.serverTimestamp;
     target.statusCode = update.statusCode;
+    target.lastUpdateMs = QDateTime::currentMSecsSinceEpoch();
     if (!update.dataType.isEmpty())
         target.record.dataType = update.dataType;
 
-    const QModelIndex changed = index(row, 0);
-    emit dataChanged(changed, changed,
-                     {ValueRole, DataTypeRole, SourceTimestampRole, ServerTimestampRole,
-                      StatusCodeRole});
+    // Every column of the row can show changed data, so refresh the whole row.
+    const QModelIndex left = index(row, 0);
+    const QModelIndex right = index(row, ColumnCount - 1);
+    emit dataChanged(left, right,
+                     {Qt::DisplayRole, ValueRole, DataTypeRole, SourceTimestampRole,
+                      ServerTimestampRole, StatusCodeRole, StatusSeverityRole,
+                      LastUpdateMsRole, SortValueRole});
 }
 
 /*!
@@ -116,12 +150,14 @@ void DataAccessModel::clearValues()
         row.sourceTimestamp.clear();
         row.serverTimestamp.clear();
         row.statusCode.clear();
+        row.lastUpdateMs = 0;
     }
 
-    const QModelIndex top = index(0, 0);
-    const QModelIndex bottom = index(m_rows.size() - 1, 0);
-    emit dataChanged(top, bottom,
-                     {ValueRole, SourceTimestampRole, ServerTimestampRole, StatusCodeRole});
+    const QModelIndex left = index(0, 0);
+    const QModelIndex right = index(m_rows.size() - 1, ColumnCount - 1);
+    emit dataChanged(left, right,
+                     {Qt::DisplayRole, ValueRole, SourceTimestampRole, ServerTimestampRole,
+                      StatusCodeRole, StatusSeverityRole, LastUpdateMsRole, SortValueRole});
 }
 
 /*!
@@ -167,6 +203,68 @@ QString DataAccessModel::valueAt(int row) const
 }
 
 /*!
+ * \brief Returns the browse path at \a row.
+ */
+QString DataAccessModel::nodePathAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return {};
+    return m_rows.at(row).record.nodePath;
+}
+
+/*!
+ * \brief Returns the sampling interval at \a row in milliseconds.
+ */
+int DataAccessModel::samplingIntervalAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return 0;
+    return m_rows.at(row).record.samplingIntervalMs;
+}
+
+/*!
+ * \brief Sets the sampling interval at \a row to \a intervalMs milliseconds.
+ * \return \c true when the stored interval changed.
+ */
+bool DataAccessModel::setSamplingIntervalAt(int row, int intervalMs)
+{
+    if (row < 0 || row >= m_rows.size())
+        return false;
+
+    const int sanitized = intervalMs > 0 ? intervalMs : 0;
+    if (m_rows.at(row).record.samplingIntervalMs == sanitized)
+        return false;
+
+    m_rows[row].record.samplingIntervalMs = sanitized;
+
+    const QModelIndex changed = index(row, IntervalColumn);
+    emit dataChanged(changed, changed,
+                     {Qt::DisplayRole, SamplingIntervalRole, SortValueRole});
+    return true;
+}
+
+/*!
+ * \brief Returns the translated header title of \a column.
+ */
+QString DataAccessModel::columnTitle(int column) const
+{
+    switch (column) {
+    case RowNumberColumn: return tr("#");
+    case DisplayNameColumn: return tr("Display Name");
+    case ValueColumn: return tr("Value");
+    case DataTypeColumn: return tr("Data Type");
+    case StatusColumn: return tr("Status");
+    case IntervalColumn: return tr("Interval, ms");
+    case SourceTimestampColumn: return tr("Source Timestamp");
+    case ServerTimestampColumn: return tr("Server Timestamp");
+    case NodePathColumn: return tr("Node Path");
+    case NodeIdColumn: return tr("Node Id");
+    case ServerColumn: return tr("Server");
+    default: return {};
+    }
+}
+
+/*!
  * \brief Returns the row index for \a nodeId, or -1 when not present.
  */
 int DataAccessModel::indexForNodeId(const QString &nodeId) const
@@ -179,6 +277,56 @@ int DataAccessModel::indexForNodeId(const QString &nodeId) const
 }
 
 /*!
+ * \brief Returns the display text of \a column for \a row.
+ * \param rowNumber The one-based position of the row in the table.
+ */
+QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) const
+{
+    switch (column) {
+    case RowNumberColumn: return QString::number(rowNumber);
+    case DisplayNameColumn: return row.record.displayName;
+    case ValueColumn: return row.value;
+    case DataTypeColumn: return row.record.dataType;
+    case StatusColumn: return row.statusCode;
+    case IntervalColumn:
+        // An unset interval follows the service default, which the user cannot
+        // read off a number, so show a dash instead of a misleading zero.
+        return row.record.samplingIntervalMs > 0
+                   ? QString::number(row.record.samplingIntervalMs)
+                   : QStringLiteral("—");
+    case SourceTimestampColumn: return row.sourceTimestamp;
+    case ServerTimestampColumn: return row.serverTimestamp;
+    case NodePathColumn: return row.record.nodePath;
+    case NodeIdColumn: return row.record.nodeId;
+    case ServerColumn: return row.record.server;
+    default: return {};
+    }
+}
+
+/*!
+ * \brief Returns a typed sort key for \a column of \a row.
+ * \param rowNumber The one-based position of the row in the table.
+ */
+QVariant DataAccessModel::sortValue(const Row &row, int column, int rowNumber) const
+{
+    switch (column) {
+    case RowNumberColumn:
+        return rowNumber;
+    case IntervalColumn:
+        return row.record.samplingIntervalMs;
+    case ValueColumn: {
+        // Numeric PLC values must sort numerically; anything else falls back to
+        // its text so mixed or non-numeric columns still sort predictably.
+        bool ok = false;
+        const double numeric = row.value.toDouble(&ok);
+        return ok ? QVariant(numeric) : QVariant(row.value);
+    }
+    default:
+        return cellText(row, column, rowNumber);
+    }
+}
+
+/*!
  * \brief Returns model data for \a index and \a role.
  */
 QVariant DataAccessModel::data(const QModelIndex &index, int role) const
@@ -187,8 +335,12 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         return {};
 
     const Row &row = m_rows.at(index.row());
+    const int rowNumber = index.row() + 1;
+
     switch (role) {
-    case RowNumberRole: return index.row() + 1;
+    case Qt::DisplayRole: return cellText(row, index.column(), rowNumber);
+    case SortValueRole: return sortValue(row, index.column(), rowNumber);
+    case RowNumberRole: return rowNumber;
     case ServerRole: return row.record.server;
     case NodeIdRole: return row.record.nodeId;
     case NodePathRole: return row.record.nodePath;
@@ -198,8 +350,22 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     case SourceTimestampRole: return row.sourceTimestamp;
     case ServerTimestampRole: return row.serverTimestamp;
     case StatusCodeRole: return row.statusCode;
+    case StatusSeverityRole: return int(severityForStatus(row.statusCode));
+    case SamplingIntervalRole: return row.record.samplingIntervalMs;
+    case LastUpdateMsRole: return row.lastUpdateMs;
     default: return {};
     }
+}
+
+/*!
+ * \brief Returns the horizontal header title for \a section.
+ */
+QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if (role != Qt::DisplayRole || orientation != Qt::Horizontal)
+        return {};
+
+    return columnTitle(section);
 }
 
 /*!
@@ -213,11 +379,22 @@ int DataAccessModel::rowCount(const QModelIndex &parent) const
 }
 
 /*!
+ * \brief Returns the number of columns below \a parent.
+ */
+int DataAccessModel::columnCount(const QModelIndex &parent) const
+{
+    if (parent.isValid())
+        return 0;
+    return int(ColumnCount);
+}
+
+/*!
  * \brief Returns the role names exposed to QML.
  */
 QHash<int, QByteArray> DataAccessModel::roleNames() const
 {
     return {
+        {Qt::DisplayRole, "display"},
         {RowNumberRole, "rowNumber"},
         {ServerRole, "server"},
         {NodeIdRole, "nodeId"},
@@ -227,6 +404,10 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
         {DataTypeRole, "dataType"},
         {SourceTimestampRole, "sourceTimestamp"},
         {ServerTimestampRole, "serverTimestamp"},
-        {StatusCodeRole, "statusCode"}
+        {StatusCodeRole, "statusCode"},
+        {StatusSeverityRole, "statusSeverity"},
+        {SamplingIntervalRole, "samplingInterval"},
+        {LastUpdateMsRole, "lastUpdateMs"},
+        {SortValueRole, "sortValue"}
     };
 }
