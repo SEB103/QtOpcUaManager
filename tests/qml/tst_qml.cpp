@@ -3,8 +3,11 @@
 #include <QVariantMap>
 #include <QtQuickTest/quicktest.h>
 
+#include "core/diagnosticslevel.h"
 #include "models/dataaccessmodel.h"
 #include "models/dataviewfiltermodel.h"
+#include "models/logfiltermodel.h"
+#include "models/logmodel.h"
 
 /*! Mock QML-facing OPC UA manager used by Quick Test components. */
 class MockOpcUaManager : public QObject
@@ -60,6 +63,15 @@ class MockOpcUaManager : public QObject
 
     /*! Mock pinned focus node id. */
     Q_PROPERTY(QString focusNodeId READ focusNodeId CONSTANT)
+
+    /*! Mock underlying client state. */
+    Q_PROPERTY(int clientState READ clientState CONSTANT)
+
+    /*! Mock one-line connection description shown in the status bar. */
+    Q_PROPERTY(QString connectionSummary READ connectionSummary CONSTANT)
+
+    /*! Mock number of monitored nodes shown in the status bar. */
+    Q_PROPERTY(int monitoredNodeCount READ monitoredNodeCount NOTIFY monitoredNodeCountChanged)
 
     /*! Mock paused state of table updates. */
     Q_PROPERTY(bool updatesPaused READ updatesPaused WRITE setUpdatesPaused
@@ -124,6 +136,15 @@ public:
 
     /*! Returns an empty mock focus node id. */
     QString focusNodeId() const { return {}; }
+
+    /*! Returns the mock disconnected client state. */
+    int clientState() const { return 0; }
+
+    /*! Returns a mock connection description. */
+    QString connectionSummary() const { return QStringLiteral("opc.tcp://127.0.0.1:4840"); }
+
+    /*! Returns the number of rows in the mock Data Access View model. */
+    int monitoredNodeCount() const { return m_dataModel.rowCount(); }
 
     /*! Returns whether table updates are paused in the mock. */
     bool updatesPaused() const { return m_updatesPaused; }
@@ -231,6 +252,9 @@ signals:
     /*! Emitted when the mock Data Access View layout state changes. */
     void dataViewStateChanged();
 
+    /*! Emitted when the mock monitored-node count changes. */
+    void monitoredNodeCountChanged();
+
     /*! Emitted when the mock endpoint URL rewriting state changes. */
     void endpointUrlRewriteEnabledChanged();
 
@@ -254,6 +278,45 @@ private:
     QVariantMap m_dataViewState;
 };
 
+/*! Mock application engine exposing the log the diagnostics panel reads. */
+class MockAppEngine : public QObject
+{
+    Q_OBJECT
+
+    /*! Real filtered log model so the panel is exercised against genuine roles. */
+    Q_PROPERTY(LogFilterModel *logModel READ logModel CONSTANT)
+
+public:
+    /*! Creates the mock and wires the filter proxy onto the log model. */
+    explicit MockAppEngine(QObject *parent = nullptr)
+        : QObject(parent)
+    {
+        m_logFilterModel.setSourceModel(&m_logModel);
+    }
+
+    /*! Returns the real filtered log model. */
+    LogFilterModel *logModel() { return &m_logFilterModel; }
+
+    /*! Appends \a message at \a level so a test can populate the log. */
+    Q_INVOKABLE void log(int level, const QString &message)
+    {
+        m_logModel.appendEntry(level, QString(), message);
+    }
+
+    /*! Removes every log entry. */
+    Q_INVOKABLE void clearLog() { m_logModel.clear(); }
+
+    /*! Mock no-op that reports that no log file exists. */
+    Q_INVOKABLE bool showLogFileLocation() { return false; }
+
+private:
+    /*! Real log storage backing the panel under test. */
+    LogModel m_logModel;
+
+    /*! Real severity and text filter shown by the panel under test. */
+    LogFilterModel m_logFilterModel;
+};
+
 /*! Quick Test setup object that injects C++ context properties into each engine. */
 class QmlTestSetup : public QObject
 {
@@ -264,11 +327,15 @@ public slots:
     void qmlEngineAvailable(QQmlEngine *engine)
     {
         engine->rootContext()->setContextProperty(QStringLiteral("cppManagerOpcUa"), &m_manager);
+        engine->rootContext()->setContextProperty(QStringLiteral("cppAppEngine"), &m_appEngine);
     }
 
 private:
     /*! Mock manager kept alive for the lifetime of the Quick Test setup object. */
     MockOpcUaManager m_manager;
+
+    /*! Mock engine exposing the log to the diagnostics panel. */
+    MockAppEngine m_appEngine;
 };
 
 QUICK_TEST_MAIN_WITH_SETUP(opcuamanager_qml, QmlTestSetup)

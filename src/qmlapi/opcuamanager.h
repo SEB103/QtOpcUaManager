@@ -10,6 +10,7 @@
 #include <QVariantMap>
 #include <memory>
 
+#include "core/diagnosticslevel.h"
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
 #include "core/opcuavaluetree.h"
@@ -140,6 +141,17 @@ class OpcUaManager : public QObject
     /** Node id of the currently selected node, shared by all panels for highlighting. */
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId NOTIFY selectedNodeIdChanged)
 
+    /** Number of nodes currently shown in the Data Access View. */
+    Q_PROPERTY(int monitoredNodeCount READ monitoredNodeCount NOTIFY monitoredNodeCountChanged)
+
+    /**
+     * One-line description of the connection the status bar shows.
+     *
+     * Reports the endpoint of the active or stored connection, falling back to
+     * the discovery URL, and is empty when the project has no connection yet.
+     */
+    Q_PROPERTY(QString connectionSummary READ connectionSummary NOTIFY connectionSummaryChanged)
+
 public:
     /** Operation state values exposed to QML. */
     enum OperationState {
@@ -268,6 +280,15 @@ public:
 
     /** Returns whether a renderable structured value is available for the panel. */
     bool structuredValueAvailable() const;
+
+    /** Returns the number of nodes currently shown in the Data Access View. */
+    int monitoredNodeCount() const;
+
+    /** Returns the one-line connection description shown in the status bar. */
+    QString connectionSummary() const;
+
+    /** Returns the display name of \a nodeId, falling back to the node id itself. */
+    QString displayNameForNodeId(const QString &nodeId) const;
 
     /** Returns the node id of the currently selected node. */
     QString selectedNodeId() const;
@@ -520,6 +541,22 @@ signals:
 
     /** Emitted when the persisted Data Access View layout state changes. */
     void dataViewStateChanged();
+
+    /** Emitted when the number of monitored nodes changes. */
+    void monitoredNodeCountChanged();
+
+    /** Emitted when the connection description shown in the status bar changes. */
+    void connectionSummaryChanged();
+
+    /**
+     * Reports a user-facing outcome of an operation.
+     *
+     * \a level is a Diagnostics::Level value and \a message is ready to be
+     * shown as-is. The UI is expected to surface this transiently; it is the
+     * only feedback for operations that leave no visible trace of their own,
+     * such as a failed write.
+     */
+    void notification(int level, const QString &message);
 
     /**
      * Emitted while connectToLast() needs the password for username authentication

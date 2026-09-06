@@ -22,40 +22,75 @@ Pane {
     /*! Exposes the top-bar quick actions so Main can connect to their signals. */
     property alias topActions: topActions
 
+    /*! Exposes the notification banner so Main can feed it. */
+    property alias notificationBanner: notificationBanner
+
+    /*! Exposes the log panel so Main can react to its close request. */
+    property alias logPanel: logPanel
+
     /*! Whether child controls should follow the dark theme state. */
     property bool darkTheme: false
 
-    // Single top row: menu titles on the left, connection indicator and quick
-    // actions on the right. Keeping both in one row leaves the browser area intact.
-    RowLayout {
-        id: topBar
+    /*! Whether the collapsible log panel is shown below the browser. */
+    property bool logPanelVisible: false
 
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
+    /*! Height of the log panel while it is shown. */
+    property int logPanelHeight: 200
+
+    // A column keeps the browser, the banner, and the log panel from overlapping:
+    // a hidden layout child takes no space, so no anchor points at an invisible
+    // item when the banner or the log panel is collapsed.
+    ColumnLayout {
+        anchors.fill: parent
         spacing: 0
 
-        Base.BsMenuBar {
-            id: menuBar
+        // Single top row: menu titles on the left, connection indicator and quick
+        // actions on the right. Keeping both in one row leaves the browser area intact.
+        RowLayout {
+            id: topBar
 
             Layout.fillWidth: true
-            darkTheme: main.darkTheme
+            spacing: 0
+
+            Base.BsMenuBar {
+                id: menuBar
+
+                Layout.fillWidth: true
+                darkTheme: main.darkTheme
+                logPanelVisible: main.logPanelVisible
+            }
+
+            Base.BsTopBarActions {
+                id: topActions
+
+                Layout.alignment: Qt.AlignVCenter
+                darkTheme: main.darkTheme
+            }
         }
 
-        Base.BsTopBarActions {
-            id: topActions
+        Base.BsNotificationBanner {
+            id: notificationBanner
 
-            Layout.alignment: Qt.AlignVCenter
-            darkTheme: main.darkTheme
+            Layout.fillWidth: true
         }
-    }
 
-    Base.BsOpcUaBrowser {
-        id: opcUaBrowser
+        Base.BsOpcUaBrowser {
+            id: opcUaBrowser
 
-        anchors.top: topBar.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+
+        Base.BsLogPanel {
+            id: logPanel
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: main.logPanelHeight
+            Layout.minimumHeight: 100
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            Layout.bottomMargin: 8
+            visible: main.logPanelVisible
+        }
     }
 }

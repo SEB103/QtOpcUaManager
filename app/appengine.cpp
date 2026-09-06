@@ -6,8 +6,12 @@
 #include <QMetaObject>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QDesktopServices>
+#include <QFileInfo>
+#include <cstdio>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QUrl>
 #include <QTextStream>
 #include <QThread>
 #include <QTimer>
@@ -18,6 +22,8 @@
 #include "qmlapi/projectmanager.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
+#include "models/logfiltermodel.h"
+#include "models/logmodel.h"
 #include "models/opcuamodel.h"
 #include "core/opcuaservice.h"
 #include "core/opcuanodedata.h"
@@ -29,10 +35,90 @@
 namespace {
 constexpr auto kLogDirectoryName = "log";
 constexpr auto kLogFileName = "app.log";
+constexpr auto kRotatedLogFileName = "app.log.1";
+
+/*!
+ * \internal
+ * \brief Size at which the log file is rotated, in bytes.
+ *
+ * The log used to grow without bound across runs. One rotation step keeps the
+ * previous session's tail available while capping the disk footprint.
+ */
+constexpr qint64 kMaxLogFileBytes = 5 * 1024 * 1024;
+
 QtMessageHandler g_prevQtMessageHandler = nullptr;
 QFile  g_logFile;
 QMutex g_logMutex;
 bool   g_logInitAttempted = false;
+
+/*!
+ * \internal
+ * \brief In-memory log fed by the message handler; null once the engine is gone.
+ *
+ * Guarded by \c g_logModelMutex because Qt message handlers run on every thread
+ * the application uses, while the model itself lives in the GUI thread and is
+ * therefore only ever touched through a queued invocation.
+ */
+LogModel* g_logModel = nullptr;
+QMutex g_logModelMutex;
+
+/*!
+ * \internal
+ * \brief Maps a Qt message type to the shared diagnostics severity.
+ */
+int diagnosticsLevelForType(QtMsgType type)
+{
+    switch (type) {
+    case QtDebugMsg: return Diagnostics::Debug;
+    case QtInfoMsg: return Diagnostics::Info;
+    case QtWarningMsg: return Diagnostics::Warning;
+    case QtCriticalMsg:
+    case QtFatalMsg: return Diagnostics::Error;
+    }
+    return Diagnostics::Info;
+}
+
+/*!
+ * \internal
+ * \brief Forwards one message to the in-memory log model, if one is installed.
+ */
+void appendLogLineToModel(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+    if (QCoreApplication::closingDown())
+        return;
+
+    // Appending emits model signals, so a view reacting to them could log again
+    // and re-enter this function. The guard is checked before the mutex is taken
+    // because QMutex is not recursive and re-entering would otherwise deadlock.
+    static thread_local bool appending = false;
+    if (appending)
+        return;
+
+    appending = true;
+
+    {
+        QMutexLocker locker(&g_logModelMutex);
+        if (g_logModel) {
+            const QString category =
+                context.category ? QString::fromUtf8(context.category) : QString();
+            const int level = diagnosticsLevelForType(type);
+
+            if (QThread::currentThread() == g_logModel->thread()) {
+                // Deliver directly on the GUI thread. Posting an event would need
+                // a live event dispatcher, which is not guaranteed once the
+                // application is being torn down.
+                g_logModel->appendEntry(level, category, msg);
+            } else {
+                QMetaObject::invokeMethod(g_logModel, "appendEntry", Qt::QueuedConnection,
+                                          Q_ARG(int, level),
+                                          Q_ARG(QString, category),
+                                          Q_ARG(QString, msg));
+            }
+        }
+    }
+
+    appending = false;
+}
 
 /*!
  * \internal
@@ -85,8 +171,28 @@ bool ensureLogFileOpenLocked()
     if (!QDir().mkpath(logDirPath))
         return false;
     const QString logFilePath = QDir(logDirPath).filePath(QString::fromLatin1(kLogFileName));
+
+    // Rotate before appending so a long-lived installation keeps at most the
+    // current file plus one previous generation.
+    if (QFileInfo(logFilePath).size() >= kMaxLogFileBytes) {
+        const QString rotatedPath =
+            QDir(logDirPath).filePath(QString::fromLatin1(kRotatedLogFileName));
+        QFile::remove(rotatedPath);
+        QFile::rename(logFilePath, rotatedPath);
+    }
+
     g_logFile.setFileName(logFilePath);
     return g_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
+}
+
+/*!
+ * \internal
+ * \brief Returns the absolute log file path once the log file has been opened.
+ */
+QString openedLogFilePath()
+{
+    QMutexLocker locker(&g_logMutex);
+    return g_logFile.isOpen() ? QFileInfo(g_logFile).absoluteFilePath() : QString();
 }
 
 /*!
@@ -122,9 +228,28 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, 
                                   messageTypeName(type),
                                   msg,
                                   contextString);
+    appendLogLineToModel(type, context, msg);
+
+    // The log file stays a release-build facility; a debug session already has
+    // the message on stderr and in the debugger.
+#ifdef QT_NO_DEBUG
     appendLogLineToFile(line);
-    if (g_prevQtMessageHandler)
+#else
+    Q_UNUSED(line)
+#endif
+
+    if (g_prevQtMessageHandler) {
         g_prevQtMessageHandler(type, context, msg);
+        return;
+    }
+
+    // qInstallMessageHandler() returns null when the default handler was in
+    // place, so there is nothing to chain to. Writing the formatted message out
+    // here keeps the console output this handler would otherwise swallow.
+    const QByteArray formatted = qFormatLogMessage(type, context, msg).toLocal8Bit();
+    std::fputs(formatted.constData(), stderr);
+    std::fputc('\n', stderr);
+    std::fflush(stderr);
 }
 
 } // namespace
@@ -139,7 +264,17 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     , m_initialUrl(initialUrl)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
     , m_projectManager(new ProjectManager(this))
+    , m_logModel(new LogModel(2000, this))
+    , m_logFilterModel(new LogFilterModel(this))
 {
+    m_logFilterModel->setSourceModel(m_logModel);
+
+    // Publish the model before installing the handler so no message is lost.
+    {
+        QMutexLocker locker(&g_logModelMutex);
+        g_logModel = m_logModel;
+    }
+
     qRegisterMetaType<OpcUaNodeData>("OpcUaNodeData");
     qRegisterMetaType<QList<OpcUaNodeData>>("QList<OpcUaNodeData>");
     qRegisterMetaType<OpcUaValueUpdate>("OpcUaValueUpdate");
@@ -147,6 +282,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qRegisterMetaType<OpcUaValueTreeNode>("OpcUaValueTreeNode");
 
     qmlRegisterUncreatableType<AppEngine>("Cpp.AppEngine", 1, 0, "AppEngine", QStringLiteral("AppEngine is a subclass of QQmlApplicationEngine and should not be created in QML."));
+    qmlRegisterUncreatableType<LogFilterModel>("Cpp.AppEngine", 1, 0, "LogFilterModel", QStringLiteral("LogFilterModel is exposed by AppEngine::logModel."));
     rootContext()->setContextProperty("cppAppEngine", this);
     qmlRegisterUncreatableType<OpcUaManager>("Cpp.OpcUaManager", 1, 0, "OpcUaManager", QStringLiteral("OpcUaManager should not be created in QML."));
     qmlRegisterUncreatableType<OpcUaModel>("Cpp.OpcUaManager", 1, 0, "OpcUaModel", QStringLiteral("OpcUaModel is exposed by OpcUaManager::treeModel."));
@@ -158,9 +294,45 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     m_projectManager->setOpcUaManager(m_opcUaManager);
     rootContext()->setContextProperty("cppProjectManager", m_projectManager);
 
-#ifdef QT_NO_DEBUG
+    // Installed in every configuration: the log panel is a debugging aid the user
+    // needs in a development build too. Writing to the log file stays
+    // release-only inside the handler itself.
     g_prevQtMessageHandler = qInstallMessageHandler(customLogMessageHandler);
-#endif
+
+    // First entry of every session: it dates the log, states which build wrote
+    // it, and keeps the log panel from opening on an empty list.
+    qInfo() << QCoreApplication::applicationName()
+            << QCoreApplication::applicationVersion() << "started";
+
+    m_logModel->setLogFilePath(openedLogFilePath());
+}
+
+/*!
+ * \brief Removes every entry from the in-memory application log.
+ */
+void AppEngine::clearLog()
+{
+    if (m_logModel)
+        m_logModel->clear();
+}
+
+/*!
+ * \brief Opens the directory holding the log file in the system file manager.
+ * \return \c false when no log file has been written in this session.
+ */
+bool AppEngine::showLogFileLocation()
+{
+    // The path is only known once the first message has been written, so refresh
+    // it here rather than relying on the value captured at construction time.
+    const QString path = openedLogFilePath();
+    if (m_logModel)
+        m_logModel->setLogFilePath(path);
+
+    if (path.isEmpty())
+        return false;
+
+    return QDesktopServices::openUrl(
+        QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
 }
 
 /*!
@@ -211,6 +383,14 @@ void AppEngine::createOpcUaRuntime()
  */
 AppEngine::~AppEngine()
 {
+    // Stop feeding the GUI-thread log model first: the worker thread still logs
+    // while it shuts down, and posting those messages to an event loop that is
+    // already winding down has no value and can only fail.
+    {
+        QMutexLocker modelLocker(&g_logModelMutex);
+        g_logModel = nullptr;
+    }
+
     if (m_opcUaThread && m_opcUaThread->isRunning()) {
         m_opcUaThread->quit();
         m_opcUaThread->wait();
@@ -221,6 +401,9 @@ AppEngine::~AppEngine()
 
     qInstallMessageHandler(g_prevQtMessageHandler);
     g_prevQtMessageHandler = nullptr;
+
+    m_logFilterModel = nullptr;
+    m_logModel = nullptr;
 
     QMutexLocker locker(&g_logMutex);
     if (g_logFile.isOpen()) {

@@ -7,11 +7,14 @@ qt_add_qml_module(Base
     QML_FILES
         BsAddressSpaceTree.qml
         BsAddressSpaceTreePane.qml
+        BsLogPanel.qml
         BsMenuBar.qml
         BsNodeAttributes.qml
         BsNodeDataView.qml
+        BsNotificationBanner.qml
         BsOpcUaBrowser.qml
         BsOpcUaConnectionForm.qml
+        BsStatusBar.qml
         BsTopBarActions.qml
 )
 

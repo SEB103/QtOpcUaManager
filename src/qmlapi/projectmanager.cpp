@@ -11,6 +11,7 @@
 #include <QVariantMap>
 
 #include "qmlapi/opcuamanager.h"
+#include "core/diagnosticslevel.h"
 #include "project/projectserializer.h"
 
 namespace {
@@ -209,6 +210,7 @@ bool ProjectManager::createProjectAtPath(const QString &pathOrUrl)
     }
     setActiveProject(path, data.displayName);
     addOrUpdateRecent(path, data.displayName, data.connection.discoveryUrl);
+    emit notification(Diagnostics::Info, tr("Created project %1.").arg(data.displayName));
     return true;
 }
 
@@ -230,6 +232,9 @@ bool ProjectManager::openProject(const QString &pathOrUrl)
     }
     setActiveProject(path, result.data.displayName);
     addOrUpdateRecent(path, result.data.displayName, result.data.connection.discoveryUrl);
+
+    emit notification(Diagnostics::Info,
+                      tr("Opened project %1.").arg(result.data.displayName));
 
     // Only after the full project state is restored does the connection begin.
     if (m_opcUaManager)
@@ -304,6 +309,7 @@ bool ProjectManager::writeActiveProjectTo(const QString &path, const QString &di
 
     setActiveProject(path, displayName);
     addOrUpdateRecent(path, displayName, data.connection.discoveryUrl);
+    emit notification(Diagnostics::Info, tr("Saved project %1.").arg(displayName));
     return true;
 }
 
@@ -312,9 +318,14 @@ bool ProjectManager::writeActiveProjectTo(const QString &path, const QString &di
  */
 void ProjectManager::closeProject()
 {
+    const QString closedName = m_activeName;
+
     if (m_opcUaManager)
         m_opcUaManager->clearRuntimeState();
     clearActiveProject();
+
+    if (!closedName.isEmpty())
+        emit notification(Diagnostics::Info, tr("Closed project %1.").arg(closedName));
 }
 
 /*!

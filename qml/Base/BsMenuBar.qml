@@ -86,6 +86,16 @@ MenuBar {
     signal openRecentRequested(int index)
 
     /*!
+        \qmlsignal BsMenuBar::logPanelToggleRequested()
+
+        Emitted when the user asks to show or hide the log panel.
+    */
+    signal logPanelToggleRequested()
+
+    /*! Whether the log panel is currently shown, used to word the menu item. */
+    property bool logPanelVisible: false
+
+    /*!
         \qmlsignal BsMenuBar::settingsRequested()
         Emitted when the user opens application settings. The corresponding
         handler is \c onSettingsRequested.
@@ -206,6 +216,12 @@ MenuBar {
                   ? qsTr("Switch to &Light Theme")
                   : qsTr("Switch to &Dark Theme")
             onTriggered: appMenuBar.themeToggleRequested()
+        }
+
+        MenuItem {
+            text: appMenuBar.logPanelVisible ? qsTr("Hide &Log Panel")
+                                             : qsTr("Show &Log Panel")
+            onTriggered: appMenuBar.logPanelToggleRequested()
         }
 
         MenuSeparator {}

@@ -145,6 +145,15 @@ signals:
     /** Emitted with a user-facing \a message when a project operation fails. */
     void projectError(const QString &message);
 
+    /**
+     * Reports a user-facing outcome of a project operation.
+     *
+     * \a level is a Diagnostics::Level value and \a message is ready to be
+     * shown as-is. Failures are reported both here and through projectError(),
+     * which additionally opens a modal dialog for the ones the user must act on.
+     */
+    void notification(int level, const QString &message);
+
 protected:
     /**
      * Creates a Default project from legacy pre-project state on first launch.

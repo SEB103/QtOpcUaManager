@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QSaveFile>
 #include <algorithm>
@@ -13,6 +14,7 @@
 #include <QtQuick/QQuickTextDocument>
 
 #include "core/opcuaservice.h"
+#include "core/opcuastatushint.h"
 #include "models/structuredvalueformatter.h"
 #include "opcuamanager.h"
 #include "structuredvaluehighlighter.h"
@@ -156,6 +158,15 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     , m_nodeDatabase(std::make_unique<NodeDatabase>())
 {
     m_dataViewModel->setSourceModel(m_dataModel);
+
+    // The status bar shows how many nodes the project watches, so republish the
+    // count whenever the table gains or loses rows.
+    connect(m_dataModel, &QAbstractItemModel::rowsInserted,
+            this, &OpcUaManager::monitoredNodeCountChanged);
+    connect(m_dataModel, &QAbstractItemModel::rowsRemoved,
+            this, &OpcUaManager::monitoredNodeCountChanged);
+    connect(m_dataModel, &QAbstractItemModel::modelReset,
+            this, &OpcUaManager::monitoredNodeCountChanged);
 
     // The legacy SQLite store is opened read-only for one-time migration into a
     // project file. Monitored nodes are no longer seeded from it at startup; the
@@ -302,6 +313,24 @@ DataAccessModel *OpcUaManager::dataModel() const
 DataViewFilterModel *OpcUaManager::dataViewModel() const
 {
     return m_dataViewModel;
+}
+
+/*!
+ * \brief Returns the number of nodes currently shown in the Data Access View.
+ */
+int OpcUaManager::monitoredNodeCount() const
+{
+    return m_dataModel ? m_dataModel->rowCount() : 0;
+}
+
+/*!
+ * \brief Returns the one-line connection description shown in the status bar.
+ */
+QString OpcUaManager::connectionSummary() const
+{
+    if (!m_connection.endpoint.isEmpty())
+        return m_connection.endpoint;
+    return m_connection.discoveryUrl;
 }
 
 /*!
@@ -575,6 +604,16 @@ int OpcUaManager::monitorChildVariables(const QModelIndex &treeIndex)
         ++added;
     }
 
+    // A single checkbox needs no message because the new row is the feedback; a
+    // bulk add does, because the user cannot tell how many nodes qualified.
+    if (added > 0) {
+        emit notification(Diagnostics::Info,
+                          tr("Added %n node(s) to the Data View.", nullptr, added));
+    } else {
+        emit notification(Diagnostics::Warning,
+                          tr("No monitorable child node was found. Expand the branch first."));
+    }
+
     return added;
 }
 
@@ -675,6 +714,12 @@ void OpcUaManager::setSamplingInterval(int row, int intervalMs)
         emit subscribeNodeRequested(nodeId, double(m_dataModel->samplingIntervalAt(row)));
     }
 
+    const int applied = m_dataModel->samplingIntervalAt(row);
+    emit notification(Diagnostics::Info,
+                      applied > 0
+                          ? tr("Sampling interval set to %1 ms.").arg(applied)
+                          : tr("Sampling interval reset to the default."));
+
     emit projectStateChanged();
 }
 
@@ -733,6 +778,9 @@ bool OpcUaManager::exportDataViewCsv(const QUrl &fileUrl,
         return false;
     }
 
+    emit notification(Diagnostics::Info,
+                      tr("Exported %n row(s) to %1.", nullptr, int(viewRows.size()))
+                          .arg(QFileInfo(path).fileName()));
     return true;
 }
 
@@ -977,8 +1025,10 @@ void OpcUaManager::updateConnectionFromLiveState()
     const bool changed = live != m_connection;
     m_connection = live;
     updateHasLastConnection();
-    if (changed)
+    if (changed) {
         emit projectStateChanged();
+        emit connectionSummaryChanged();
+    }
 }
 
 /*!
@@ -994,6 +1044,9 @@ void OpcUaManager::connectToLast()
         applyLastError(tr("No stored connection is available."));
         return;
     }
+
+    emit notification(Diagnostics::Info,
+                      tr("Reconnecting to %1…").arg(connectionSummary()));
     connectUsingConfig(m_connection);
 }
 
@@ -1251,6 +1304,8 @@ void OpcUaManager::applyProject(const ProjectData &data)
         m_dataViewState = data.settings.dataView;
         emit dataViewStateChanged();
     }
+
+    emit connectionSummaryChanged();
 }
 
 /*!
@@ -1304,6 +1359,7 @@ void OpcUaManager::clearRuntimeState()
         emit dataViewStateChanged();
     }
     setUpdatesPaused(false);
+    emit connectionSummaryChanged();
 
     m_focusNodeId.clear();
     m_focusNodePath.clear();
@@ -1601,6 +1657,10 @@ void OpcUaManager::applyConnected(bool connected)
     if (m_treeModel)
         m_treeModel->setConnectionActive(connected);
 
+    emit notification(Diagnostics::Info,
+                      connected ? tr("Connected to %1.").arg(connectionSummary())
+                                : tr("Disconnected from the server."));
+
     if (connected) {
         // Seed the tree with the persisted monitored node ids before its browse
         // results arrive, so the monitoring checkbox is restored for those nodes.
@@ -1703,6 +1763,11 @@ void OpcUaManager::applyLastError(const QString &lastError)
     }
 
     emit lastErrorChanged();
+
+    // Clearing the error is not worth reporting; a new one always is, because
+    // the connection dialog that used to be its only home is usually closed.
+    if (!lastError.isEmpty())
+        emit notification(Diagnostics::Error, OpcUaStatusHint::describe(lastError));
 }
 
 /*!
@@ -1815,9 +1880,37 @@ void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
  */
 void OpcUaManager::applyWriteCompleted(const QString &nodeId, bool success, const QString &error)
 {
-    if (success)
+    if (success) {
+        emit notification(Diagnostics::Info,
+                          tr("Wrote the value of %1.").arg(displayNameForNodeId(nodeId)));
         return;
+    }
 
     qWarning() << "OpcUaManager: write failed for" << nodeId << ":" << error;
-    applyLastError(error);
+    applyLastError(tr("Writing %1 failed: %2")
+                       .arg(displayNameForNodeId(nodeId), error));
+}
+
+/*!
+ * \brief Returns the display name of \a nodeId, falling back to the node id.
+ *
+ * A message naming "Temperature" is far more useful than one naming
+ * "ns=4;s=|var|CODESYS...", so the Data Access View row is consulted first.
+ */
+QString OpcUaManager::displayNameForNodeId(const QString &nodeId) const
+{
+    if (!m_dataModel)
+        return nodeId;
+
+    const int rows = m_dataModel->rowCount();
+    for (int row = 0; row < rows; ++row) {
+        if (m_dataModel->nodeIdAt(row) != nodeId)
+            continue;
+        const QString displayName =
+            m_dataModel->data(m_dataModel->index(row, 0),
+                              DataAccessModel::DisplayNameRole).toString();
+        return displayName.isEmpty() ? nodeId : displayName;
+    }
+
+    return nodeId;
 }

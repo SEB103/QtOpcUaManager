@@ -35,6 +35,27 @@ ApplicationWindow {
     /*! Pending action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
 
+    /*! Whether the collapsible log panel is shown in the workspace. */
+    property bool logPanelVisible: false
+
+    /*! Text of the most recent operation outcome, shown in the status bar. */
+    property string statusMessage: ""
+
+    /*! Severity of \l statusMessage as a Diagnostics::Level value. */
+    property int statusMessageLevel: 1
+
+    /*!
+        Records the outcome \a message at severity \a level.
+
+        Every outcome lands in the status bar; the banner additionally surfaces
+        warnings and errors, which the user has to notice.
+    */
+    function showNotification(level, message) {
+        mainWindow.statusMessage = message
+        mainWindow.statusMessageLevel = level
+        mainScreen.notificationBanner.show(level, message)
+    }
+
     /*!
         Runs \a action immediately, or, when the active project has unsaved
         changes, defers it behind the unsaved-changes prompt.
@@ -75,6 +96,25 @@ ApplicationWindow {
         anchors.fill: parent
         darkTheme: mainWindow.darkTheme
         visible: cppProjectManager.hasActiveProject
+        logPanelVisible: mainWindow.logPanelVisible
+    }
+
+    // The status bar belongs to the workspace; the launcher has nothing to report.
+    footer: Base.BsStatusBar {
+        visible: cppProjectManager.hasActiveProject
+        message: mainWindow.statusMessage
+        messageLevel: mainWindow.statusMessageLevel
+        logPanelVisible: mainWindow.logPanelVisible
+
+        onLogToggleRequested: mainWindow.logPanelVisible = !mainWindow.logPanelVisible
+    }
+
+    Connections {
+        target: mainScreen.logPanel
+
+        function onCloseRequested() {
+            mainWindow.logPanelVisible = false
+        }
     }
 
     // The launcher is the entry point when no project is active.
@@ -116,6 +156,10 @@ ApplicationWindow {
 
         function onSettingsRequested() {
             settingsDialog.open()
+        }
+
+        function onLogPanelToggleRequested() {
+            mainWindow.logPanelVisible = !mainWindow.logPanelVisible
         }
 
         function onOpenProjectRequested() {
@@ -321,6 +365,10 @@ ApplicationWindow {
             projectErrorLabel.text = message
             projectErrorDialog.open()
         }
+
+        function onNotification(level, message) {
+            mainWindow.showNotification(level, message)
+        }
     }
 
     Dialog {
@@ -405,6 +453,10 @@ ApplicationWindow {
 
     Connections {
         target: cppManagerOpcUa
+
+        function onNotification(level, message) {
+            mainWindow.showNotification(level, message)
+        }
 
         function onConnectedChanged() {
             if (cppManagerOpcUa.connected && apiServerDialog.opened)

@@ -3,9 +3,12 @@ qt_add_library(OpcUaCore STATIC)
 
 target_sources(OpcUaCore
     PRIVATE
+        core/diagnosticslevel.h
         core/opcuanodedata.h
         core/opcuaservice.cpp
         core/opcuaservice.h
+        core/opcuastatushint.cpp
+        core/opcuastatushint.h
         core/opcuavaluedata.h
         core/opcuavaluetree.h
         core/structurednodereader.cpp
@@ -16,6 +19,10 @@ target_sources(OpcUaCore
         models/dataaccessmodel.h
         models/dataviewfiltermodel.cpp
         models/dataviewfiltermodel.h
+        models/logfiltermodel.cpp
+        models/logfiltermodel.h
+        models/logmodel.cpp
+        models/logmodel.h
         models/opcuamodel.cpp
         models/opcuamodel.h
         models/structuredvalueformatter.cpp

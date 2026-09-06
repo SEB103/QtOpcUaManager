@@ -48,6 +48,30 @@ target_link_libraries(tst_dataviewfiltermodel
 
 add_test(NAME DataViewFilterModel.Unit COMMAND tst_dataviewfiltermodel)
 
+qt_add_executable(tst_logmodel
+    unit/tst_logmodel.cpp
+)
+
+target_link_libraries(tst_logmodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME LogModel.Unit COMMAND tst_logmodel)
+
+qt_add_executable(tst_opcuastatushint
+    unit/tst_opcuastatushint.cpp
+)
+
+target_link_libraries(tst_opcuastatushint
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME OpcUaStatusHint.Unit COMMAND tst_opcuastatushint)
+
 qt_add_executable(tst_projectserializer
     unit/tst_projectserializer.cpp
 )
@@ -103,6 +127,7 @@ qt_add_executable(tst_qml
 target_sources(tst_qml
     PRIVATE
         qml/tst_dataview.qml
+        qml/tst_diagnostics.qml
         qml/tst_menubar.qml
         qml/README.md
 )
