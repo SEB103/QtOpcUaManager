@@ -116,6 +116,12 @@ public:
     /** Sets the GUI snapshot monitoring state. */
     void setMonitoringEnabled(bool active) { m_monitoringEnabled = active; }
 
+    /**
+     * Returns the OPC UA AccessLevel bit mask of a variable node, or -1 while it
+     * is unknown. Filled by the batched attribute read that follows a browse.
+     */
+    int accessLevel() const { return m_accessLevel; }
+
     /** Returns whether the node matches the current address-space search query. */
     bool searchMatch() const { return m_searchMatch; }
 
@@ -163,6 +169,8 @@ private:
     QString m_dataTypeId;
     /** OPC UA ValueRank of a variable: -1 scalar, 0 or positive means array. */
     int m_valueRank {-1};
+    /** OPC UA AccessLevel bit mask of a variable node; -1 while unknown. */
+    int m_accessLevel {-1};
     /** Current value text shown by the browser. */
     QString m_valueString;
     /** Current data type text shown by the browser. */

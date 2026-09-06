@@ -128,6 +128,7 @@ TreeItem::TreeItem(const OpcUaNodeData &data, OpcUaModel *model, TreeItem *paren
     , m_typeDefinitionId(data.typeDefinitionId)
     , m_dataTypeId(data.dataTypeId)
     , m_valueRank(data.valueRank)
+    , m_accessLevel(data.accessLevel)
     , m_hasChildren(data.hasChildren)
 {
 }

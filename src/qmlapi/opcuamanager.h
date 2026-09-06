@@ -141,6 +141,16 @@ class OpcUaManager : public QObject
     /** Node id of the currently selected node, shared by all panels for highlighting. */
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId NOTIFY selectedNodeIdChanged)
 
+    /**
+     * Symbolic choices of the selected node's enumeration data type.
+     *
+     * Each entry is a map with a \c value number and a \c label string. The list
+     * is empty unless the selected node's data type is an enumeration the server
+     * describes, so the value editor falls back to a plain numeric field.
+     */
+    Q_PROPERTY(QVariantList selectedEnumOptions READ selectedEnumOptions
+                   NOTIFY selectedNodeAttributesChanged)
+
     /** Number of nodes currently shown in the Data Access View. */
     Q_PROPERTY(int monitoredNodeCount READ monitoredNodeCount NOTIFY monitoredNodeCountChanged)
 
@@ -289,6 +299,9 @@ public:
 
     /** Returns the display name of \a nodeId, falling back to the node id itself. */
     QString displayNameForNodeId(const QString &nodeId) const;
+
+    /** Returns the enumeration choices of the selected node, or an empty list. */
+    QVariantList selectedEnumOptions() const { return m_selectedEnumOptions; }
 
     /** Returns the node id of the currently selected node. */
     QString selectedNodeId() const;
@@ -548,6 +561,9 @@ signals:
     /** Emitted when the connection description shown in the status bar changes. */
     void connectionSummaryChanged();
 
+    /** Emitted when the attribute snapshot of the selected node changes. */
+    void selectedNodeAttributesChanged();
+
     /**
      * Reports a user-facing outcome of an operation.
      *
@@ -783,6 +799,9 @@ private:
 
     /** Opaque Data Access View layout state round-tripped through the project file. */
     QVariantMap m_dataViewState;
+
+    /** Enumeration choices of the selected node; empty for every other data type. */
+    QVariantList m_selectedEnumOptions;
 
     /** Owned Attributes panel model exposed to QML. */
     AttributesModel *m_attributesModel {nullptr};

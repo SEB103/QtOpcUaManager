@@ -1,6 +1,7 @@
 #include <QSignalSpy>
 #include <QtTest>
 
+#include "core/opcuaaccesslevel.h"
 #include "models/dataaccessmodel.h"
 
 /*!
@@ -53,6 +54,12 @@ private slots:
 
     /*! Verifies that numeric columns expose a numeric sort value. */
     void numericColumnsSortNumerically();
+
+    /*! Verifies that writability stays unknown until the server reports it. */
+    void writabilityStartsUnknown();
+
+    /*! Verifies that the access level decides whether a row can be written. */
+    void accessLevelDecidesWritability();
 };
 
 /*!
@@ -319,6 +326,64 @@ void DataAccessModelTest::numericColumnsSortNumerically()
     QCOMPARE(model.data(model.index(0, DataAccessModel::ValueColumn),
                         DataAccessModel::SortValueRole).toString(),
              QStringLiteral("RUNNING"));
+}
+
+/*!
+ * \brief Verifies that writability stays unknown until the server reports it.
+ */
+void DataAccessModelTest::writabilityStartsUnknown()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+
+    // A row restored from a project has never been browsed, so nothing is known
+    // about it yet. Claiming it is read-only would block a legitimate write.
+    QCOMPARE(model.accessLevelAt(0), int(OpcUaAccessLevel::Unknown));
+    QCOMPARE(model.writabilityAt(0), int(DataAccessModel::WritabilityUnknown));
+    QCOMPARE(model.data(model.index(0, 0), DataAccessModel::WritabilityRole).toInt(),
+             int(DataAccessModel::WritabilityUnknown));
+
+    // Out-of-range rows answer without crashing.
+    QCOMPARE(model.accessLevelAt(9), int(OpcUaAccessLevel::Unknown));
+    QCOMPARE(model.writabilityAt(9), int(DataAccessModel::WritabilityUnknown));
+}
+
+/*!
+ * \brief Verifies that the access level decides whether a row can be written.
+ */
+void DataAccessModelTest::accessLevelDecidesWritability()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=B")));
+
+    QSignalSpy changedSpy(&model, &DataAccessModel::dataChanged);
+
+    QVERIFY(model.setAccessLevelForNode(QStringLiteral("ns=1;s=A"),
+                                        OpcUaAccessLevel::CurrentRead
+                                            | OpcUaAccessLevel::CurrentWrite));
+    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(model.writabilityAt(0), int(DataAccessModel::WritabilityWritable));
+
+    // CurrentRead alone means the server will reject a write.
+    QVERIFY(model.setAccessLevelForNode(QStringLiteral("ns=1;s=B"),
+                                        OpcUaAccessLevel::CurrentRead));
+    QCOMPARE(model.writabilityAt(1), int(DataAccessModel::WritabilityReadOnly));
+
+    // Repeating the same access level changes nothing.
+    QVERIFY(!model.setAccessLevelForNode(QStringLiteral("ns=1;s=B"),
+                                         OpcUaAccessLevel::CurrentRead));
+
+    // An unknown node id is ignored rather than applied to the wrong row.
+    QVERIFY(!model.setAccessLevelForNode(QStringLiteral("ns=1;s=Missing"),
+                                         OpcUaAccessLevel::CurrentWrite));
+    QCOMPARE(model.writabilityAt(0), int(DataAccessModel::WritabilityWritable));
+
+    // The editor also needs the type and the name of the row it edits.
+    QCOMPARE(model.dataTypeAt(0), QStringLiteral("String"));
+    QCOMPARE(model.displayNameAt(0), QStringLiteral("ns=1;s=A"));
+    QVERIFY(model.dataTypeAt(9).isEmpty());
+    QVERIFY(model.displayNameAt(9).isEmpty());
 }
 
 QTEST_MAIN(DataAccessModelTest)

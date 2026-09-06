@@ -602,6 +602,7 @@ QVariant OpcUaModel::data(const QModelIndex &index, int role) const
     case MonitoringEnabledRole: return item->monitoringEnabled();
     case FetchStateRole: return int(item->fetchState());
     case SearchMatchRole: return item->searchMatch();
+    case AccessLevelRole: return item->accessLevel();
     default:
         break;
     }
@@ -731,6 +732,7 @@ QHash<int, QByteArray> OpcUaModel::roleNames() const
     roles[MonitoringEnabledRole] = "monitoringEnabled";
     roles[FetchStateRole] = "fetchState";
     roles[SearchMatchRole] = "searchMatch";
+    roles[AccessLevelRole] = "accessLevel";
     return roles;
 }
 

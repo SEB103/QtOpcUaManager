@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QList>
 
+#include "core/opcuaaccesslevel.h"
 #include "core/opcuavaluedata.h"
 #include "persistence/nodedatabase.h"
 
@@ -54,6 +55,17 @@ public:
         ColumnCount
     };
     Q_ENUM(Column)
+
+    /** Whether the value of a row can be written, as far as the server has said. */
+    enum Writability {
+        /** The server has not reported an AccessLevel for this node yet. */
+        WritabilityUnknown = 0,
+        /** The AccessLevel grants CurrentWrite. */
+        WritabilityWritable,
+        /** The AccessLevel withholds CurrentWrite, so a write would be rejected. */
+        WritabilityReadOnly
+    };
+    Q_ENUM(Writability)
 
     /** Coarse quality classification derived from the OPC UA status code text. */
     enum StatusSeverity {
@@ -105,7 +117,11 @@ public:
          */
         LastUpdateMsRole,
         /** Sort key for the cell's own column, typed for numeric comparison. */
-        SortValueRole
+        SortValueRole,
+        /** OPC UA AccessLevel bit mask of the row's node; -1 while unknown. */
+        AccessLevelRole,
+        /** Whether the row can be written, as a Writability value. */
+        WritabilityRole
     };
     Q_ENUM(Role)
 
@@ -145,8 +161,30 @@ public:
     /** Returns the browse path at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString nodePathAt(int row) const;
 
+    /** Returns the data-type text at \a row, or an empty string when out of range. */
+    Q_INVOKABLE QString dataTypeAt(int row) const;
+
+    /** Returns the display name at  row, or an empty string when out of range. */
+    Q_INVOKABLE QString displayNameAt(int row) const;
+
     /** Returns the sampling interval at \a row in milliseconds, or 0 when out of range. */
     Q_INVOKABLE int samplingIntervalAt(int row) const;
+
+    /** Returns the AccessLevel at \a row, or -1 when unknown or out of range. */
+    Q_INVOKABLE int accessLevelAt(int row) const;
+
+    /** Returns the Writability of \a row. */
+    Q_INVOKABLE int writabilityAt(int row) const;
+
+    /**
+     * Records the AccessLevel \a accessLevel for the row holding \a nodeId.
+     * \return \c true when a row was updated.
+     *
+     * The access level is runtime information read from the server rather than
+     * project state, so it is never persisted and starts out unknown for rows
+     * restored from a project file.
+     */
+    bool setAccessLevelForNode(const QString &nodeId, int accessLevel);
 
     /**
      * Sets the sampling interval at \a row to \a intervalMs milliseconds.
@@ -186,6 +224,8 @@ private:
         QString statusCode;
         /** Milliseconds since the epoch of the last applied update; 0 when none. */
         qint64 lastUpdateMs {0};
+        /** OPC UA AccessLevel of the node; -1 while the server has not said. */
+        int accessLevel {OpcUaAccessLevel::Unknown};
     };
 
     /** Returns the row index for \a nodeId, or -1 when not present. */

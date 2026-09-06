@@ -37,6 +37,9 @@ public:
     /** Removes all rows. */
     void clear();
 
+    /** Returns the value shown for  attribute, or an empty string when absent. */
+    Q_INVOKABLE QString valueFor(const QString &attribute) const;
+
     /** Returns data for \a index and \a role. */
     QVariant data(const QModelIndex &index, int role) const override;
     /** Returns the number of rows below \a parent. */

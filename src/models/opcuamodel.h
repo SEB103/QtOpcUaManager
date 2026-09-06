@@ -59,7 +59,9 @@ public:
         /** Lazy-fetch state as a TreeItem::FetchState integer. */
         FetchStateRole,
         /** Whether the node matches the current search query. */
-        SearchMatchRole
+        SearchMatchRole,
+        /** OPC UA AccessLevel bit mask of a variable node; -1 while unknown. */
+        AccessLevelRole
     };
     Q_ENUM(Role)
 

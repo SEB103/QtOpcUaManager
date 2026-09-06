@@ -47,7 +47,7 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
     m_rows.clear();
     m_rows.reserve(records.size());
     for (const auto &record : records)
-        m_rows.push_back(Row{record, {}, {}, {}, {}, 0});
+        m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
     endResetModel();
 }
 
@@ -77,7 +77,7 @@ bool DataAccessModel::addRow(const MonitoredNodeRecord &record)
 
     const int row = m_rows.size();
     beginInsertRows(QModelIndex(), row, row);
-    m_rows.push_back(Row{record, {}, {}, {}, {}, 0});
+    m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
     endInsertRows();
     return true;
 }
@@ -200,6 +200,66 @@ QString DataAccessModel::valueAt(int row) const
     if (row < 0 || row >= m_rows.size())
         return {};
     return m_rows.at(row).value;
+}
+
+/*!
+ * \brief Returns the data-type text at \a row.
+ */
+QString DataAccessModel::dataTypeAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return {};
+    return m_rows.at(row).record.dataType;
+}
+
+/*!
+ * rief Returns the display name at  row.
+ */
+QString DataAccessModel::displayNameAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return {};
+    return m_rows.at(row).record.displayName;
+}
+
+/*!
+ * \brief Returns the AccessLevel at \a row.
+ */
+int DataAccessModel::accessLevelAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return OpcUaAccessLevel::Unknown;
+    return m_rows.at(row).accessLevel;
+}
+
+/*!
+ * \brief Returns the Writability of \a row.
+ */
+int DataAccessModel::writabilityAt(int row) const
+{
+    const int accessLevel = accessLevelAt(row);
+    if (!OpcUaAccessLevel::isKnown(accessLevel))
+        return WritabilityUnknown;
+    return OpcUaAccessLevel::allowsWrite(accessLevel) ? WritabilityWritable
+                                                      : WritabilityReadOnly;
+}
+
+/*!
+ * \brief Records the AccessLevel \a accessLevel for the row holding \a nodeId.
+ * \return \c true when a row was updated.
+ */
+bool DataAccessModel::setAccessLevelForNode(const QString &nodeId, int accessLevel)
+{
+    const int row = indexForNodeId(nodeId);
+    if (row < 0 || m_rows.at(row).accessLevel == accessLevel)
+        return false;
+
+    m_rows[row].accessLevel = accessLevel;
+
+    const QModelIndex left = index(row, 0);
+    const QModelIndex right = index(row, ColumnCount - 1);
+    emit dataChanged(left, right, {AccessLevelRole, WritabilityRole});
+    return true;
 }
 
 /*!
@@ -353,6 +413,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     case StatusSeverityRole: return int(severityForStatus(row.statusCode));
     case SamplingIntervalRole: return row.record.samplingIntervalMs;
     case LastUpdateMsRole: return row.lastUpdateMs;
+    case AccessLevelRole: return row.accessLevel;
+    case WritabilityRole: return writabilityAt(index.row());
     default: return {};
     }
 }
@@ -408,6 +470,8 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
         {StatusSeverityRole, "statusSeverity"},
         {SamplingIntervalRole, "samplingInterval"},
         {LastUpdateMsRole, "lastUpdateMs"},
-        {SortValueRole, "sortValue"}
+        {SortValueRole, "sortValue"},
+        {AccessLevelRole, "accessLevel"},
+        {WritabilityRole, "writability"}
     };
 }

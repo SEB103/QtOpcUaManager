@@ -208,6 +208,8 @@ private:
     void clearMonitoredNodes();
     /** Builds a value-attribute update snapshot for \a nodeId from \a node. */
     OpcUaValueUpdate buildValueUpdate(const QString &nodeId, QOpcUaNode *node) const;
+    /** Returns the symbolic value/name pairs of the enumeration type \a dataTypeId. */
+    QList<QPair<qint64, QString>> enumOptionsForTypeId(const QString &dataTypeId) const;
     /**
      * Recursively decodes \a value into a value tree node named \a name.
      * \a dataTypeId and \a valueRank are the field's DataType node id and

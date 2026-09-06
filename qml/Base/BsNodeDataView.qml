@@ -33,6 +33,45 @@ Rectangle {
     /*! Index of the sampling-interval column. */
     readonly property int intervalColumn: 5
 
+    // Writability values mirroring DataAccessModel::Writability.
+    /*! Writability value meaning the server has not reported an AccessLevel. */
+    readonly property int writabilityUnknown: 0
+    /*! Writability value meaning the value can be written. */
+    readonly property int writabilityWritable: 1
+    /*! Writability value meaning the server withholds CurrentWrite. */
+    readonly property int writabilityReadOnly: 2
+
+    /*!
+        Accepted ranges of the numeric types the address space reports.
+
+        Both vocabularies occur: the tree names types in IEC 61131 terms while a
+        live value update names the OPC UA built-in type, so both spellings map
+        to the same range. \c wide marks the 64-bit types, whose bounds cannot be
+        represented exactly in JavaScript, so only their digits are checked.
+    */
+    readonly property var numericTypes: ({
+        "SINT":    { min: -128, max: 127 },
+        "SBYTE":   { min: -128, max: 127 },
+        "BYTE":    { min: 0, max: 255 },
+        "USINT":   { min: 0, max: 255 },
+        "INT":     { min: -32768, max: 32767 },
+        "INT16":   { min: -32768, max: 32767 },
+        "UINT":    { min: 0, max: 65535 },
+        "UINT16":  { min: 0, max: 65535 },
+        "DINT":    { min: -2147483648, max: 2147483647 },
+        "INT32":   { min: -2147483648, max: 2147483647 },
+        "UDINT":   { min: 0, max: 4294967295 },
+        "UINT32":  { min: 0, max: 4294967295 },
+        "LINT":    { wide: true },
+        "INT64":   { wide: true },
+        "ULINT":   { wide: true, unsigned: true },
+        "UINT64":  { wide: true, unsigned: true },
+        "REAL":    { real: true },
+        "FLOAT":   { real: true },
+        "LREAL":   { real: true },
+        "DOUBLE":  { real: true }
+    })
+
     /*! Default width and visibility per column, used until the project overrides them. */
     readonly property var columnDefaults: [
         { width: 44,  visible: true  },
@@ -82,6 +121,69 @@ Rectangle {
     // The built-in defaults are the layout the table starts from, so recording
     // them here keeps an untouched table from marking the project as modified.
     Component.onCompleted: root.lastPushedState = JSON.stringify(root.currentState())
+
+    /*!
+        Returns the editor kind for \a dataType: one of \c bool, \c enum,
+        \c integer, \c real, or \c text. \a enumOptions decides the enum case,
+        because an enumeration is reported as a plain integer type.
+    */
+    function editorKindFor(dataType, enumOptions) {
+        if (enumOptions && enumOptions.length > 0)
+            return "enum"
+
+        const key = String(dataType).toUpperCase()
+        if (key === "BOOL" || key === "BOOLEAN")
+            return "bool"
+
+        const numeric = root.numericTypes[key]
+        if (numeric)
+            return numeric.real === true ? "real" : "integer"
+
+        return "text"
+    }
+
+    /*! Returns the range descriptor for \a dataType, or null for non-numeric types. */
+    function numericRangeFor(dataType) {
+        const numeric = root.numericTypes[String(dataType).toUpperCase()]
+        return numeric ? numeric : null
+    }
+
+    /*!
+        Returns whether \a text is an acceptable value of \a dataType.
+
+        Bounds are checked for the types JavaScript can represent exactly. The
+        64-bit types are only checked for shape, because their bounds exceed the
+        precision of a JavaScript number; the server rejects an out-of-range
+        value and the reason is now readable.
+    */
+    function isValueInRange(dataType, text) {
+        const range = root.numericRangeFor(dataType)
+        if (!range)
+            return true
+        if (text.length === 0)
+            return false
+
+        if (range.real === true)
+            return isFinite(Number(text))
+
+        if (range.wide === true)
+            return range.unsigned === true ? /^\d+$/.test(text) : /^[+-]?\d+$/.test(text)
+
+        const value = Number(text)
+        return isFinite(value) && value >= range.min && value <= range.max
+    }
+
+    /*! Returns a short description of the accepted input for \a dataType. */
+    function rangeHintFor(dataType) {
+        const range = root.numericRangeFor(dataType)
+        if (!range)
+            return ""
+        if (range.real === true)
+            return qsTr("A decimal number, for example 12.5. Use a dot as the separator.")
+        if (range.wide === true)
+            return qsTr("A whole number. The server checks the exact range of this type.")
+        return qsTr("A whole number between %1 and %2.").arg(range.min).arg(range.max)
+    }
 
     /*! Returns the source-model row behind the view row \a viewRow. */
     function sourceRow(viewRow) {
@@ -190,14 +292,29 @@ Rectangle {
         root.restoring = false
     }
 
-    /*! Opens the value editor for the view row \a viewRow. */
+    /*!
+        Opens the value editor for the view row \a viewRow, choosing the input
+        control from the row's data type and refusing rows the server marks
+        read-only.
+
+        Returns whether the editor was opened.
+    */
     function editValue(viewRow) {
         const row = root.sourceRow(viewRow)
         if (row < 0)
-            return
+            return false
+
+        const model = cppManagerOpcUa.dataModel
+        if (model.writabilityAt(row) === root.writabilityReadOnly)
+            return false
+
         valueEditor.editRow = row
-        valueEditor.editField.text = cppManagerOpcUa.dataModel.valueAt(row)
+        valueEditor.editNodeId = model.nodeIdAt(row)
+        valueEditor.editDataType = model.dataTypeAt(row)
+        valueEditor.editDisplayName = model.displayNameAt(row)
+        valueEditor.reset(model.valueAt(row))
         valueEditor.open()
+        return true
     }
 
     /*! Opens the sampling-interval editor for the view row \a viewRow. */
@@ -342,6 +459,12 @@ Rectangle {
 
         MenuItem {
             text: qsTr("Write Value…")
+            enabled: {
+                const row = root.sourceRow(rowMenu.viewRow)
+                return row >= 0
+                       && cppManagerOpcUa.dataModel.writabilityAt(row)
+                          !== root.writabilityReadOnly
+            }
             onTriggered: root.editValue(rowMenu.viewRow)
         }
 
@@ -584,6 +707,11 @@ Rectangle {
                     required property string nodeId
                     required property int statusSeverity
                     required property var lastUpdateMs
+                    required property int writability
+
+                    /*! Whether the server withholds CurrentWrite for this row. */
+                    readonly property bool readOnly:
+                        cellDelegate.writability === root.writabilityReadOnly
 
                     /*! Whether this row has not received a value in this session. */
                     readonly property bool awaitingValue: cellDelegate.lastUpdateMs === 0
@@ -632,10 +760,20 @@ Rectangle {
                         opacity: cellDelegate.awaitingValue
                                  && cellDelegate.column !== 0 ? 0.5 : 1.0
 
+                        // A read-only value is shown in italics so the row says
+                        // so before the user double-clicks it.
+                        font.italic: cellDelegate.readOnly
+                                     && cellDelegate.column === root.valueColumn
+
                         ToolTip.visible: cellHover.hovered
-                                         && cellDelegate.display.length > 0
-                                         && contentWidth > width
-                        ToolTip.text: cellDelegate.display
+                                         && (cellDelegate.readOnly
+                                             ? cellDelegate.column === root.valueColumn
+                                             : (cellDelegate.display.length > 0
+                                                && contentWidth > width))
+                        ToolTip.text: cellDelegate.readOnly
+                                      && cellDelegate.column === root.valueColumn
+                                      ? qsTr("Read-only: the server does not grant CurrentWrite.")
+                                      : cellDelegate.display
                     }
 
                     HoverHandler {
@@ -715,38 +853,168 @@ Rectangle {
         /*! Source-model row currently being edited. */
         property int editRow: -1
 
-        /*! Convenience alias to the value input field. */
-        property alias editField: valueField
+        /*! Node id of the row being edited, used to match the selected node. */
+        property string editNodeId: ""
+
+        /*! Data-type text of the row being edited. */
+        property string editDataType: ""
+
+        /*! Display name of the row being edited, shown in the dialog. */
+        property string editDisplayName: ""
+
+        /*!
+            Enumeration choices for the edited node.
+
+            The choices come from the attribute read of the selected node, so
+            they are only offered while the edited row is the selected one; any
+            other row falls back to the numeric editor, which is always correct.
+        */
+        readonly property var enumOptions:
+            valueEditor.editNodeId.length > 0
+            && valueEditor.editNodeId === cppManagerOpcUa.selectedNodeId
+                ? cppManagerOpcUa.selectedEnumOptions
+                : []
+
+        /*! Input control the current data type calls for. */
+        readonly property string editorKind:
+            root.editorKindFor(valueEditor.editDataType, valueEditor.enumOptions)
+
+        /*! Whether the current input can be written. */
+        readonly property bool inputAcceptable: {
+            if (valueEditor.editorKind === "bool")
+                return true
+            if (valueEditor.editorKind === "enum")
+                return enumField.currentIndex >= 0
+            if (valueEditor.editorKind === "text")
+                return true
+            return root.isValueInRange(valueEditor.editDataType, valueField.text)
+        }
+
+        /*!
+            Value handed to the write, typed for its editor.
+
+            Numbers travel as text so a 64-bit value keeps its exact digits: the
+            service converts to the node's own type, and a JavaScript number
+            would already have lost precision by then.
+        */
+        readonly property var editedValue: {
+            if (valueEditor.editorKind === "bool")
+                return boolField.checked
+            if (valueEditor.editorKind === "enum")
+                return enumField.currentIndex >= 0
+                       ? valueEditor.enumOptions[enumField.currentIndex].value
+                       : 0
+            return valueField.text
+        }
+
+        /*! Loads \a currentValue into whichever control the data type calls for. */
+        function reset(currentValue) {
+            const text = String(currentValue)
+            valueField.text = text
+            boolField.checked = text.toLowerCase() === "true" || text === "1"
+
+            enumField.currentIndex = -1
+            for (let i = 0; i < valueEditor.enumOptions.length; ++i) {
+                if (String(valueEditor.enumOptions[i].value) === text) {
+                    enumField.currentIndex = i
+                    break
+                }
+            }
+            if (enumField.currentIndex < 0 && valueEditor.enumOptions.length > 0)
+                enumField.currentIndex = 0
+        }
 
         anchors.centerIn: parent
-        width: 360
+        width: 420
         modal: true
-        title: qsTr("Write value")
+        title: valueEditor.editDisplayName.length > 0
+               ? qsTr("Write %1").arg(valueEditor.editDisplayName)
+               : qsTr("Write value")
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         onAccepted: {
-            if (editRow >= 0)
-                cppManagerOpcUa.writeValue(editRow, valueField.text)
-            editRow = -1
+            if (valueEditor.editRow >= 0)
+                cppManagerOpcUa.writeValue(valueEditor.editRow, valueEditor.editedValue)
+            valueEditor.editRow = -1
         }
-        onRejected: editRow = -1
+        onRejected: valueEditor.editRow = -1
+
+        // Refuse an input the node cannot accept instead of letting the server
+        // reject it after the fact.
+        Component.onCompleted: {
+            const okButton = valueEditor.standardButton(Dialog.Ok)
+            if (okButton)
+                okButton.enabled = Qt.binding(function () { return valueEditor.inputAcceptable })
+        }
 
         ColumnLayout {
             anchors.fill: parent
             spacing: 8
 
             Label {
-                text: qsTr("New value")
+                Layout.fillWidth: true
+                text: valueEditor.editDataType.length > 0
+                      ? qsTr("New value (%1)").arg(valueEditor.editDataType)
+                      : qsTr("New value")
                 color: Material.foreground
+                elide: Text.ElideRight
+            }
+
+            Switch {
+                id: boolField
+
+                Layout.fillWidth: true
+                visible: valueEditor.editorKind === "bool"
+                text: boolField.checked ? qsTr("TRUE") : qsTr("FALSE")
+            }
+
+            ComboBox {
+                id: enumField
+
+                Layout.fillWidth: true
+                visible: valueEditor.editorKind === "enum"
+                model: valueEditor.enumOptions
+                textRole: "label"
+                valueRole: "value"
             }
 
             TextField {
                 id: valueField
 
                 Layout.fillWidth: true
+                visible: valueEditor.editorKind !== "bool"
+                         && valueEditor.editorKind !== "enum"
                 selectByMouse: true
+                // Locale-independent on purpose: a validator that follows the
+                // locale would accept a comma that the conversion then rejects.
+                validator: valueEditor.editorKind === "integer"
+                           ? integerValidator
+                           : (valueEditor.editorKind === "real" ? realValidator : null)
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: valueEditor.editorKind === "integer"
+                         || valueEditor.editorKind === "real"
+                text: root.rangeHintFor(valueEditor.editDataType)
+                color: valueEditor.inputAcceptable ? root.mutedColor
+                                                   : Material.color(Material.Red)
+                font.pixelSize: 12
+                wrapMode: Text.Wrap
             }
         }
+    }
+
+    RegularExpressionValidator {
+        id: integerValidator
+
+        regularExpression: /^[+-]?\d*$/
+    }
+
+    RegularExpressionValidator {
+        id: realValidator
+
+        regularExpression: /^[+-]?\d*[.]?\d*([eE][+-]?\d+)?$/
     }
 
     Dialog {

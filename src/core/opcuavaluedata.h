@@ -1,7 +1,9 @@
 #ifndef OPCUAVALUEDATA_H
 #define OPCUAVALUEDATA_H
 
+#include <QList>
 #include <QMetaType>
+#include <QPair>
 #include <QString>
 
 /**
@@ -73,6 +75,39 @@ struct OpcUaAttributeData
 
     /** Status code text reported for the value attribute. */
     QString statusCode;
+
+    /**
+     * OPC UA AccessLevel bit mask, or -1 when the attribute was not reported.
+     * Bit 1 (CurrentWrite) decides whether a write can succeed at all.
+     */
+    int accessLevel {-1};
+
+    /** OPC UA UserAccessLevel bit mask for the current session, or -1 when unknown. */
+    int userAccessLevel {-1};
+
+    /** OPC UA ValueRank, or the scalar/unknown sentinel -1. */
+    int valueRank {-1};
+
+    /** Array dimensions as reported by the server; empty for scalars. */
+    QString arrayDimensions;
+
+    /** Whether the server historizes this variable; -1 when the attribute is absent. */
+    int historizing {-1};
+
+    /** Fastest sampling interval the server supports, in ms; -1 when unknown. */
+    double minimumSamplingInterval {-1.0};
+
+    /** OPC UA WriteMask bit mask, or -1 when the attribute was not reported. */
+    int writeMask {-1};
+
+    /**
+     * Symbolic names of an enumeration data type, as value/name pairs.
+     *
+     * Filled only when the node's data type is an enumeration the server
+     * describes, so the value editor can offer the names instead of raw
+     * integers. Empty for every other data type.
+     */
+    QList<QPair<qint64, QString>> enumOptions;
 };
 
 /** Registers one value-attribute update for QVariant and queued signal delivery. */

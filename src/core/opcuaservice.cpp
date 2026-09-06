@@ -12,6 +12,8 @@
 #include <QLoggingCategory>
 #include <QMetaEnum>
 #include <QMetaObject>
+#include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
@@ -820,6 +822,10 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                     variableNodeIds.insert(child.nodeId);
                     readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::DataType));
                     readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::ValueRank));
+                    // AccessLevel comes along in the same batch so the Data Access
+                    // View knows whether a node can be written before it is tried.
+                    readItems.append(
+                        QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::AccessLevel));
                 }
 
                 if (variableNodeIds.isEmpty() || !m_client) {
@@ -851,6 +857,7 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                         if (serviceResult == QOpcUa::UaStatusCode::Good) {
                             QHash<QString, QString> dataTypeById;
                             QHash<QString, int> valueRankById;
+                            QHash<QString, int> accessLevelById;
                             for (const auto &result : results) {
                                 if (result.statusCode() != QOpcUa::UaStatusCode::Good)
                                     continue;
@@ -858,6 +865,8 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                                     dataTypeById.insert(result.nodeId(), result.value().toString());
                                 else if (result.attribute() == QOpcUa::NodeAttribute::ValueRank)
                                     valueRankById.insert(result.nodeId(), result.value().toInt());
+                                else if (result.attribute() == QOpcUa::NodeAttribute::AccessLevel)
+                                    accessLevelById.insert(result.nodeId(), result.value().toInt());
                             }
                             for (auto &child : snapshotChildren) {
                                 const auto typeIt = dataTypeById.constFind(child.nodeId);
@@ -866,6 +875,9 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                                 const auto rankIt = valueRankById.constFind(child.nodeId);
                                 if (rankIt != valueRankById.constEnd())
                                     child.valueRank = rankIt.value();
+                                const auto accessIt = accessLevelById.constFind(child.nodeId);
+                                if (accessIt != accessLevelById.constEnd())
+                                    child.accessLevel = accessIt.value();
                             }
                         }
 
@@ -954,6 +966,40 @@ void OpcUaService::readNodeAttributes(const QString &nodeId, quint64 requestId)
                 data.statusCode = QOpcUa::statusToString(
                     node->attributeError(QOpcUa::NodeAttribute::Value));
 
+                // An attribute the server does not provide stays at its unknown
+                // sentinel so the panel can say "not provided" instead of
+                // showing a fabricated zero.
+                const auto intAttribute = [node](QOpcUa::NodeAttribute attribute) {
+                    const QVariant raw = node->attribute(attribute);
+                    return raw.isValid() ? raw.toInt() : -1;
+                };
+
+                data.accessLevel = intAttribute(QOpcUa::NodeAttribute::AccessLevel);
+                data.userAccessLevel = intAttribute(QOpcUa::NodeAttribute::UserAccessLevel);
+                data.valueRank = intAttribute(QOpcUa::NodeAttribute::ValueRank);
+                data.writeMask = intAttribute(QOpcUa::NodeAttribute::WriteMask);
+
+                const QVariant historizing = node->attribute(QOpcUa::NodeAttribute::Historizing);
+                data.historizing = historizing.isValid() ? int(historizing.toBool()) : -1;
+
+                const QVariant samplingInterval =
+                    node->attribute(QOpcUa::NodeAttribute::MinimumSamplingInterval);
+                data.minimumSamplingInterval =
+                    samplingInterval.isValid() ? samplingInterval.toDouble() : -1.0;
+
+                const QVariant arrayDimensions =
+                    node->attribute(QOpcUa::NodeAttribute::ArrayDimensions);
+                if (arrayDimensions.isValid()) {
+                    QStringList dimensions;
+                    const QVariantList raw = arrayDimensions.toList();
+                    for (const QVariant &dimension : raw)
+                        dimensions.append(QString::number(dimension.toUInt()));
+                    data.arrayDimensions = dimensions.join(QStringLiteral(" x "));
+                }
+
+                const QVariant dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType);
+                data.enumOptions = enumOptionsForTypeId(dataTypeId.toString());
+
                 emit nodeAttributesReady(requestId, data, true);
                 node->deleteLater();
             });
@@ -961,12 +1007,49 @@ void OpcUaService::readNodeAttributes(const QString &nodeId, quint64 requestId)
     const QOpcUa::NodeAttributes attributesToRead =
         QOpcUa::NodeAttribute::NodeClass | QOpcUa::NodeAttribute::BrowseName
         | QOpcUa::NodeAttribute::DisplayName | QOpcUa::NodeAttribute::Description
-        | QOpcUa::NodeAttribute::Value | QOpcUa::NodeAttribute::DataType;
+        | QOpcUa::NodeAttribute::Value | QOpcUa::NodeAttribute::DataType
+        | QOpcUa::NodeAttribute::AccessLevel | QOpcUa::NodeAttribute::UserAccessLevel
+        | QOpcUa::NodeAttribute::ValueRank | QOpcUa::NodeAttribute::ArrayDimensions
+        | QOpcUa::NodeAttribute::Historizing
+        | QOpcUa::NodeAttribute::MinimumSamplingInterval
+        | QOpcUa::NodeAttribute::WriteMask;
 
     if (!node->readAttributes(attributesToRead)) {
         emit nodeAttributesReady(requestId, {}, false);
         node->deleteLater();
     }
+}
+
+/*!
+ * \brief Returns the symbolic names of the enumeration data type \a dataTypeId.
+ *
+ * Returns an empty list when the handler is not ready, when the type is not an
+ * enumeration, or when the server describes no fields for it. The names let the
+ * value editor offer a choice instead of asking for a raw integer.
+ */
+QList<QPair<qint64, QString>> OpcUaService::enumOptionsForTypeId(const QString &dataTypeId) const
+{
+    if (dataTypeId.isEmpty() || !m_genericStructHandler
+        || !m_genericStructHandler->initialized()) {
+        return {};
+    }
+
+    if (m_genericStructHandler->dataTypeKindForTypeId(dataTypeId)
+        != QOpcUaGenericStructHandler::DataTypeKind::Enum) {
+        return {};
+    }
+
+    QList<QPair<qint64, QString>> options;
+    const QOpcUaEnumDefinition definition =
+        m_genericStructHandler->enumDefinitionForTypeId(dataTypeId);
+    const QList<QOpcUaEnumField> fields = definition.fields();
+    options.reserve(fields.size());
+    for (const QOpcUaEnumField &field : fields) {
+        const QString displayName = field.displayName().text();
+        options.append({field.value(), displayName.isEmpty() ? field.name() : displayName});
+    }
+
+    return options;
 }
 
 /*!

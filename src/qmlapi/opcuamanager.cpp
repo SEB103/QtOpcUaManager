@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QtQuick/QQuickTextDocument>
 
+#include "core/opcuaaccesslevel.h"
 #include "core/opcuaservice.h"
 #include "core/opcuastatushint.h"
 #include "models/structuredvalueformatter.h"
@@ -548,6 +549,12 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         record.dataType = model->data(treeIndex, OpcUaModel::DataTypeRole).toString();
 
         m_dataModel->addRow(record);
+
+        // The browse already resolved AccessLevel, so the row knows whether it
+        // can be written before the user reaches for the editor.
+        m_dataModel->setAccessLevelForNode(
+            nodeId, model->data(treeIndex, OpcUaModel::AccessLevelRole).toInt());
+
         model->setMonitoringEnabledAt(treeIndex, true);
         if (connected())
             emit subscribeNodeRequested(nodeId, double(record.samplingIntervalMs));
@@ -1258,6 +1265,14 @@ void OpcUaManager::writeValue(int row, const QVariant &value)
     if (nodeId.isEmpty())
         return;
 
+    // Sending a write the AccessLevel already rules out only produces a status
+    // code the user has to decode; saying so directly is more useful.
+    if (m_dataModel->writabilityAt(row) == DataAccessModel::WritabilityReadOnly) {
+        applyLastError(tr("%1 is read-only: the server does not grant CurrentWrite.")
+                           .arg(displayNameForNodeId(nodeId)));
+        return;
+    }
+
     emit writeValueRequested(nodeId, value);
 }
 
@@ -1822,10 +1837,33 @@ void OpcUaManager::applyNodeAttributes(quint64 requestId,
     if (requestId != m_pendingAttributeRequestId)
         return;
 
-    if (success)
-        m_attributesModel->setAttributes(data);
-    else
+    if (!success) {
         m_attributesModel->clear();
+        if (!m_selectedEnumOptions.isEmpty()) {
+            m_selectedEnumOptions.clear();
+            emit selectedNodeAttributesChanged();
+        }
+        return;
+    }
+
+    m_attributesModel->setAttributes(data);
+
+    // A row already in the table learns its writability from this read too, so a
+    // node restored from a project stops being unknown as soon as it is selected.
+    if (m_dataModel)
+        m_dataModel->setAccessLevelForNode(data.nodeId, data.accessLevel);
+
+    QVariantList options;
+    options.reserve(data.enumOptions.size());
+    for (const auto &option : data.enumOptions) {
+        options.append(QVariantMap {
+            {QStringLiteral("value"), QVariant::fromValue(option.first)},
+            {QStringLiteral("label"), option.second}
+        });
+    }
+
+    m_selectedEnumOptions = options;
+    emit selectedNodeAttributesChanged();
 }
 
 /*!

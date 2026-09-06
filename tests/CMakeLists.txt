@@ -48,6 +48,18 @@ target_link_libraries(tst_dataviewfiltermodel
 
 add_test(NAME DataViewFilterModel.Unit COMMAND tst_dataviewfiltermodel)
 
+qt_add_executable(tst_attributesmodel
+    unit/tst_attributesmodel.cpp
+)
+
+target_link_libraries(tst_attributesmodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME AttributesModel.Unit COMMAND tst_attributesmodel)
+
 qt_add_executable(tst_logmodel
     unit/tst_logmodel.cpp
 )

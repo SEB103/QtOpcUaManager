@@ -4,6 +4,7 @@ qt_add_library(OpcUaCore STATIC)
 target_sources(OpcUaCore
     PRIVATE
         core/diagnosticslevel.h
+        core/opcuaaccesslevel.h
         core/opcuanodedata.h
         core/opcuaservice.cpp
         core/opcuaservice.h

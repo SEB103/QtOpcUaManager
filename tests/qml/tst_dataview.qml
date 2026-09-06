@@ -120,6 +120,92 @@ Item {
             compare(view.selectedViewRows().length, 0);
         }
 
+        /*! Verifies that the editor control follows the data type of the row. */
+        function test_editorKindFollowsTheDataType() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            // Both vocabularies occur: the tree names IEC types, a live value
+            // update names the OPC UA built-in type.
+            compare(view.editorKindFor("BOOL", []), "bool");
+            compare(view.editorKindFor("Boolean", []), "bool");
+            compare(view.editorKindFor("DINT", []), "integer");
+            compare(view.editorKindFor("Int32", []), "integer");
+            compare(view.editorKindFor("uint", []), "integer");
+            compare(view.editorKindFor("LREAL", []), "real");
+            compare(view.editorKindFor("Double", []), "real");
+            compare(view.editorKindFor("STRING", []), "text");
+            compare(view.editorKindFor("", []), "text");
+
+            // An enumeration is reported as an integer, so the choices decide.
+            compare(view.editorKindFor("Int32", [{ value: 0, label: "Manual" }]), "enum");
+        }
+
+        /*! Verifies that a value outside the range of its type is refused. */
+        function test_numericInputIsRangeChecked() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            verify(view.isValueInRange("SINT", "127"));
+            verify(!view.isValueInRange("SINT", "128"));
+            verify(view.isValueInRange("SINT", "-128"));
+            verify(!view.isValueInRange("SINT", "-129"));
+
+            verify(view.isValueInRange("BYTE", "0"));
+            verify(!view.isValueInRange("BYTE", "-1"));
+            verify(view.isValueInRange("UINT", "65535"));
+            verify(!view.isValueInRange("UINT", "65536"));
+
+            // Empty input is never a value.
+            verify(!view.isValueInRange("DINT", ""));
+
+            // Reals accept a decimal point and exponents.
+            verify(view.isValueInRange("LREAL", "12.5"));
+            verify(view.isValueInRange("REAL", "-1e3"));
+            verify(!view.isValueInRange("REAL", "abc"));
+
+            // 64-bit bounds exceed the precision of a JavaScript number, so only
+            // the shape is checked and the server decides the rest.
+            verify(view.isValueInRange("LINT", "-9223372036854775808"));
+            verify(!view.isValueInRange("ULINT", "-1"));
+            verify(!view.isValueInRange("LINT", "12.5"));
+
+            // A non-numeric type imposes no range at all.
+            verify(view.isValueInRange("STRING", "anything"));
+
+            // Every numeric type explains what it accepts.
+            verify(view.rangeHintFor("DINT").length > 0);
+            verify(view.rangeHintFor("LREAL").length > 0);
+            verify(view.rangeHintFor("LINT").length > 0);
+            compare(view.rangeHintFor("STRING"), "");
+        }
+
+        /*! Verifies that a node the server marks read-only cannot be edited. */
+        function test_readOnlyRowsRefuseTheEditor() {
+            cppManagerOpcUa.clearMockNodes();
+            // AccessLevel 3 is CurrentRead|CurrentWrite, 1 is CurrentRead only.
+            cppManagerOpcUa.addMockNode("ns=1;s=W", "Writable", "DINT", 3);
+            cppManagerOpcUa.addMockNode("ns=1;s=R", "ReadOnly", "DINT", 1);
+            cppManagerOpcUa.addMockNode("ns=1;s=U", "Unknown", "DINT", -1);
+
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            compare(view.allViewRows().length, 3);
+
+            verify(view.editValue(0));
+
+            // The server withholds CurrentWrite, so the editor never opens.
+            verify(!view.editValue(1));
+
+            // Nothing is known about the third node yet; refusing it would block
+            // a write the server would have accepted.
+            verify(view.editValue(2));
+
+            verify(!view.editValue(-1));
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
         /*!
             Verifies that an untouched table never writes its own defaults back.
 

@@ -242,6 +242,32 @@ public:
     /*! Mock drop handler that never adds a node. */
     Q_INVOKABLE bool monitorNodeById(const QString &) { return false; }
 
+    /*!
+     * Adds a row to the mock Data Access View so the table can be exercised
+     * against real rows, data types, and access levels.
+     */
+    Q_INVOKABLE void addMockNode(const QString &nodeId, const QString &displayName,
+                                 const QString &dataType, int accessLevel)
+    {
+        MonitoredNodeRecord record;
+        record.server = QStringLiteral("mock");
+        record.nodeId = nodeId;
+        record.nodePath = QStringLiteral("Objects/") + displayName;
+        record.displayName = displayName;
+        record.dataType = dataType;
+
+        m_dataModel.addRow(record);
+        m_dataModel.setAccessLevelForNode(nodeId, accessLevel);
+        emit monitoredNodeCountChanged();
+    }
+
+    /*! Removes every mock Data Access View row. */
+    Q_INVOKABLE void clearMockNodes()
+    {
+        m_dataModel.setRecords({});
+        emit monitoredNodeCountChanged();
+    }
+
 signals:
     /*! Emitted when the mock backend changes. */
     void backendChanged();

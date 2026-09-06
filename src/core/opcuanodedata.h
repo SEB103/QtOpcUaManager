@@ -48,6 +48,13 @@ struct OpcUaNodeData
      * scalar/unknown sentinel used until the attribute read completes.
      */
     int valueRank {-1};
+
+    /**
+     * OPC UA AccessLevel bit mask of a variable node (OPC UA part 3), or -1
+     * while it is unknown. Bit 0 is CurrentRead and bit 1 is CurrentWrite, so a
+     * value without bit 1 means the server will reject a write.
+     */
+    int accessLevel {-1};
 };
 
 /** Registers one OPC UA node snapshot for QVariant and queued signal delivery. */
