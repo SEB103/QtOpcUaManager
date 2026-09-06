@@ -164,8 +164,18 @@ public:
     /** Returns the data-type text at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString dataTypeAt(int row) const;
 
-    /** Returns the display name at  row, or an empty string when out of range. */
+    /** Returns the display name at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString displayNameAt(int row) const;
+
+    /**
+     * Returns whether the value at \a row is a boolean.
+     *
+     * A boolean is plotted as a square wave, because a sloped segment between 0
+     * and 1 would show states the variable never had. Both type vocabularies are
+     * recognised: the tree names IEC 61131 types while a live value update names
+     * the OPC UA built-in type.
+     */
+    Q_INVOKABLE bool isBooleanAt(int row) const;
 
     /** Returns the sampling interval at \a row in milliseconds, or 0 when out of range. */
     Q_INVOKABLE int samplingIntervalAt(int row) const;

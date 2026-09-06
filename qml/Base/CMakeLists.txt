@@ -16,6 +16,8 @@ qt_add_qml_module(Base
         BsOpcUaConnectionForm.qml
         BsStatusBar.qml
         BsTopBarActions.qml
+        BsTrendPanel.qml
+        BsTrendSeries.qml
 )
 
 target_link_libraries(Base

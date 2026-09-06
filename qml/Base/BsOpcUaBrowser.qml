@@ -18,6 +18,15 @@ Item {
     width: 1600
     height: 900
 
+    /*! Node ids of the rows selected in the Data Access View. */
+    property alias selectedNodeIds: dataView.selectedNodeIds
+
+    /*! Display names of the rows selected in the Data Access View. */
+    property alias selectedNames: dataView.selectedNames
+
+    /*! Whether each selected row holds a boolean. */
+    property alias selectedStepped: dataView.selectedStepped
+
     SplitView {
         anchors.fill: parent
         anchors.margins: 8
@@ -49,6 +58,8 @@ Item {
         }
 
         BsNodeDataView {
+            id: dataView
+
             SplitView.fillWidth: true
             SplitView.minimumWidth: 220
             SplitView.fillHeight: true

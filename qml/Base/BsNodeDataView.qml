@@ -113,6 +113,43 @@ Rectangle {
     /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
     signal nodeSelected(string nodeId, string nodePath)
 
+    /*! Node ids of the selected rows, in display order; what the trend plots. */
+    property var selectedNodeIds: []
+
+    /*! Display names matching \l selectedNodeIds. */
+    property var selectedNames: []
+
+    /*! Whether each of \l selectedNodeIds is a boolean, drawn as a square wave. */
+    property var selectedStepped: []
+
+    /*!
+        Republishes the selected rows for the trend panel.
+
+        Selection lives in an ItemSelectionModel, which reports a change rather
+        than exposing a ready-made list, so the three parallel arrays the plot
+        needs are rebuilt whenever it changes.
+    */
+    function refreshSelection() {
+        const viewRows = root.selectedViewRows()
+        const model = cppManagerOpcUa.dataModel
+
+        let nodeIds = []
+        let names = []
+        let stepped = []
+        for (let i = 0; i < viewRows.length; ++i) {
+            const row = root.sourceRow(viewRows[i])
+            if (row < 0)
+                continue
+            nodeIds.push(model.nodeIdAt(row))
+            names.push(model.displayNameAt(row))
+            stepped.push(model.isBooleanAt(row))
+        }
+
+        root.selectedNodeIds = nodeIds
+        root.selectedNames = names
+        root.selectedStepped = stepped
+    }
+
     color: Material.background
     border.color: Material.dividerColor
     border.width: 1
@@ -368,6 +405,10 @@ Rectangle {
     // Drives the shared node selection from the table's current row.
     Connections {
         target: tableSelection
+
+        function onSelectionChanged(selected, deselected) {
+            root.refreshSelection()
+        }
 
         function onCurrentChanged(current, previous) {
             if (!current || !current.valid)

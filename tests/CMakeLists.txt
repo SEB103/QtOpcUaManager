@@ -84,6 +84,18 @@ target_link_libraries(tst_opcuastatushint
 
 add_test(NAME OpcUaStatusHint.Unit COMMAND tst_opcuastatushint)
 
+qt_add_executable(tst_trendmodel
+    unit/tst_trendmodel.cpp
+)
+
+target_link_libraries(tst_trendmodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME TrendModel.Unit COMMAND tst_trendmodel)
+
 qt_add_executable(tst_projectserializer
     unit/tst_projectserializer.cpp
 )
@@ -140,6 +152,7 @@ target_sources(tst_qml
     PRIVATE
         qml/tst_dataview.qml
         qml/tst_diagnostics.qml
+        qml/tst_trend.qml
         qml/tst_menubar.qml
         qml/README.md
 )

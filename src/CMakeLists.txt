@@ -28,6 +28,8 @@ target_sources(OpcUaCore
         models/opcuamodel.h
         models/structuredvalueformatter.cpp
         models/structuredvalueformatter.h
+        models/trendmodel.cpp
+        models/trendmodel.h
         models/treeitem.cpp
         models/treeitem.h
         persistence/nodedatabase.cpp

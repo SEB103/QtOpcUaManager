@@ -18,6 +18,7 @@
 #include "models/dataaccessmodel.h"
 #include "models/dataviewfiltermodel.h"
 #include "models/opcuamodel.h"
+#include "models/trendmodel.h"
 #include "persistence/nodedatabase.h"
 #include "project/projectdata.h"
 
@@ -97,6 +98,14 @@ class OpcUaManager : public QObject
      * this class that takes a table row.
      */
     Q_PROPERTY(DataViewFilterModel *dataViewModel READ dataViewModel CONSTANT)
+
+    /**
+     * Sample history of the monitored values, shown by the trend panel.
+     *
+     * Fed from the same subscription updates that drive the table, so plotting
+     * a node costs no additional traffic.
+     */
+    Q_PROPERTY(TrendModel *trendModel READ trendModel CONSTANT)
 
     /**
      * Whether incoming subscription updates are withheld from the table.
@@ -261,6 +270,9 @@ public:
     /** Returns the owned sorted and filtered view of the Data Access View model. */
     DataViewFilterModel *dataViewModel() const;
 
+    /** Returns the owned sample history shown by the trend panel. */
+    TrendModel *trendModel() const;
+
     /** Returns whether subscription updates are currently withheld from the table. */
     bool updatesPaused() const { return m_updatesPaused; }
 
@@ -299,6 +311,9 @@ public:
 
     /** Returns the display name of \a nodeId, falling back to the node id itself. */
     QString displayNameForNodeId(const QString &nodeId) const;
+
+    /** Records \a update in the trend history when its value is numeric. */
+    void recordTrendSample(const OpcUaValueUpdate &update);
 
     /** Returns the enumeration choices of the selected node, or an empty list. */
     QVariantList selectedEnumOptions() const { return m_selectedEnumOptions; }
@@ -793,6 +808,9 @@ private:
 
     /** Owned sorted and filtered view of m_dataModel shown by the table. */
     DataViewFilterModel *m_dataViewModel {nullptr};
+
+    /** Owned sample history of the monitored values, shown by the trend panel. */
+    TrendModel *m_trendModel {nullptr};
 
     /** Whether subscription updates are currently withheld from the table. */
     bool m_updatesPaused {false};

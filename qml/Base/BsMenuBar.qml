@@ -92,8 +92,18 @@ MenuBar {
     */
     signal logPanelToggleRequested()
 
+    /*!
+        \qmlsignal BsMenuBar::trendPanelToggleRequested()
+
+        Emitted when the user asks to show or hide the trend panel.
+    */
+    signal trendPanelToggleRequested()
+
     /*! Whether the log panel is currently shown, used to word the menu item. */
     property bool logPanelVisible: false
+
+    /*! Whether the trend panel is currently shown, used to word the menu item. */
+    property bool trendPanelVisible: false
 
     /*!
         \qmlsignal BsMenuBar::settingsRequested()
@@ -216,6 +226,12 @@ MenuBar {
                   ? qsTr("Switch to &Light Theme")
                   : qsTr("Switch to &Dark Theme")
             onTriggered: appMenuBar.themeToggleRequested()
+        }
+
+        MenuItem {
+            text: appMenuBar.trendPanelVisible ? qsTr("Hide &Trend Panel")
+                                               : qsTr("Show &Trend Panel")
+            onTriggered: appMenuBar.trendPanelToggleRequested()
         }
 
         MenuItem {

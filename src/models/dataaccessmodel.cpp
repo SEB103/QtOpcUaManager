@@ -213,13 +213,23 @@ QString DataAccessModel::dataTypeAt(int row) const
 }
 
 /*!
- * rief Returns the display name at  row.
+ * \brief Returns the display name at \a row.
  */
 QString DataAccessModel::displayNameAt(int row) const
 {
     if (row < 0 || row >= m_rows.size())
         return {};
     return m_rows.at(row).record.displayName;
+}
+
+/*!
+ * \brief Returns whether the value at \a row is a boolean.
+ */
+bool DataAccessModel::isBooleanAt(int row) const
+{
+    const QString dataType = dataTypeAt(row);
+    return dataType.compare(QLatin1String("BOOL"), Qt::CaseInsensitive) == 0
+           || dataType.compare(QLatin1String("Boolean"), Qt::CaseInsensitive) == 0;
 }
 
 /*!

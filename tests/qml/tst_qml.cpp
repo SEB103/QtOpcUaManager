@@ -8,6 +8,7 @@
 #include "models/dataviewfiltermodel.h"
 #include "models/logfiltermodel.h"
 #include "models/logmodel.h"
+#include "models/trendmodel.h"
 
 /*! Mock QML-facing OPC UA manager used by Quick Test components. */
 class MockOpcUaManager : public QObject
@@ -54,6 +55,9 @@ class MockOpcUaManager : public QObject
 
     /*! Real sorted and filtered view of the Data Access View model. */
     Q_PROPERTY(QObject *dataViewModel READ dataViewModel CONSTANT)
+
+    /*! Real trend history so the plot is exercised against genuine geometry. */
+    Q_PROPERTY(TrendModel *trendModel READ trendModel CONSTANT)
 
     /*! Mock focus-segment model object; null because smoke tests do not inspect rows. */
     Q_PROPERTY(QObject *focusModel READ focusModel CONSTANT)
@@ -128,6 +132,9 @@ public:
     /*! Returns the real sorted and filtered Data Access View model. */
     QObject *dataViewModel() { return &m_dataViewModel; }
 
+    /*! Returns the real trend history shown by the trend panel. */
+    TrendModel *trendModel() { return &m_trendModel; }
+
     /*! Returns no focus model because QML smoke tests only create components. */
     QObject *focusModel() const { return nullptr; }
 
@@ -149,7 +156,7 @@ public:
     /*! Returns whether table updates are paused in the mock. */
     bool updatesPaused() const { return m_updatesPaused; }
 
-    /*! Updates the mock paused state to  paused. */
+    /*! Updates the mock paused state to \a paused. */
     void setUpdatesPaused(bool paused)
     {
         if (m_updatesPaused == paused)
@@ -161,7 +168,7 @@ public:
     /*! Returns the mock Data Access View layout state. */
     QVariantMap dataViewState() const { return m_dataViewState; }
 
-    /*! Stores the Data Access View layout  state written by the table. */
+    /*! Stores the Data Access View layout \a state written by the table. */
     void setDataViewState(const QVariantMap &state)
     {
         if (m_dataViewState == state)
@@ -265,7 +272,14 @@ public:
     Q_INVOKABLE void clearMockNodes()
     {
         m_dataModel.setRecords({});
+        m_trendModel.clear();
         emit monitoredNodeCountChanged();
+    }
+
+    /*! Records \a value for \a nodeId at \a timeMs so the plot has something to draw. */
+    Q_INVOKABLE void addMockSample(const QString &nodeId, qint64 timeMs, double value)
+    {
+        m_trendModel.appendSample(nodeId, timeMs, value);
     }
 
 signals:
@@ -302,6 +316,9 @@ private:
 
     /*! Mock Data Access View layout state written back by the table. */
     QVariantMap m_dataViewState;
+
+    /*! Real trend history backing the plot under test. */
+    TrendModel m_trendModel;
 };
 
 /*! Mock application engine exposing the log the diagnostics panel reads. */

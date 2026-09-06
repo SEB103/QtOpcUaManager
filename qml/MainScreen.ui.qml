@@ -28,6 +28,9 @@ Pane {
     /*! Exposes the log panel so Main can react to its close request. */
     property alias logPanel: logPanel
 
+    /*! Exposes the trend panel so Main can react to its close request. */
+    property alias trendPanel: trendPanel
+
     /*! Whether child controls should follow the dark theme state. */
     property bool darkTheme: false
 
@@ -36,6 +39,12 @@ Pane {
 
     /*! Height of the log panel while it is shown. */
     property int logPanelHeight: 200
+
+    /*! Whether the collapsible trend panel is shown below the browser. */
+    property bool trendPanelVisible: false
+
+    /*! Height of the trend panel while it is shown. */
+    property int trendPanelHeight: 220
 
     // A column keeps the browser, the banner, and the log panel from overlapping:
     // a hidden layout child takes no space, so no anchor points at an invisible
@@ -58,6 +67,7 @@ Pane {
                 Layout.fillWidth: true
                 darkTheme: main.darkTheme
                 logPanelVisible: main.logPanelVisible
+                trendPanelVisible: main.trendPanelVisible
             }
 
             Base.BsTopBarActions {
@@ -79,6 +89,22 @@ Pane {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
+        }
+
+        Base.BsTrendPanel {
+            id: trendPanel
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: main.trendPanelHeight
+            Layout.minimumHeight: 120
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            Layout.bottomMargin: 8
+            visible: main.trendPanelVisible
+
+            plottedNodeIds: opcUaBrowser.selectedNodeIds
+            plottedNames: opcUaBrowser.selectedNames
+            plottedStepped: opcUaBrowser.selectedStepped
         }
 
         Base.BsLogPanel {

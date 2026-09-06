@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QSaveFile>
@@ -155,6 +156,7 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     , m_focusModel(new OpcUaModel(this))
     , m_dataModel(new DataAccessModel(this))
     , m_dataViewModel(new DataViewFilterModel(this))
+    , m_trendModel(new TrendModel(3000, this))
     , m_attributesModel(new AttributesModel(this))
     , m_nodeDatabase(std::make_unique<NodeDatabase>())
 {
@@ -314,6 +316,14 @@ DataAccessModel *OpcUaManager::dataModel() const
 DataViewFilterModel *OpcUaManager::dataViewModel() const
 {
     return m_dataViewModel;
+}
+
+/*!
+ * \brief Returns the owned sample history shown by the trend panel.
+ */
+TrendModel *OpcUaManager::trendModel() const
+{
+    return m_trendModel;
 }
 
 /*!
@@ -654,6 +664,8 @@ void OpcUaManager::removeNode(int row)
         return;
 
     m_dataModel->removeAt(row);
+    if (m_trendModel)
+        m_trendModel->dropNode(nodeId);
     emit unsubscribeNodeRequested(nodeId);
     emit projectStateChanged();
 }
@@ -1362,6 +1374,8 @@ void OpcUaManager::clearRuntimeState()
         m_focusModel->clear();
     if (m_dataModel)
         m_dataModel->setRecords({});
+    if (m_trendModel)
+        m_trendModel->clear();
     if (m_dataViewModel) {
         m_dataViewModel->setFilterText(QString());
         m_dataViewModel->applySort(-1, Qt::AscendingOrder);
@@ -1704,6 +1718,10 @@ void OpcUaManager::applyConnected(bool connected)
         // Drop routes for browses that will never return after the session ended.
         m_browseRouting.clear();
         m_dataModel->clearValues();
+        // A reconnect starts a new history: joining the samples across the gap
+        // would draw a straight line through a period with no data at all.
+        if (m_trendModel)
+            m_trendModel->clear();
         m_attributesModel->clear();
     }
 
@@ -1907,6 +1925,7 @@ void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
         return;
 
     m_dataModel->updateValue(update);
+    recordTrendSample(update);
 }
 
 /*!
@@ -1927,6 +1946,37 @@ void OpcUaManager::applyWriteCompleted(const QString &nodeId, bool success, cons
     qWarning() << "OpcUaManager: write failed for" << nodeId << ":" << error;
     applyLastError(tr("Writing %1 failed: %2")
                        .arg(displayNameForNodeId(nodeId), error));
+}
+
+/*!
+ * \brief Records \a update in the trend history when its value is numeric.
+ *
+ * Booleans are mapped to 1 and 0 so they can share the plot with numbers; text
+ * values have no position on a value axis and are skipped, which simply leaves
+ * that node without a curve.
+ */
+void OpcUaManager::recordTrendSample(const OpcUaValueUpdate &update)
+{
+    if (!m_trendModel || update.nodeId.isEmpty())
+        return;
+
+    const QString text = update.value.trimmed();
+    if (text.isEmpty())
+        return;
+
+    double value = 0.0;
+    if (text.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0) {
+        value = 1.0;
+    } else if (text.compare(QLatin1String("false"), Qt::CaseInsensitive) == 0) {
+        value = 0.0;
+    } else {
+        bool ok = false;
+        value = text.toDouble(&ok);
+        if (!ok)
+            return;
+    }
+
+    m_trendModel->appendSample(update.nodeId, QDateTime::currentMSecsSinceEpoch(), value);
 }
 
 /*!

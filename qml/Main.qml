@@ -38,6 +38,9 @@ ApplicationWindow {
     /*! Whether the collapsible log panel is shown in the workspace. */
     property bool logPanelVisible: false
 
+    /*! Whether the collapsible trend panel is shown in the workspace. */
+    property bool trendPanelVisible: false
+
     /*! Text of the most recent operation outcome, shown in the status bar. */
     property string statusMessage: ""
 
@@ -97,6 +100,7 @@ ApplicationWindow {
         darkTheme: mainWindow.darkTheme
         visible: cppProjectManager.hasActiveProject
         logPanelVisible: mainWindow.logPanelVisible
+        trendPanelVisible: mainWindow.trendPanelVisible
     }
 
     // The status bar belongs to the workspace; the launcher has nothing to report.
@@ -114,6 +118,14 @@ ApplicationWindow {
 
         function onCloseRequested() {
             mainWindow.logPanelVisible = false
+        }
+    }
+
+    Connections {
+        target: mainScreen.trendPanel
+
+        function onCloseRequested() {
+            mainWindow.trendPanelVisible = false
         }
     }
 
@@ -160,6 +172,10 @@ ApplicationWindow {
 
         function onLogPanelToggleRequested() {
             mainWindow.logPanelVisible = !mainWindow.logPanelVisible
+        }
+
+        function onTrendPanelToggleRequested() {
+            mainWindow.trendPanelVisible = !mainWindow.trendPanelVisible
         }
 
         function onOpenProjectRequested() {
