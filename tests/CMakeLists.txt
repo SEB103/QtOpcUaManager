@@ -108,6 +108,18 @@ target_link_libraries(tst_projectserializer
 
 add_test(NAME ProjectSerializer.Unit COMMAND tst_projectserializer)
 
+qt_add_executable(tst_opcuamanager
+    unit/tst_opcuamanager.cpp
+)
+
+target_link_libraries(tst_opcuamanager
+    PRIVATE
+        OpcUaQmlApi
+        Qt6::Test
+)
+
+add_test(NAME OpcUaManager.Unit COMMAND tst_opcuamanager)
+
 qt_add_executable(tst_projectmanager
     unit/tst_projectmanager.cpp
 )

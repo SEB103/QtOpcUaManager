@@ -1919,13 +1919,18 @@ void OpcUaManager::applyStructuredValue(quint64 requestId,
  */
 void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
 {
+    // The trend records every update regardless of the table's pause. Its own
+    // pause freezes the time axis and keeps collecting, so dropping samples here
+    // would leave a hole the curve then spans with a straight line, showing
+    // values the variable never had.
+    recordTrendSample(update);
+
     // While paused the table keeps the values the user is reading. The
     // subscription stays active, so the row catches up on the next data change.
     if (m_updatesPaused)
         return;
 
     m_dataModel->updateValue(update);
-    recordTrendSample(update);
 }
 
 /*!
