@@ -31,6 +31,7 @@
 #include <QThread>
 #include <QUuid>
 #include <algorithm>
+#include <functional>
 #include <memory>
 
 using namespace Qt::Literals::StringLiterals;
@@ -812,84 +813,10 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
                     return;
                 }
 
-                // Collect the variable children whose DataType/ValueRank we still need
-                // to resolve the concrete data-type and scalar/array icon.
-                QList<QOpcUaReadItem> readItems;
-                QSet<QString> variableNodeIds;
-                for (const auto &child : std::as_const(snapshotChildren)) {
-                    if (child.nodeClass != int(QOpcUa::NodeClass::Variable))
-                        continue;
-                    variableNodeIds.insert(child.nodeId);
-                    readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::DataType));
-                    readItems.append(QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::ValueRank));
-                    // AccessLevel comes along in the same batch so the Data Access
-                    // View knows whether a node can be written before it is tried.
-                    readItems.append(
-                        QOpcUaReadItem(child.nodeId, QOpcUa::NodeAttribute::AccessLevel));
-                }
-
-                if (variableNodeIds.isEmpty() || !m_client) {
-                    emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
-                    return;
-                }
-
-                // One batched Read service call resolves DataType and ValueRank for all
-                // variable children at once. A self-disconnecting connection keeps the
-                // result correlated to this browse: readNodeAttributesFinished is a
-                // client-wide signal, so the read is claimed only when the reported node
-                // id set matches the variables requested here.
-                auto connection = std::make_shared<QMetaObject::Connection>();
-                *connection = connect(
-                    m_client,
-                    &QOpcUaClient::readNodeAttributesFinished,
-                    this,
-                    [this, connection, effectiveParentNodeId, requestId, snapshotChildren, variableNodeIds](
-                        const QList<QOpcUaReadResult> &results,
-                        QOpcUa::UaStatusCode serviceResult) mutable {
-                        QSet<QString> resultNodeIds;
-                        for (const auto &result : results)
-                            resultNodeIds.insert(result.nodeId());
-                        if (resultNodeIds != variableNodeIds)
-                            return; // Belongs to a different in-flight browse; keep waiting.
-
-                        QObject::disconnect(*connection);
-
-                        if (serviceResult == QOpcUa::UaStatusCode::Good) {
-                            QHash<QString, QString> dataTypeById;
-                            QHash<QString, int> valueRankById;
-                            QHash<QString, int> accessLevelById;
-                            for (const auto &result : results) {
-                                if (result.statusCode() != QOpcUa::UaStatusCode::Good)
-                                    continue;
-                                if (result.attribute() == QOpcUa::NodeAttribute::DataType)
-                                    dataTypeById.insert(result.nodeId(), result.value().toString());
-                                else if (result.attribute() == QOpcUa::NodeAttribute::ValueRank)
-                                    valueRankById.insert(result.nodeId(), result.value().toInt());
-                                else if (result.attribute() == QOpcUa::NodeAttribute::AccessLevel)
-                                    accessLevelById.insert(result.nodeId(), result.value().toInt());
-                            }
-                            for (auto &child : snapshotChildren) {
-                                const auto typeIt = dataTypeById.constFind(child.nodeId);
-                                if (typeIt != dataTypeById.constEnd())
-                                    child.dataTypeId = typeIt.value();
-                                const auto rankIt = valueRankById.constFind(child.nodeId);
-                                if (rankIt != valueRankById.constEnd())
-                                    child.valueRank = rankIt.value();
-                                const auto accessIt = accessLevelById.constFind(child.nodeId);
-                                if (accessIt != accessLevelById.constEnd())
-                                    child.accessLevel = accessIt.value();
-                            }
-                        }
-
-                        emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
-                    });
-
-                if (!m_client->readNodeAttributes(readItems)) {
-                    // Enrichment could not be dispatched; still deliver the browse result
-                    // so the tree populates. Affected variables fall back to a generic icon.
-                    QObject::disconnect(*connection);
-                    emit browseChildrenReady(effectiveParentNodeId, requestId, snapshotChildren, true);
-                }
+                // Enrich the variable children with DataType/ValueRank/AccessLevel and
+                // deliver the result. The read is chunked and failure-tolerant so a node
+                // with many members does not overflow the server's read limit.
+                enrichAndEmitBrowseChildren(effectiveParentNodeId, requestId, snapshotChildren);
             });
 
     if (!node->browseChildren()) {
@@ -899,6 +826,157 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
         emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
     }
 }
+
+/*!
+ * \brief Enriches the variable children and emits the browse result.
+ * \param parentNodeId The parent node whose children were browsed.
+ * \param requestId The GUI model request identifier echoed in browseChildrenReady().
+ * \param children The browsed children to enrich and deliver.
+ *
+ * Reading every variable's attributes in one Read service call overflows the
+ * per-request operation limit of servers with many members under one node: the
+ * server answers with a ServiceFault (BadTooManyOperations) and the whole browse
+ * result would be lost. The read is therefore split into chunks small enough for
+ * any conformant server and issued sequentially, so at most one read from this
+ * browse is in flight and its result can be correlated by node id.
+ *
+ * Enrichment never blocks delivery. A chunk whose read fails at the service level
+ * is skipped and its variables keep their default type and access level, so the
+ * children are always emitted and the tree never stays stuck fetching.
+ */
+void OpcUaService::enrichAndEmitBrowseChildren(const QString &parentNodeId,
+                                               quint64 requestId,
+                                               QList<OpcUaNodeData> children)
+{
+    QStringList variableNodeIds;
+    for (const auto &child : std::as_const(children)) {
+        if (child.nodeClass == int(QOpcUa::NodeClass::Variable))
+            variableNodeIds.append(child.nodeId);
+    }
+
+    if (variableNodeIds.isEmpty() || !m_client) {
+        emit browseChildrenReady(parentNodeId, requestId, children, true);
+        return;
+    }
+
+    // Three attributes per variable, kept well under the read limits that even
+    // conservative servers advertise (CODESYS rejected a single full-node read of
+    // a large HMI structure with BadTooManyOperations).
+    constexpr int kMaxVariablesPerRead = 20;
+
+    struct EnrichState {
+        QString parentNodeId;
+        quint64 requestId {0};
+        QList<OpcUaNodeData> children;
+        QStringList variableNodeIds;
+        int nextIndex {0};
+        QHash<QString, QString> dataTypeById;
+        QHash<QString, int> valueRankById;
+        QHash<QString, int> accessLevelById;
+    };
+
+    auto state = std::make_shared<EnrichState>();
+    state->parentNodeId = parentNodeId;
+    state->requestId = requestId;
+    state->children = std::move(children);
+    state->variableNodeIds = std::move(variableNodeIds);
+
+    auto finish = [this, state]() {
+        for (auto &child : state->children) {
+            const auto typeIt = state->dataTypeById.constFind(child.nodeId);
+            if (typeIt != state->dataTypeById.constEnd())
+                child.dataTypeId = typeIt.value();
+            const auto rankIt = state->valueRankById.constFind(child.nodeId);
+            if (rankIt != state->valueRankById.constEnd())
+                child.valueRank = rankIt.value();
+            const auto accessIt = state->accessLevelById.constFind(child.nodeId);
+            if (accessIt != state->accessLevelById.constEnd())
+                child.accessLevel = accessIt.value();
+        }
+        emit browseChildrenReady(state->parentNodeId, state->requestId, state->children, true);
+    };
+
+    // Recursive step held on the heap; the outer functor keeps only a weak
+    // reference so the chain does not own itself, while each in-flight read keeps
+    // it alive through the connection lambda until the chunk completes.
+    auto readNext = std::make_shared<std::function<void()>>();
+    std::weak_ptr<std::function<void()>> weakNext = readNext;
+
+    *readNext = [this, state, finish, weakNext]() mutable {
+        if (state->nextIndex >= state->variableNodeIds.size() || !m_client) {
+            finish();
+            return;
+        }
+
+        const int begin = state->nextIndex;
+        const int end = std::min(begin + kMaxVariablesPerRead,
+                                 int(state->variableNodeIds.size()));
+        state->nextIndex = end;
+
+        QSet<QString> chunkNodeIds;
+        QList<QOpcUaReadItem> readItems;
+        readItems.reserve((end - begin) * 3);
+        for (int i = begin; i < end; ++i) {
+            const QString &id = state->variableNodeIds.at(i);
+            chunkNodeIds.insert(id);
+            readItems.append(QOpcUaReadItem(id, QOpcUa::NodeAttribute::DataType));
+            readItems.append(QOpcUaReadItem(id, QOpcUa::NodeAttribute::ValueRank));
+            readItems.append(QOpcUaReadItem(id, QOpcUa::NodeAttribute::AccessLevel));
+        }
+
+        const auto self = weakNext.lock();
+        auto connection = std::make_shared<QMetaObject::Connection>();
+        *connection = connect(
+            m_client,
+            &QOpcUaClient::readNodeAttributesFinished,
+            this,
+            [this, connection, state, chunkNodeIds, self](
+                const QList<QOpcUaReadResult> &results,
+                QOpcUa::UaStatusCode serviceResult) mutable {
+                if (serviceResult == QOpcUa::UaStatusCode::Good) {
+                    // Claim the read only when its node-id set matches this chunk, so a
+                    // concurrent browse's read is left for its own handler.
+                    QSet<QString> resultNodeIds;
+                    for (const auto &result : results)
+                        resultNodeIds.insert(result.nodeId());
+                    if (resultNodeIds != chunkNodeIds)
+                        return;
+
+                    QObject::disconnect(*connection);
+                    for (const auto &result : results) {
+                        if (result.statusCode() != QOpcUa::UaStatusCode::Good)
+                            continue;
+                        if (result.attribute() == QOpcUa::NodeAttribute::DataType)
+                            state->dataTypeById.insert(result.nodeId(), result.value().toString());
+                        else if (result.attribute() == QOpcUa::NodeAttribute::ValueRank)
+                            state->valueRankById.insert(result.nodeId(), result.value().toInt());
+                        else if (result.attribute() == QOpcUa::NodeAttribute::AccessLevel)
+                            state->accessLevelById.insert(result.nodeId(), result.value().toInt());
+                    }
+                } else {
+                    // A service-level failure carries no per-node results to match on.
+                    // Skip enrichment for this chunk rather than stalling the browse.
+                    QObject::disconnect(*connection);
+                    setLastError(QStringLiteral("Attribute read failed while browsing %1: %2")
+                                     .arg(state->parentNodeId,
+                                          QOpcUa::statusToString(serviceResult)));
+                }
+
+                if (self)
+                    (*self)();
+            });
+
+        if (!m_client->readNodeAttributes(readItems)) {
+            QObject::disconnect(*connection);
+            // Could not dispatch this chunk; continue so delivery is not blocked.
+            if (self)
+                (*self)();
+        }
+    };
+
+    (*readNext)();
+}
+
 
 /*!
  * \brief Reads the main attributes of \a nodeId for GUI request \a requestId.

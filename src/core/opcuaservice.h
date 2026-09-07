@@ -87,6 +87,22 @@ public slots:
     void browseChildren(const QString &parentNodeId, quint64 requestId);
     /** Reads the main attributes of \a nodeId for GUI request \a requestId. */
     void readNodeAttributes(const QString &nodeId, quint64 requestId);
+
+    /**
+     * Reads DataType, ValueRank and AccessLevel for the variable nodes among
+     * \a children and emits browseChildrenReady() for \a parentNodeId and
+     * \a requestId once the enrichment finishes.
+     *
+     * The read is split into chunks so a node with many members does not exceed
+     * the server's per-request operation limit; a single Read of every member at
+     * once is answered with BadTooManyOperations by such servers, which would
+     * otherwise drop the whole browse. Enrichment never blocks delivery: the
+     * children are always emitted, and any that could not be read fall back to a
+     * generic type and unknown access level.
+     */
+    void enrichAndEmitBrowseChildren(const QString &parentNodeId,
+                                     quint64 requestId,
+                                     QList<OpcUaNodeData> children);
     /** Reads and decodes the value of \a nodeId into a structured tree for GUI request \a requestId. */
     void readStructuredValue(const QString &nodeId, quint64 requestId);
     /** Starts value-attribute monitoring for \a nodeId at \a intervalMs; 0 uses the default. */
