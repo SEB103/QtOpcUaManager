@@ -399,8 +399,13 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 12
 
+                        // Only the drawn curves get a legend entry: the palette
+                        // wraps, so a longer legend would give an entry with no
+                        // curve the colour of an entry that has one.
                         Repeater {
-                            model: root.plottedNodeIds.length
+                            objectName: "trendLegendRepeater"
+
+                            model: Math.min(root.plottedNodeIds.length, root.maximumSeries)
 
                             Row {
                                 id: legendEntry

@@ -12,6 +12,11 @@
  * model losing its stable, project-ordered row list. Row positions therefore
  * differ between the two models, and callers that hold a view row must map it
  * back with toSourceRow() before touching the OPC UA facade.
+ *
+ * For the same reason the proxy, not the source model, supplies the text of the
+ * row-number column: it is the position in the visible table, which only the
+ * view order defines. Sorting by that column still means the project order,
+ * because the sort key keeps coming from the source model.
  */
 class DataViewFilterModel : public QSortFilterProxyModel
 {
@@ -58,6 +63,12 @@ public:
     /** Returns the view row for the source row \a sourceRow, or -1 when filtered out. */
     Q_INVOKABLE int fromSourceRow(int sourceRow) const;
 
+    /**
+     * Returns the data of \a index for \a role, numbering the row-number column
+     * by view position instead of by source row.
+     */
+    QVariant data(const QModelIndex &index, int role) const override;
+
 signals:
     /** Emitted when the quick-filter text changes. */
     void filterTextChanged();
@@ -73,6 +84,12 @@ protected:
     bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
+    /**
+     * Re-emits dataChanged() for the whole row-number column, so rows that keep
+     * their position still pick up the number the new order gives them.
+     */
+    void refreshRowNumbers();
+
     /** Current quick-filter text; empty accepts every row. */
     QString m_filterText;
     /** Sorted column, or -1 while the source order is kept. */

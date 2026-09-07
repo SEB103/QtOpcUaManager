@@ -348,7 +348,11 @@ int DataAccessModel::indexForNodeId(const QString &nodeId) const
 
 /*!
  * \brief Returns the display text of \a column for \a row.
- * \param rowNumber The one-based position of the row in the table.
+ * \param rowNumber The one-based position of the row in the project order.
+ *
+ * The row-number column is answered with the project position, which is also its
+ * sort key. What the table displays there is the view position, which
+ * DataViewFilterModel supplies because only the view order defines it.
  */
 QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) const
 {
@@ -375,7 +379,7 @@ QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) con
 
 /*!
  * \brief Returns a typed sort key for \a column of \a row.
- * \param rowNumber The one-based position of the row in the table.
+ * \param rowNumber The one-based position of the row in the project order.
  */
 QVariant DataAccessModel::sortValue(const Row &row, int column, int rowNumber) const
 {

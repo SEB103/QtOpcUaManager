@@ -186,6 +186,33 @@ Item {
             compare(panel.maximumSeries, panel.seriesColors.length);
         }
 
+        /*!
+            Verifies that the legend never lists more series than are drawn.
+
+            The plot draws at most \c maximumSeries curves and the colour palette
+            wraps, so a longer legend would repeat colours for entries that have
+            no curve at all and claim two variables share one line.
+        */
+        function test_legendNeverListsMoreSeriesThanAreDrawn() {
+            const panel = createTemporaryObject(trendComponent, root);
+            verify(panel !== null);
+
+            const ids = [];
+            const names = [];
+            for (let i = 0; i < panel.maximumSeries + 2; ++i) {
+                ids.push("ns=1;s=N" + i);
+                names.push("Node" + i);
+            }
+
+            panel.plottedNodeIds = ids;
+            panel.plottedNames = names;
+            panel.refresh();
+
+            const legend = findChild(panel, "trendLegendRepeater");
+            verify(legend !== null);
+            compare(legend.count, panel.maximumSeries);
+        }
+
         /*! Verifies that pausing the panel freezes the model's time axis. */
         function test_pauseFreezesTheModel() {
             const panel = createTemporaryObject(trendComponent, root);

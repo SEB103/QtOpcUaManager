@@ -85,6 +85,12 @@ class MockOpcUaManager : public QObject
     Q_PROPERTY(QVariantMap dataViewState READ dataViewState WRITE setDataViewState
                    NOTIFY dataViewStateChanged)
 
+    /*! Number of writeValue() calls the mock has received. */
+    Q_PROPERTY(int writeCount READ writeCount NOTIFY writeLogChanged)
+
+    /*! Value of the last writeValue() call, or an invalid variant when there was none. */
+    Q_PROPERTY(QVariant lastWrittenValue READ lastWrittenValue NOTIFY writeLogChanged)
+
 public:
     /*! Creates the mock and wires the filter proxy onto the data model. */
     explicit MockOpcUaManager(QObject *parent = nullptr)
@@ -168,6 +174,12 @@ public:
     /*! Returns the mock Data Access View layout state. */
     QVariantMap dataViewState() const { return m_dataViewState; }
 
+    /*! Returns how many writes the mock has received. */
+    int writeCount() const { return m_writeCount; }
+
+    /*! Returns the value of the last write the mock received. */
+    QVariant lastWrittenValue() const { return m_lastWrittenValue; }
+
     /*! Stores the Data Access View layout \a state written by the table. */
     void setDataViewState(const QVariantMap &state)
     {
@@ -222,8 +234,16 @@ public:
     /*! Mock no-op for Data Access View row selection. */
     Q_INVOKABLE void selectDataRow(int) {}
 
-    /*! Mock no-op for value writes. */
-    Q_INVOKABLE void writeValue(int, const QVariant &) {}
+    /*!
+     * Records a value write instead of performing one, so a test can tell
+     * whether the editor let an unacceptable input through.
+     */
+    Q_INVOKABLE void writeValue(int, const QVariant &value)
+    {
+        ++m_writeCount;
+        m_lastWrittenValue = value;
+        emit writeLogChanged();
+    }
 
     /*! Mock no-op for bulk row removal. */
     Q_INVOKABLE void removeNodes(const QList<int> &) {}
@@ -268,11 +288,14 @@ public:
         emit monitoredNodeCountChanged();
     }
 
-    /*! Removes every mock Data Access View row. */
+    /*! Removes every mock Data Access View row and forgets recorded writes. */
     Q_INVOKABLE void clearMockNodes()
     {
         m_dataModel.setRecords({});
         m_trendModel.clear();
+        m_writeCount = 0;
+        m_lastWrittenValue = {};
+        emit writeLogChanged();
         emit monitoredNodeCountChanged();
     }
 
@@ -291,6 +314,9 @@ signals:
 
     /*! Emitted when the mock Data Access View layout state changes. */
     void dataViewStateChanged();
+
+    /*! Emitted when the mock records a value write or forgets the recorded ones. */
+    void writeLogChanged();
 
     /*! Emitted when the mock monitored-node count changes. */
     void monitoredNodeCountChanged();
@@ -319,6 +345,12 @@ private:
 
     /*! Real trend history backing the plot under test. */
     TrendModel m_trendModel;
+
+    /*! Number of writes the mock has received. */
+    int m_writeCount {0};
+
+    /*! Value of the last write the mock received. */
+    QVariant m_lastWrittenValue;
 };
 
 /*! Mock application engine exposing the log the diagnostics panel reads. */

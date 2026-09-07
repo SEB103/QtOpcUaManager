@@ -49,6 +49,51 @@ DataViewFilterModel::DataViewFilterModel(QObject *parent)
     setSortRole(DataAccessModel::SortValueRole);
     setSortCaseSensitivity(Qt::CaseInsensitive);
     setDynamicSortFilter(true);
+
+    // Reordering or hiding rows changes the number of rows that did not move, and
+    // a view repaints only what it is told changed.
+    connect(this, &QAbstractItemModel::layoutChanged,
+            this, &DataViewFilterModel::refreshRowNumbers);
+    connect(this, &QAbstractItemModel::modelReset,
+            this, &DataViewFilterModel::refreshRowNumbers);
+    connect(this, &QAbstractItemModel::rowsInserted,
+            this, &DataViewFilterModel::refreshRowNumbers);
+    connect(this, &QAbstractItemModel::rowsRemoved,
+            this, &DataViewFilterModel::refreshRowNumbers);
+}
+
+/*!
+ * \brief Returns the data of \a index for \a role.
+ *
+ * The row-number column is answered here rather than by the source model: it
+ * shows the position in the visible table, which the sorting and the quick
+ * filter define and the source model cannot know. Every other role, the sort key
+ * of that column included, still comes from the source model, so sorting by the
+ * number means the project order.
+ */
+QVariant DataViewFilterModel::data(const QModelIndex &index, int role) const
+{
+    if (role == Qt::DisplayRole && index.isValid()
+        && index.column() == int(DataAccessModel::RowNumberColumn)) {
+        return QString::number(index.row() + 1);
+    }
+
+    return QSortFilterProxyModel::data(index, role);
+}
+
+/*!
+ * \internal
+ * \brief Re-emits dataChanged() for the whole row-number column.
+ */
+void DataViewFilterModel::refreshRowNumbers()
+{
+    const int rows = rowCount();
+    if (rows <= 0)
+        return;
+
+    emit dataChanged(index(0, DataAccessModel::RowNumberColumn),
+                     index(rows - 1, DataAccessModel::RowNumberColumn),
+                     {Qt::DisplayRole});
 }
 
 /*!

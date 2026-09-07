@@ -31,22 +31,35 @@ constexpr auto kValueFormatSettingsKey = "view/valueFormat";
 
 /*!
  * \internal
- * \brief Returns \a text quoted and escaped for one CSV field.
+ * \brief Returns \a text quoted, escaped, and made inert for one CSV field.
  *
  * A field is quoted only when it contains a separator, a quote, or a line break,
  * which keeps ordinary values readable in the exported file. Embedded quotes are
  * doubled, as RFC 4180 requires.
+ *
+ * A field opening with an equals sign, a plus, a minus, or an at sign is a live
+ * formula to a spreadsheet, and quoting is no defense because the quotes are
+ * stripped while parsing. The exported values come from the connected OPC UA
+ * server, so such a field is prefixed with an apostrophe, which spreadsheets read
+ * as "the rest is text" and drop again on display.
  */
 QString csvField(const QString &text)
 {
-    const bool needsQuotes = text.contains(QLatin1Char(','))
+    const bool startsFormula = !text.isEmpty()
+                               && (text.startsWith(QLatin1Char('='))
+                                   || text.startsWith(QLatin1Char('+'))
+                                   || text.startsWith(QLatin1Char('-'))
+                                   || text.startsWith(QLatin1Char('@')));
+
+    const bool needsQuotes = startsFormula
+                             || text.contains(QLatin1Char(','))
                              || text.contains(QLatin1Char('"'))
                              || text.contains(QLatin1Char('\n'))
                              || text.contains(QLatin1Char('\r'));
     if (!needsQuotes)
         return text;
 
-    QString escaped = text;
+    QString escaped = startsFormula ? QLatin1Char('\'') + text : text;
     escaped.replace(QLatin1Char('"'), QLatin1String("\"\""));
     return QLatin1Char('"') + escaped + QLatin1Char('"');
 }
@@ -530,23 +543,25 @@ void OpcUaManager::refreshMonitoredNodeIds()
 }
 
 /*!
- * \brief Adds or removes the node at \a treeIndex from the Data Access View.
+ * \internal
+ * \brief Adds or removes the node at \a treeIndex without refreshing the id sets.
  * \param on Whether the node should be monitored.
+ * \return Whether the node was found and the change applied.
  *
- * Adding inserts the node into the table and starts a live subscription when
- * connected; removing reverses both steps. The monitored-node set is part of the
- * active project, so projectStateChanged() is emitted for the project manager to
- * record an unsaved change; the set is persisted when the project is saved.
+ * Refreshing the monitored-id sets rescans every Data View row and walks both
+ * tree models end to end, which a bulk add must not pay per child. This part is
+ * therefore separate from the refresh and the project-state notification, which
+ * the caller performs once for the whole operation.
  */
-void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
+bool OpcUaManager::applyNodeMonitored(const QModelIndex &treeIndex, bool on)
 {
     if (!treeIndex.isValid())
-        return;
+        return false;
 
     OpcUaModel *model = modelForIndex(treeIndex);
     const QString nodeId = model->nodeIdAt(treeIndex);
     if (nodeId.isEmpty())
-        return;
+        return false;
 
     const QString server = m_currentServer.isEmpty() ? m_initialUrl : m_currentServer;
 
@@ -580,6 +595,23 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
         emit unsubscribeNodeRequested(nodeId);
     }
 
+    return true;
+}
+
+/*!
+ * \brief Adds or removes the node at \a treeIndex from the Data Access View.
+ * \param on Whether the node should be monitored.
+ *
+ * Adding inserts the node into the table and starts a live subscription when
+ * connected; removing reverses both steps. The monitored-node set is part of the
+ * active project, so projectStateChanged() is emitted for the project manager to
+ * record an unsaved change; the set is persisted when the project is saved.
+ */
+void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
+{
+    if (!applyNodeMonitored(treeIndex, on))
+        return;
+
     // Keep both models' monitored-id sets in sync so later re-browses stay correct.
     refreshMonitoredNodeIds();
 
@@ -591,10 +623,12 @@ void OpcUaManager::setNodeMonitored(const QModelIndex &treeIndex, bool on)
  * \brief Adds every loaded monitorable child of \a treeIndex to the Data Access View.
  * \return The number of nodes that were added.
  *
- * Reuses setNodeMonitored() per child so a bulk add behaves exactly like ticking
- * each checkbox by hand, including subscription start and project dirty tracking.
- * Children that are already monitored are skipped, which makes repeated calls on
- * the same branch idempotent.
+ * Performs the same per-node work as setNodeMonitored() for every child, so a
+ * bulk add behaves like ticking each checkbox by hand, including subscription
+ * start. The monitored-id refresh and the project-state notification happen once
+ * for the whole batch instead of once per child, because each refresh walks both
+ * tree models end to end. Children that are already monitored are skipped, which
+ * makes repeated calls on the same branch idempotent.
  */
 int OpcUaManager::monitorChildVariables(const QModelIndex &treeIndex)
 {
@@ -617,13 +651,15 @@ int OpcUaManager::monitorChildVariables(const QModelIndex &treeIndex)
         if (model->monitoringEnabledAt(child))
             continue;
 
-        setNodeMonitored(child, true);
-        ++added;
+        if (applyNodeMonitored(child, true))
+            ++added;
     }
 
     // A single checkbox needs no message because the new row is the feedback; a
     // bulk add does, because the user cannot tell how many nodes qualified.
     if (added > 0) {
+        refreshMonitoredNodeIds();
+        emit projectStateChanged();
         emit notification(Diagnostics::Info,
                           tr("Added %n node(s) to the Data View.", nullptr, added));
     } else {
@@ -750,7 +786,9 @@ void OpcUaManager::setSamplingInterval(int row, int intervalMs)
  * \return \c true on success.
  *
  * Exports exactly what the table shows, so the current sorting, quick filter,
- * and column selection all carry over into the file. A byte order mark is
+ * column selection, and view row numbering all carry over into the file. A field
+ * that would read as a spreadsheet formula is made inert, because the values come
+ * from the connected server. A byte order mark is
  * written because spreadsheet applications otherwise misread UTF-8 on Windows.
  */
 bool OpcUaManager::exportDataViewCsv(const QUrl &fileUrl,

@@ -29,7 +29,11 @@ class DataAccessModel : public QAbstractTableModel
 public:
     /** Table columns in fixed logical order. */
     enum Column {
-        /** One-based row number. */
+        /**
+         * One-based position of the row in the project order. The Data Access
+         * View shows DataViewFilterModel instead, which numbers this column by
+         * view position; the number here is the sort key behind it.
+         */
         RowNumberColumn = 0,
         /** Localized display name. */
         DisplayNameColumn,

@@ -891,6 +891,8 @@ Rectangle {
     Dialog {
         id: valueEditor
 
+        objectName: "valueEditorDialog"
+
         /*! Source-model row currently being edited. */
         property int editRow: -1
 
@@ -973,15 +975,19 @@ Rectangle {
                : qsTr("Write value")
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        // The accept path is the gate, not the OK button: the button binding is
+        // installed only if standardButton() already has the button, and an
+        // accept can also arrive from the keyboard, so an input the node cannot
+        // accept must be refused here instead of by the server afterwards.
         onAccepted: {
-            if (valueEditor.editRow >= 0)
+            if (valueEditor.editRow >= 0 && valueEditor.inputAcceptable)
                 cppManagerOpcUa.writeValue(valueEditor.editRow, valueEditor.editedValue)
             valueEditor.editRow = -1
         }
         onRejected: valueEditor.editRow = -1
 
-        // Refuse an input the node cannot accept instead of letting the server
-        // reject it after the fact.
+        // Show the refusal on the button as well, so an unacceptable input is
+        // visible before the user reaches for OK.
         Component.onCompleted: {
             const okButton = valueEditor.standardButton(Dialog.Ok)
             if (okButton)

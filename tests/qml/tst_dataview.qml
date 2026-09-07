@@ -207,6 +207,36 @@ Item {
         }
 
         /*!
+            Verifies that accepting the editor with an unacceptable input writes nothing.
+
+            The OK button is disabled through a binding installed after the dialog
+            is created, so it cannot be the only gate: any accept that does not go
+            through the button would otherwise reach the server with a value the
+            node cannot hold.
+        */
+        function test_acceptingAnInvalidInputWritesNothing() {
+            cppManagerOpcUa.clearMockNodes();
+            // AccessLevel 3 is CurrentRead|CurrentWrite.
+            cppManagerOpcUa.addMockNode("ns=1;s=I", "Counter", "DINT", 3);
+
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            verify(view.editValue(0));
+
+            const dialog = findChild(view, "valueEditorDialog");
+            verify(dialog !== null);
+
+            // The row has no value yet, so the editor starts on empty text, which
+            // is not a whole number and therefore not writable.
+            compare(dialog.inputAcceptable, false);
+
+            dialog.accept();
+            compare(cppManagerOpcUa.writeCount, 0);
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
+        /*!
             Verifies that an untouched table never writes its own defaults back.
 
             The table samples its layout on a timer because TableView has no

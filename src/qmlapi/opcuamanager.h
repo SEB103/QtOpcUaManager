@@ -677,6 +677,13 @@ private:
     void selectNode(const QString &nodeId);
     /** Pushes the monitored node ids of the current server to the tree model. */
     void refreshMonitoredNodeIds();
+
+    /**
+     * Adds or removes the node at \a treeIndex without refreshing the monitored-id
+     * sets, so a bulk operation pays that tree walk once instead of once per node.
+     * Returns whether the change was applied.
+     */
+    bool applyNodeMonitored(const QModelIndex &treeIndex, bool on);
     /** Returns the owned model that produced \a index (focus model or tree model). */
     OpcUaModel *modelForIndex(const QModelIndex &index) const;
     /** Pins \a nodeId as the focus node using \a absolutePath and \a displayName. */
