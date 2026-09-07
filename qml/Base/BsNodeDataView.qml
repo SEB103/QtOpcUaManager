@@ -104,6 +104,12 @@ Rectangle {
     /*! Height of the header and each data row. */
     property int rowHeight: 30
 
+    /*! View row currently under the pointer, or -1; drives the hover delete button. */
+    property int hoveredViewRow: -1
+
+    /*! Top of the hovered row within the table pane, positioning the delete button. */
+    property real hoveredRowY: 0
+
     /*! Neutral tint used for inactive header icons and secondary text. */
     readonly property color mutedColor: Qt.rgba(Material.foreground.r,
                                                 Material.foreground.g,
@@ -692,6 +698,8 @@ Rectangle {
         }
 
         Item {
+            id: tablePane
+
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -819,6 +827,15 @@ Rectangle {
 
                     HoverHandler {
                         id: cellHover
+
+                        // Any hovered cell publishes its row so the shared delete
+                        // button can pin itself to the right edge of that row.
+                        onHoveredChanged: {
+                            if (hovered) {
+                                root.hoveredViewRow = cellDelegate.row
+                                root.hoveredRowY = cellDelegate.mapToItem(tablePane, 0, 0).y
+                            }
+                        }
                     }
 
                     TapHandler {
@@ -883,6 +900,53 @@ Rectangle {
                     border.width: 2
                     border.color: Material.accent
                     radius: 2
+                }
+            }
+
+            // Tracks whether the pointer is anywhere over the table pane, so the
+            // per-row delete button hides again once the pointer leaves.
+            HoverHandler {
+                id: tablePaneHover
+            }
+
+            // Per-row delete affordance pinned to the right edge of the hovered
+            // row. It restores the remove control the ListView table carried
+            // before the TableView rebuild, without adding a scrolling column.
+            ToolButton {
+                id: rowRemoveButton
+
+                width: 26
+                height: 24
+                padding: 0
+                visible: tablePaneHover.hovered
+                         && root.hoveredViewRow >= 0
+                         && root.hoveredViewRow < tableView.rows
+                x: tableView.x + tableView.width - width - 8
+                y: root.hoveredRowY + (root.rowHeight - height) / 2
+                text: "✕"
+                font.pixelSize: 14
+                Accessible.name: qsTr("Remove from Data Access View")
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Remove from Data Access View")
+
+                // A faint chip keeps the glyph readable over the row's value,
+                // turning red while hovered to signal the destructive action.
+                background: Rectangle {
+                    radius: 4
+                    color: rowRemoveButton.hovered
+                           ? Qt.rgba(Material.color(Material.Red).r,
+                                     Material.color(Material.Red).g,
+                                     Material.color(Material.Red).b, 0.22)
+                           : Qt.rgba(Material.background.r,
+                                     Material.background.g,
+                                     Material.background.b, 0.85)
+                }
+
+                onClicked: {
+                    const row = root.sourceRow(root.hoveredViewRow)
+                    root.hoveredViewRow = -1
+                    if (row >= 0)
+                        cppManagerOpcUa.removeNode(row)
                 }
             }
         }
