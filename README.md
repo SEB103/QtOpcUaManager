@@ -164,6 +164,24 @@ The project uses `qt_generate_deploy_qml_app_script()` for installation deployme
 
 Before distributing binaries, verify all Qt, open62541, OpenSSL, and icon-license obligations. See `THIRD_PARTY_NOTICES.md`.
 
+## License
+
+OpcUaManager is licensed under the **GNU General Public License v3.0 or later**
+(`GPL-3.0-or-later`).
+
+- `LICENSE` — the full GPL-3.0 text that governs the OpcUaManager source code.
+- `NOTICE` — copyright and a summary of the license and third-party components.
+- `THIRD_PARTY_NOTICES.md` — per-component third-party notices (Qt, open62541,
+  OpenSSL, Google Material Symbols).
+- `LICENSES/` — full, verbatim license texts named by their SPDX identifiers, for
+  both the project's own license and every third-party component.
+- `REUSE.toml` — machine-readable ([REUSE](https://reuse.software)) licensing
+  metadata for the repository.
+
+Third-party licenses apply only to their respective components and do not change
+the license of the OpcUaManager source code. The same license and notice
+documents are shown in the application under **Help ▸ About OpcUaManager**.
+
 ## Current limitations
 
 - The browser currently loads node hierarchy only; value reading, writing, subscriptions, methods, and history are not yet implemented.

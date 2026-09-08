@@ -18,6 +18,8 @@
 #include <QtGlobal>
 #include <QQmlContext>
 
+#include "appinfo.h"
+#include "licensemodel.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
 #include "models/attributesmodel.h"
@@ -264,6 +266,8 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     , m_initialUrl(initialUrl)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
     , m_projectManager(new ProjectManager(this))
+    , m_appInfo(new AppInfo(this))
+    , m_licenseModel(new LicenseModel(this))
     , m_logModel(new LogModel(2000, this))
     , m_logFilterModel(new LogFilterModel(this))
 {
@@ -293,6 +297,14 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<ProjectManager>("Cpp.ProjectManager", 1, 0, "ProjectManager", QStringLiteral("ProjectManager should not be created in QML."));
     m_projectManager->setOpcUaManager(m_opcUaManager);
     rootContext()->setContextProperty("cppProjectManager", m_projectManager);
+
+    // Application/build metadata and the bundled license documents shown by the
+    // Help > About dialog. The license texts are embedded as resources under
+    // /licenses (see resources/CMakeLists.txt), so the model scans the resource
+    // directory rather than a deployed folder.
+    m_licenseModel->setDirectory(QStringLiteral("qrc:/licenses/LICENSES"));
+    rootContext()->setContextProperty("cppAppInfo", m_appInfo);
+    rootContext()->setContextProperty("cppLicenseModel", m_licenseModel);
 
     // Installed in every configuration: the log panel is a debugging aid the user
     // needs in a development build too. Writing to the log file stays

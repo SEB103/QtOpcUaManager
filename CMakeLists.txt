@@ -62,6 +62,10 @@ qt_add_executable(appOpcUaManager
     app/appcore.h
     app/appengine.cpp
     app/appengine.h
+    app/appinfo.cpp
+    app/appinfo.h
+    app/licensemodel.cpp
+    app/licensemodel.h
 )
 
 # Application-level style configuration and bundled SVG resources.

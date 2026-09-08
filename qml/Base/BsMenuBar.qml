@@ -112,6 +112,13 @@ MenuBar {
     */
     signal settingsRequested()
 
+    /*!
+        \qmlsignal BsMenuBar::aboutRequested()
+        Emitted when the user opens the About dialog from the Help menu. The
+        corresponding handler is \c onAboutRequested.
+    */
+    signal aboutRequested()
+
     Menu {
         title: qsTr("Application")
 
@@ -294,8 +301,8 @@ MenuBar {
         title: qsTr("Help")
 
         MenuItem {
-            text: qsTr("&Help")
-            enabled: false
+            text: qsTr("&About OpcUaManager…")
+            onTriggered: appMenuBar.aboutRequested()
         }
     }
 }

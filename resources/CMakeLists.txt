@@ -49,3 +49,26 @@ qt_add_resources(appOpcUaManager "application_resources"
         images/svg/schedule.svg
         images/svg/category_cyan.svg
 )
+
+# License and notice documents shown by the Help > About dialog. The canonical
+# copies live at the project root (single source of truth for both source
+# distribution and REUSE); they are embedded here so the About dialog has no
+# runtime dependency on any deployed folder. BASE is the project root, so the
+# files keep their LICENSES/ path under the /licenses resource prefix.
+qt_add_resources(appOpcUaManager "license_resources"
+    PREFIX "/licenses"
+    BASE "${CMAKE_SOURCE_DIR}"
+
+    FILES
+        "${CMAKE_SOURCE_DIR}/NOTICE"
+        "${CMAKE_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
+        "${CMAKE_SOURCE_DIR}/LICENSES/GPL-3.0-or-later.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/LGPL-3.0-only.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/GPL-2.0-only.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/MPL-2.0.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/Apache-2.0.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/BSD-3-Clause.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/MIT.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/CC0-1.0.txt"
+        "${CMAKE_SOURCE_DIR}/LICENSES/CC-BY-SA-4.0.txt"
+)

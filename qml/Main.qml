@@ -170,6 +170,10 @@ ApplicationWindow {
             settingsDialog.open()
         }
 
+        function onAboutRequested() {
+            aboutDialog.open()
+        }
+
         function onLogPanelToggleRequested() {
             mainWindow.logPanelVisible = !mainWindow.logPanelVisible
         }
@@ -523,6 +527,12 @@ ApplicationWindow {
                 onAccepted: reconnectPasswordDialog.accept()
             }
         }
+    }
+
+    AboutDialog {
+        id: aboutDialog
+
+        darkTheme: mainWindow.darkTheme
     }
 
 }

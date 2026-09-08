@@ -6,6 +6,8 @@
 
 #include "models/logfiltermodel.h"
 
+class AppInfo;
+class LicenseModel;
 class LogModel;
 class OpcUaManager;
 class OpcUaService;
@@ -67,6 +69,12 @@ private:
 
     /** Project facade exposed to QML as \c cppProjectManager; owned by this engine. */
     ProjectManager* m_projectManager = nullptr;
+
+    /** Application/build metadata exposed to QML as \c cppAppInfo; owned by this engine. */
+    AppInfo* m_appInfo = nullptr;
+
+    /** Bundled license documents exposed to QML as \c cppLicenseModel; owned by this engine. */
+    LicenseModel* m_licenseModel = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

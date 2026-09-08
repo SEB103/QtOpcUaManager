@@ -12,6 +12,7 @@ qt_add_qml_module(MainQml
         Main.qml
         MainScreen.ui.qml
         LauncherScreen.qml
+        AboutDialog.qml
 )
 
 target_link_libraries(MainQml

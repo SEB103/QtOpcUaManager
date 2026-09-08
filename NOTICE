@@ -1,0 +1,34 @@
+OpcUaManager
+Copyright (C) 2025-2026 OpcUaManager Project
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. This is expressed by the SPDX identifier "GPL-3.0-or-later".
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+The full license text of the OpcUaManager source code is in the file LICENSE
+(a verbatim copy is also stored in LICENSES/GPL-3.0-or-later.txt).
+
+================================================================================
+Third-party components
+================================================================================
+
+This product bundles or dynamically links third-party components that remain
+governed by their own licenses. A per-component summary is in
+THIRD_PARTY_NOTICES.md and the full license texts are in the LICENSES/ directory:
+
+  - Qt 6.11 ............ GNU LGPL v3 (open-source option used here; Qt is also
+                        available under GPLv2 and under commercial licenses)
+  - open62541 1.4.14 .. Mozilla Public License 2.0, plus CC0-1.0, CC-BY-SA-4.0,
+                        BSD-3-Clause, Apache-2.0 and MIT for individual parts;
+                        used through the Qt OPC UA open62541 backend plugin
+  - OpenSSL 3 ......... Apache License 2.0 (optional Windows runtime libraries)
+  - Google Material Symbols icons ... Apache License 2.0 (embedded SVG resources)
+
+These third-party licenses apply only to their respective components. They do
+not change the license of the OpcUaManager source code itself, which is
+GPL-3.0-or-later as stated above.
