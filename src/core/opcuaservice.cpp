@@ -1,5 +1,6 @@
 #include "opcuaservice.h"
 
+#include "apppaths.h"
 #include "structurednodereader.h"
 
 #include <QCoreApplication>
@@ -1524,8 +1525,7 @@ QUrl OpcUaService::normalizeDiscoveryUrl(const QString &hostOrUrl)
 void OpcUaService::setupPkiConfiguration()
 {
     const QString pkiSource = QCoreApplication::applicationDirPath() + QLatin1String("/pki");
-    m_pkiBaseDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-        + QLatin1String("/pki");
+    m_pkiBaseDirectory = AppPaths::instance().pkiDir();
     qInfo() << "OPC UA runtime PKI directory:" << m_pkiBaseDirectory;
 
     const QStringList requiredDirectories {

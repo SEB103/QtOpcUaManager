@@ -11,6 +11,7 @@
 #include <QVariantMap>
 
 #include "qmlapi/opcuamanager.h"
+#include "core/apppaths.h"
 #include "core/diagnosticslevel.h"
 #include "project/projectserializer.h"
 
@@ -106,11 +107,8 @@ QString ProjectManager::defaultProjectsDir() const
     if (m_settings)
         dir = m_settings->value(QLatin1String(kDefaultProjectsDirKey)).toString();
 
-    if (dir.isEmpty()) {
-        const QString documents =
-            QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-        dir = QDir(documents).filePath(QStringLiteral("OpcUaManager"));
-    }
+    if (dir.isEmpty())
+        dir = AppPaths::instance().defaultProjectsDir();
     return QDir::cleanPath(dir);
 }
 
@@ -338,8 +336,7 @@ void ProjectManager::maybeMigrateLegacyState()
     if (!m_opcUaManager->hasLegacyState())
         return;
 
-    const QString dir =
-        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("projects"));
+    const QString dir = AppPaths::instance().defaultProjectsDir();
     const QString path = QDir(dir).filePath(QStringLiteral("Default.uaproj"));
 
     // A Default file from an earlier migration is simply relisted, not overwritten.

@@ -70,3 +70,15 @@ CMakeUserPresets.json
 # Runtime application data and logs
 /log/
 *.log
+
+# Release pipeline output and generated installer artifacts (see packaging/)
+/release/
+/installer/packages/*/data/
+/installer/packages/*/meta/package.xml
+/installer/packages/*/meta/license-gpl.txt
+/installer/packages/*/meta/third-party.txt
+/installer/config/config.xml
+/installer/config/style.qss
+/installer/config/installer.ico
+/installer/config/logo.png
+/installer/config/banner.png

@@ -24,10 +24,11 @@ ApplicationWindow {
     minimumHeight: 600
     visible: true
     title: cppProjectManager.hasActiveProject
-           ? qsTr("OPC UA Manager — %1%2")
+           ? qsTr("%1 — %2%3")
+                 .arg(cppAppInfo.appName)
                  .arg(cppProjectManager.activeProjectName)
                  .arg(cppProjectManager.dirty ? "*" : "")
-           : qsTr("OPC UA Manager")
+           : cppAppInfo.appName
 
     /*! Whether the application currently uses the dark Material theme. */
     property bool darkTheme: Application.styleHints.colorScheme === Qt.Dark

@@ -3,6 +3,8 @@ qt_add_library(OpcUaCore STATIC)
 
 target_sources(OpcUaCore
     PRIVATE
+        core/apppaths.cpp
+        core/apppaths.h
         core/diagnosticslevel.h
         core/opcuaaccesslevel.h
         core/opcuanodedata.h
@@ -42,6 +44,8 @@ target_sources(OpcUaCore
 target_include_directories(OpcUaCore
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE
+        "${CMAKE_BINARY_DIR}/generated"
 )
 
 target_link_libraries(OpcUaCore

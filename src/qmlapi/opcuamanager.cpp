@@ -14,6 +14,7 @@
 #include <QSettings>
 #include <QtQuick/QQuickTextDocument>
 
+#include "core/apppaths.h"
 #include "core/opcuaaccesslevel.h"
 #include "core/opcuaservice.h"
 #include "core/opcuastatushint.h"
@@ -188,8 +189,7 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     // project file. Monitored nodes are no longer seeded from it at startup; the
     // active project is the source of truth and fills the Data Access View through
     // applyProject(). See exportLegacyState().
-    const QString databasePath =
-        QCoreApplication::applicationDirPath() + QLatin1String("/db/opcua_nodes.db");
+    const QString databasePath = AppPaths::instance().databaseFilePath();
     if (!m_nodeDatabase->open(databasePath))
         qWarning() << "OpcUaManager: failed to open node database at" << databasePath;
 

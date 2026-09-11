@@ -27,6 +27,7 @@
 #include "models/logfiltermodel.h"
 #include "models/logmodel.h"
 #include "models/opcuamodel.h"
+#include "core/apppaths.h"
 #include "core/opcuaservice.h"
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
@@ -35,7 +36,6 @@
 #include "appengine.h"
 
 namespace {
-constexpr auto kLogDirectoryName = "log";
 constexpr auto kLogFileName = "app.log";
 constexpr auto kRotatedLogFileName = "app.log.1";
 
@@ -166,10 +166,7 @@ bool ensureLogFileOpenLocked()
     if (g_logInitAttempted)
         return false;
     g_logInitAttempted = true;
-    const QString applicationDataDirectory = QStandardPaths::writableLocation(
-        QStandardPaths::AppLocalDataLocation);
-    const QString logDirPath = QDir(applicationDataDirectory)
-                                   .filePath(QString::fromLatin1(kLogDirectoryName));
+    const QString logDirPath = AppPaths::instance().logDir();
     if (!QDir().mkpath(logDirPath))
         return false;
     const QString logFilePath = QDir(logDirPath).filePath(QString::fromLatin1(kLogFileName));

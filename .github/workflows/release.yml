@@ -1,0 +1,79 @@
+name: Release
+
+# Builds the Canonical Deployment and produces the installer, portable ZIP and
+# update repository via packaging/release.ps1. Runs on version tags and on
+# demand. Artifacts are uploaded to the workflow run (no GitHub Release is
+# created here).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.11.1 + Installer Framework
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: 'qtopcua'
+          tools: 'tools_ifw'
+          cache: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Locate Qt Installer Framework
+        id: ifw
+        shell: pwsh
+        run: |
+          # tools_ifw installs under the Qt base; find binarycreator.exe and use its parent's parent.
+          $bc = Get-ChildItem -Path $env:RUNNER_WORKSPACE, 'C:\', $env:IQTA_TOOLS -Recurse -Filter binarycreator.exe -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+          if (-not $bc) { throw 'binarycreator.exe not found; adjust the tools_ifw install path.' }
+          $root = Split-Path (Split-Path $bc.FullName -Parent) -Parent
+          "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "QTIFW_ROOT=$root"
+
+      - name: Run release pipeline
+        shell: pwsh
+        run: |
+          ./packaging/release.ps1 `
+            -CMake cmake -Ninja ninja `
+            -QtPrefix "$env:QT_ROOT_DIR" `
+            -QtIfwRoot "${{ steps.ifw.outputs.root }}"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: release/*-Setup.exe
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable
+          path: release/*-win64.zip
+
+      - name: Upload update repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository
+          path: release/repository/**

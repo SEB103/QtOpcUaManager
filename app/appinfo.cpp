@@ -8,6 +8,8 @@
 
 #include "appinfo.h"
 
+#include "productinfo.h"
+
 #include <QCoreApplication>
 #include <QFile>
 #include <QSysInfo>
@@ -25,7 +27,7 @@ AppInfo::AppInfo(QObject *parent)
  */
 QString AppInfo::appName() const
 {
-    return QStringLiteral("OPC UA Manager");
+    return QStringLiteral(PRODUCT_DISPLAY_NAME);
 }
 
 /*!
@@ -44,7 +46,7 @@ QString AppInfo::appVersion() const
  */
 QString AppInfo::organization() const
 {
-    return QStringLiteral("OpcUaManager Project");
+    return QStringLiteral(PRODUCT_ORGANIZATION);
 }
 
 /*!
@@ -52,7 +54,7 @@ QString AppInfo::organization() const
  */
 QString AppInfo::copyright() const
 {
-    return QStringLiteral("Copyright (C) 2025-2026 OpcUaManager Project");
+    return QStringLiteral(PRODUCT_COPYRIGHT);
 }
 
 /*!
@@ -78,7 +80,7 @@ QString AppInfo::description() const
  */
 QString AppInfo::homepageUrl() const
 {
-    return QStringLiteral("https://github.com/SEB103/QtOpcUaManager");
+    return QStringLiteral(PRODUCT_HOMEPAGE);
 }
 
 /*!

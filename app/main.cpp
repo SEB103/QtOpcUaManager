@@ -11,6 +11,8 @@
 
 #include "appcore.h"
 #include "appengine.h"
+#include "core/apppaths.h"
+#include "productinfo.h"
 
 using namespace Qt::StringLiterals;
 
@@ -26,10 +28,19 @@ int main(int argc, char *argv[])
     AppCore::setMessagePattern();
     AppCore app(argc, argv);
 
-    QCoreApplication::setOrganizationName(QStringLiteral("OpcUaManager"));
-    QCoreApplication::setOrganizationDomain(QStringLiteral("opcuamanager.local"));
-    QCoreApplication::setApplicationName(QStringLiteral("OpcUaManager"));
-    QCoreApplication::setApplicationVersion(QStringLiteral(OPCUAMANAGER_VERSION));
+    // Identity comes from the centralized product metadata. The organization,
+    // domain and application name are the STABLE identifier (not the display
+    // name), so QSettings paths and per-user data directories are unaffected by
+    // a future product rename.
+    QCoreApplication::setOrganizationName(QStringLiteral(PRODUCT_IDENTIFIER));
+    QCoreApplication::setOrganizationDomain(QStringLiteral(PRODUCT_ORG_DOMAIN));
+    QCoreApplication::setApplicationName(QStringLiteral(PRODUCT_IDENTIFIER));
+    QCoreApplication::setApplicationVersion(QStringLiteral(PRODUCT_VERSION));
+
+    // Resolve installed/portable data locations once, then seed the writable
+    // database and migrate any legacy settings before anything opens them.
+    AppPaths::instance().initialize();
+    AppPaths::instance().ensureSeededOnFirstRun();
 
     // Set the application icon used for the window title bar, the taskbar and
     // Alt+Tab. The multi-size .ico is bundled via resources/CMakeLists.txt; Qt
@@ -37,11 +48,11 @@ int main(int argc, char *argv[])
     // the same icon through resources/images/app/app.rc.
     QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/images/app/OpcUaManager.ico")));
 
-    // Create the INI settings store next to the executable in an ini/ folder,
-    // matching the db/ and pki/ layout. It persists the last connection and the
-    // pinned focus node between runs.
+    // Create the INI settings store in an ini/ folder under the resolved config
+    // directory (next to the executable in portable mode, AppConfigLocation when
+    // installed). It persists the last connection and the pinned focus node.
     app.createSettings(QCoreApplication::applicationName(),
-                       QCoreApplication::applicationDirPath());
+                       AppPaths::instance().configDir());
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();

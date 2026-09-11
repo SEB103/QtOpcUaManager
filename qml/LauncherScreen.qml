@@ -80,11 +80,11 @@ Pane {
                 Layout.preferredWidth: 128
                 Layout.preferredHeight: 128
                 Accessible.role: Accessible.Graphic
-                Accessible.name: qsTr("OPC UA Manager")
+                Accessible.name: cppAppInfo.appName
             }
 
             Label {
-                text: qsTr("OPC UA Manager")
+                text: cppAppInfo.appName
                 font.pixelSize: 28
                 font.bold: true
                 color: Material.foreground

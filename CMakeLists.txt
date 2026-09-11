@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
 
+# Load the single product-metadata source (packaging/product.json) before
+# project() so the product version and identity come from one place.
+include(cmake/ProductMetadata.cmake)
+
 project(OpcUaManager
-    VERSION 0.1.0
+    VERSION ${PRODUCT_VERSION}
     LANGUAGES CXX
 )
 
@@ -9,6 +13,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Generate compile-time product metadata (productinfo.h) from the single source
+# in packaging/product.json. The header is included by the app layer to drive
+# the display name, organization, copyright and version.
+set(OPCUA_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/productinfo.h.in"
+    "${OPCUA_GENERATED_DIR}/productinfo.h"
+    @ONLY
+)
 
 find_package(Qt6 6.11 REQUIRED COMPONENTS
     Core
@@ -74,6 +88,7 @@ add_subdirectory(resources)
 target_include_directories(appOpcUaManager
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/app"
+        "${OPCUA_GENERATED_DIR}"
 )
 
 target_link_libraries(appOpcUaManager
@@ -106,11 +121,17 @@ set_target_properties(appOpcUaManager PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-# Embed the application icon into the Windows .exe (used by Explorer, the
-# taskbar/Alt+Tab and Desktop/Start Menu shortcuts). The .rc references the
-# sibling OpcUaManager.ico; MSVC compiles it automatically.
+# Embed the application icon and version metadata into the Windows .exe (used by
+# Explorer, the taskbar/Alt+Tab and Desktop/Start Menu shortcuts). The .rc is
+# generated from cmake/app.rc.in so its VERSIONINFO block and icon path come
+# from packaging/product.json; MSVC compiles it automatically.
 if(WIN32)
-    target_sources(appOpcUaManager PRIVATE resources/images/app/app.rc)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/app.rc.in"
+        "${OPCUA_GENERATED_DIR}/app.rc"
+        @ONLY
+    )
+    target_sources(appOpcUaManager PRIVATE "${OPCUA_GENERATED_DIR}/app.rc")
 endif()
 
 qt_add_translations(appOpcUaManager
@@ -186,3 +207,22 @@ qt_generate_deploy_qml_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT "${deploy_script}")
+
+# Copy the runtime files windeployqt does not handle (Qt OPC UA open62541
+# backend plugin and the OpenSSL 3 DLLs) into the install prefix, so the
+# canonical deployment is self-contained.
+include(cmake/InstallWindowsRuntime.cmake)
+opcuamanager_install_windows_runtime()
+
+# Ship the licensing materials required to distribute the binaries (own GPL
+# license plus third-party notices and license texts).
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+    "${CMAKE_CURRENT_SOURCE_DIR}/NOTICE"
+    "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/licenses"
+)
