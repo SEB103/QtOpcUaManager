@@ -80,6 +80,8 @@ ServerStudio::ServerStudio(QObject *parent)
             this, &ServerStudio::stateChanged);
     connect(&m_controller, &ServerRuntimeController::endpointUrlChanged,
             this, &ServerStudio::endpointUrlChanged);
+    connect(&m_controller, &ServerRuntimeController::diagnosticsChanged,
+            this, &ServerStudio::diagnosticsChanged);
 }
 
 ServerStudio::~ServerStudio() = default;
@@ -135,6 +137,27 @@ QString ServerStudio::stateText() const
 QString ServerStudio::endpointUrl() const
 {
     return m_controller.endpointUrl();
+}
+
+int ServerStudio::sessionCount() const
+{
+    return m_controller.sessionCount();
+}
+
+int ServerStudio::secureChannelCount() const
+{
+    return m_controller.secureChannelCount();
+}
+
+QString ServerStudio::diagnosticsText() const
+{
+    if (!running())
+        return tr("No diagnostics (server stopped).");
+    const qint64 seconds = m_controller.uptimeMs() / 1000;
+    return tr("Sessions: %1 · Secure channels: %2 · Uptime: %3 s")
+        .arg(m_controller.sessionCount())
+        .arg(m_controller.secureChannelCount())
+        .arg(seconds);
 }
 
 // --- Editing accessors ------------------------------------------------------

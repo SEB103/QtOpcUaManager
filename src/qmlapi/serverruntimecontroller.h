@@ -1,9 +1,14 @@
 #ifndef SERVERRUNTIMECONTROLLER_H
 #define SERVERRUNTIMECONTROLLER_H
 
+#include <QByteArray>
 #include <QObject>
 #include <QProcess>
 #include <QString>
+
+QT_BEGIN_NAMESPACE
+class QLocalSocket;
+QT_END_NAMESPACE
 
 /**
  * Owns and supervises the headless OpcUaServerRuntime child process.
@@ -45,6 +50,15 @@ public:
     /** Returns the port the controller last started, or the default 4840. */
     quint16 port() const { return m_port; }
 
+    /** Returns the current OPC UA session count reported by the runtime. */
+    int sessionCount() const { return m_sessionCount; }
+
+    /** Returns the current secure-channel count reported by the runtime. */
+    int secureChannelCount() const { return m_channelCount; }
+
+    /** Returns the runtime uptime in milliseconds, or 0 when not running. */
+    qint64 uptimeMs() const { return m_uptimeMs; }
+
     /**
      * Starts the runtime on \a port, optionally serving \a projectPath. Does
      * nothing when a process is already starting or running. Resolves the
@@ -71,6 +85,9 @@ signals:
     /** Emitted when the announced endpoint URL changes. */
     void endpointUrlChanged();
 
+    /** Emitted when the reported diagnostics (sessions/channels/uptime) change. */
+    void diagnosticsChanged();
+
 private:
     /** Applies \a state and notifies observers when it actually changed. */
     void setState(State state);
@@ -86,6 +103,15 @@ private:
 
     /** Handles a process-level error such as a failed start. */
     void handleErrorOccurred(QProcess::ProcessError error);
+
+    /** Connects the diagnostics control socket to \a pipeName. */
+    void connectControlChannel(const QString &pipeName);
+
+    /** Parses diagnostics JSON lines from the control socket. */
+    void onControlReadyRead();
+
+    /** Resets diagnostics counters to zero and notifies observers. */
+    void resetDiagnostics();
 
     /** The supervised child process; owned by this controller. */
     QProcess *m_process = nullptr;
@@ -110,6 +136,21 @@ private:
 
     /** True while a graceful stop is in progress, so exit is not read as a crash. */
     bool m_stopRequested = false;
+
+    /** Live diagnostics control socket to the runtime; owned. */
+    QLocalSocket *m_control = nullptr;
+
+    /** Accumulates partial diagnostics lines from the control socket. */
+    QByteArray m_controlBuffer;
+
+    /** Latest reported session count. */
+    int m_sessionCount = 0;
+
+    /** Latest reported secure-channel count. */
+    int m_channelCount = 0;
+
+    /** Latest reported uptime in milliseconds. */
+    qint64 m_uptimeMs = 0;
 };
 
 #endif // SERVERRUNTIMECONTROLLER_H

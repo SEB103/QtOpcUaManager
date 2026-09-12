@@ -6,7 +6,7 @@
 # and crash can all be exercised realistically. It embeds open62541 directly
 # and links only Qt6::Core -- never Qt6::Gui/Quick or Qt6::OpcUa.
 
-find_package(Qt6 6.11 REQUIRED COMPONENTS Core)
+find_package(Qt6 6.11 REQUIRED COMPONENTS Core Network)
 
 # Acquire open62541 as the embedded server stack. A separate process means its
 # symbols never clash with the open62541 build inside Qt's OPC UA client
@@ -38,6 +38,8 @@ FetchContent_MakeAvailable(open62541)
 
 qt_add_executable(OpcUaServerRuntime
     main.cpp
+    diagnosticsserver.cpp
+    diagnosticsserver.h
     projectbuilder.cpp
     projectbuilder.h
     securitysetup.cpp
@@ -47,6 +49,7 @@ qt_add_executable(OpcUaServerRuntime
 target_link_libraries(OpcUaServerRuntime
     PRIVATE
         Qt6::Core
+        Qt6::Network
         ServerProjectCore
         open62541::open62541
 )

@@ -438,51 +438,66 @@ Pane {
             visible: cppServerStudio.hasProject
             Layout.fillWidth: true
 
-            RowLayout {
+            ColumnLayout {
                 anchors.fill: parent
-                spacing: 10
+                spacing: 6
 
-                Rectangle {
-                    Layout.preferredWidth: 12
-                    Layout.preferredHeight: 12
-                    radius: 6
-                    color: cppServerStudio.running
-                           ? Material.color(Material.Green)
-                           : (cppServerStudio.crashed
-                              ? Material.color(Material.Red)
-                              : Material.color(Material.Grey))
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Rectangle {
+                        Layout.preferredWidth: 12
+                        Layout.preferredHeight: 12
+                        radius: 6
+                        color: cppServerStudio.running
+                               ? Material.color(Material.Green)
+                               : (cppServerStudio.crashed
+                                  ? Material.color(Material.Red)
+                                  : Material.color(Material.Grey))
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        text: cppServerStudio.stateText
+                        color: Material.foreground
+                    }
+                    Button {
+                        text: qsTr("Start")
+                        highlighted: true
+                        enabled: !cppServerStudio.running && !cppServerStudio.busy
+                        onClicked: cppServerStudio.startServer()
+                    }
+                    Button {
+                        text: qsTr("Stop")
+                        enabled: cppServerStudio.running || cppServerStudio.busy
+                        onClicked: cppServerStudio.stop()
+                    }
+                    Button {
+                        text: qsTr("Restart")
+                        enabled: cppServerStudio.running || cppServerStudio.busy
+                        onClicked: cppServerStudio.restart()
+                    }
+                    Button {
+                        text: qsTr("Kill")
+                        enabled: cppServerStudio.running || cppServerStudio.busy
+                        onClicked: cppServerStudio.kill()
+                    }
+                    Button {
+                        text: qsTr("Open in Client")
+                        enabled: cppServerStudio.running
+                        onClicked: cppServerStudio.openInClient()
+                    }
                 }
+
+                // Live diagnostics reported by the running runtime.
                 Label {
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: cppServerStudio.stateText
+                    font.pixelSize: 12
+                    opacity: 0.8
                     color: Material.foreground
-                }
-                Button {
-                    text: qsTr("Start")
-                    highlighted: true
-                    enabled: !cppServerStudio.running && !cppServerStudio.busy
-                    onClicked: cppServerStudio.startServer()
-                }
-                Button {
-                    text: qsTr("Stop")
-                    enabled: cppServerStudio.running || cppServerStudio.busy
-                    onClicked: cppServerStudio.stop()
-                }
-                Button {
-                    text: qsTr("Restart")
-                    enabled: cppServerStudio.running || cppServerStudio.busy
-                    onClicked: cppServerStudio.restart()
-                }
-                Button {
-                    text: qsTr("Kill")
-                    enabled: cppServerStudio.running || cppServerStudio.busy
-                    onClicked: cppServerStudio.kill()
-                }
-                Button {
-                    text: qsTr("Open in Client")
-                    enabled: cppServerStudio.running
-                    onClicked: cppServerStudio.openInClient()
+                    text: cppServerStudio.diagnosticsText
                 }
             }
         }

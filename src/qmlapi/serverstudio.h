@@ -32,6 +32,11 @@ class ServerStudio : public QObject
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
     Q_PROPERTY(QString endpointUrl READ endpointUrl NOTIFY endpointUrlChanged)
 
+    // Live diagnostics reported by a running runtime.
+    Q_PROPERTY(int sessionCount READ sessionCount NOTIFY diagnosticsChanged)
+    Q_PROPERTY(int secureChannelCount READ secureChannelCount NOTIFY diagnosticsChanged)
+    Q_PROPERTY(QString diagnosticsText READ diagnosticsText NOTIFY diagnosticsChanged)
+
     // Project state.
     Q_PROPERTY(bool hasProject READ hasProject NOTIFY projectChanged)
     Q_PROPERTY(QString projectName READ projectName NOTIFY projectChanged)
@@ -64,6 +69,9 @@ public:
     bool crashed() const;
     QString stateText() const;
     QString endpointUrl() const;
+    int sessionCount() const;
+    int secureChannelCount() const;
+    QString diagnosticsText() const;
 
     // Project accessors.
     bool hasProject() const { return m_hasProject; }
@@ -151,6 +159,7 @@ public:
 signals:
     void stateChanged();
     void endpointUrlChanged();
+    void diagnosticsChanged();
     void projectChanged();
     void dirtyChanged();
     void selectedNodeChanged();

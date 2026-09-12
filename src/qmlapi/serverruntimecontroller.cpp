@@ -3,6 +3,9 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLocalSocket>
 #include <QLoggingCategory>
 #include <QProcessEnvironment>
 #include <QStringList>
@@ -39,6 +42,12 @@ ServerRuntimeController::ServerRuntimeController(QObject *parent)
             this, &ServerRuntimeController::handleFinished);
     connect(m_process, &QProcess::errorOccurred,
             this, &ServerRuntimeController::handleErrorOccurred);
+
+    m_control = new QLocalSocket(this);
+    connect(m_control, &QLocalSocket::readyRead,
+            this, &ServerRuntimeController::onControlReadyRead);
+    connect(m_control, &QLocalSocket::disconnected,
+            this, &ServerRuntimeController::resetDiagnostics);
 }
 
 /*!
@@ -113,7 +122,9 @@ void ServerRuntimeController::start(quint16 port, const QString &projectPath,
     m_endpointUrl.clear();
     emit endpointUrlChanged();
     m_pendingOutput.clear();
+    m_controlBuffer.clear();
     m_stopRequested = false;
+    resetDiagnostics();
 
     QStringList arguments{QStringLiteral("--port"), QString::number(port)};
     if (!projectPath.isEmpty())
@@ -196,6 +207,8 @@ void ServerRuntimeController::drainProcessOutput()
             emit endpointUrlChanged();
             setState(State::Running);
             qCInfo(lcServerRuntime) << "Runtime endpoint ready:" << m_endpointUrl;
+        } else if (line.startsWith(QLatin1String("CONTROL pipe="))) {
+            connectControlChannel(line.mid(int(qstrlen("CONTROL pipe="))).trimmed());
         } else if (!line.isEmpty()) {
             qCInfo(lcServerRuntime).noquote() << line;
         }
@@ -225,6 +238,10 @@ void ServerRuntimeController::handleFinished(int exitCode, QProcess::ExitStatus 
     m_endpointUrl.clear();
     emit endpointUrlChanged();
     m_stopRequested = false;
+
+    if (m_control->state() != QLocalSocket::UnconnectedState)
+        m_control->abort();
+    resetDiagnostics();
 }
 
 /*!
@@ -238,4 +255,54 @@ void ServerRuntimeController::handleErrorOccurred(QProcess::ProcessError error)
     } else {
         qCWarning(lcServerRuntime) << "Server runtime process error:" << error;
     }
+}
+
+/*!
+ * \brief Connects the diagnostics control socket to \a pipeName.
+ */
+void ServerRuntimeController::connectControlChannel(const QString &pipeName)
+{
+    if (pipeName.isEmpty())
+        return;
+    if (m_control->state() != QLocalSocket::UnconnectedState)
+        m_control->abort();
+    m_controlBuffer.clear();
+    m_control->connectToServer(pipeName);
+}
+
+/*!
+ * \brief Parses diagnostics JSON lines from the control socket.
+ */
+void ServerRuntimeController::onControlReadyRead()
+{
+    m_controlBuffer += m_control->readAll();
+
+    int newlineIndex = m_controlBuffer.indexOf('\n');
+    while (newlineIndex >= 0) {
+        const QByteArray line = m_controlBuffer.left(newlineIndex);
+        m_controlBuffer.remove(0, newlineIndex + 1);
+
+        const QJsonObject object = QJsonDocument::fromJson(line).object();
+        if (object.value(QStringLiteral("type")).toString() == QLatin1String("diagnostics")) {
+            m_sessionCount = object.value(QStringLiteral("sessions")).toInt();
+            m_channelCount = object.value(QStringLiteral("channels")).toInt();
+            m_uptimeMs = static_cast<qint64>(object.value(QStringLiteral("uptimeMs")).toDouble());
+            emit diagnosticsChanged();
+        }
+
+        newlineIndex = m_controlBuffer.indexOf('\n');
+    }
+}
+
+/*!
+ * \brief Resets diagnostics counters to zero and notifies observers.
+ */
+void ServerRuntimeController::resetDiagnostics()
+{
+    if (m_sessionCount == 0 && m_channelCount == 0 && m_uptimeMs == 0)
+        return;
+    m_sessionCount = 0;
+    m_channelCount = 0;
+    m_uptimeMs = 0;
+    emit diagnosticsChanged();
 }

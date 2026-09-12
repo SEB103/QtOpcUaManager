@@ -243,6 +243,26 @@ add_dependencies(tst_serversecurity OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerSecurity.Integration COMMAND tst_serversecurity)
 
+# Integration test for live diagnostics and the kill/reconnect workflow.
+qt_add_executable(tst_serverdiagnostics
+    integration/tst_serverdiagnostics.cpp
+)
+
+target_link_libraries(tst_serverdiagnostics
+    PRIVATE
+        Qt6::Network
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverdiagnostics
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverdiagnostics OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerDiagnostics.Integration COMMAND tst_serverdiagnostics)
+
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )

@@ -24,10 +24,12 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QString>
+#include <QTimer>
 
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
 
+#include "diagnosticsserver.h"
 #include "projectbuilder.h"
 #include "securitysetup.h"
 #include "serverproject/serverprojectdata.h"
@@ -263,13 +265,36 @@ int main(int argc, char *argv[])
     std::printf("READY endpoint=opc.tcp://127.0.0.1:%u\n", static_cast<unsigned>(port));
     std::fflush(stdout);
 
+    // Publish live diagnostics (session/channel counts, uptime) to the GUI over
+    // a per-instance local socket, announcing the pipe name on stdout.
+    DiagnosticsServer diagnostics(
+        server,
+        QStringLiteral("opcuamanager-runtime-%1").arg(QCoreApplication::applicationPid()));
+    if (diagnostics.listen()) {
+        std::printf("CONTROL pipe=%s\n", diagnostics.pipeName().toLocal8Bit().constData());
+        std::fflush(stdout);
+    }
+
     std::thread stdinWatcher(watchStdinForStop);
     stdinWatcher.detach();
 
-    while (g_running.load()) {
-        UA_Server_run_iterate(server, true);
-    }
+    // Drive the open62541 event loop from the Qt event loop so the local-socket
+    // diagnostics server is serviced too. A non-blocking iterate is paced by a
+    // short timer; a stop request (stdin/signal) ends the loop.
+    QTimer iterateTimer;
+    iterateTimer.setInterval(10);
+    QObject::connect(&iterateTimer, &QTimer::timeout, &app, [server, &app]() {
+        if (!g_running.load()) {
+            app.quit();
+            return;
+        }
+        UA_Server_run_iterate(server, false);
+    });
+    iterateTimer.start();
 
+    app.exec();
+
+    iterateTimer.stop();
     UA_Server_run_shutdown(server);
     UA_Server_delete(server);
     std::printf("STOPPED\n");
