@@ -172,6 +172,11 @@ QStringList ServerStudio::dataTypeNames() const
     return ServerProject::builtinDataTypeNames();
 }
 
+QStringList ServerStudio::simulationKindNames() const
+{
+    return ServerProject::simulationKindNames();
+}
+
 void ServerStudio::setSelectedNodeId(const QString &nodeId)
 {
     if (m_selectedNodeId == nodeId)
@@ -208,6 +213,12 @@ QVariantMap ServerStudio::selectedNode() const
         map["valueRank"] = node->valueRank;
         map["writable"] = node->writable;
         map["initialValue"] = initialValueToText(node->initialValue);
+        map["simulationKind"] = ServerProject::simulationKindToString(node->simulation.kind);
+        map["simInterval"] = node->simulation.intervalMs;
+        map["simMin"] = node->simulation.min;
+        map["simMax"] = node->simulation.max;
+        map["simStep"] = node->simulation.step;
+        map["simPeriod"] = node->simulation.periodMs;
     }
     return map;
 }
@@ -402,6 +413,20 @@ void ServerStudio::updateNode(const QString &nodeId, const QVariantMap &fields)
                     node.dataType, node.valueRank,
                     fields.value(QStringLiteral("initialValue")).toString());
             }
+            if (fields.contains(QStringLiteral("simulationKind"))) {
+                node.simulation.kind = ServerProject::simulationKindFromString(
+                    fields.value(QStringLiteral("simulationKind")).toString());
+            }
+            if (fields.contains(QStringLiteral("simInterval")))
+                node.simulation.intervalMs = fields.value(QStringLiteral("simInterval")).toDouble();
+            if (fields.contains(QStringLiteral("simMin")))
+                node.simulation.min = fields.value(QStringLiteral("simMin")).toDouble();
+            if (fields.contains(QStringLiteral("simMax")))
+                node.simulation.max = fields.value(QStringLiteral("simMax")).toDouble();
+            if (fields.contains(QStringLiteral("simStep")))
+                node.simulation.step = fields.value(QStringLiteral("simStep")).toDouble();
+            if (fields.contains(QStringLiteral("simPeriod")))
+                node.simulation.periodMs = fields.value(QStringLiteral("simPeriod")).toDouble();
         }
 
         refreshModel();

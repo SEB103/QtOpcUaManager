@@ -58,6 +58,20 @@ Validator::Result Validator::validate(const ProjectData &data)
                         .arg(label)
                         .arg(node.valueRank));
             }
+            if (node.simulation.kind != SimulationKind::Manual) {
+                if (node.simulation.intervalMs <= 0.0) {
+                    result.errors.append(
+                        QStringLiteral("Variable '%1' has a non-positive simulation interval.")
+                            .arg(label));
+                }
+                if ((node.simulation.kind == SimulationKind::Sine
+                     || node.simulation.kind == SimulationKind::Ramp)
+                    && node.simulation.periodMs <= 0.0) {
+                    result.errors.append(
+                        QStringLiteral("Variable '%1' has a non-positive simulation period.")
+                            .arg(label));
+                }
+            }
         }
     }
 

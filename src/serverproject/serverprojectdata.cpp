@@ -73,6 +73,62 @@ NodeKind nodeKindFromString(const QString &text)
 }
 
 /*!
+ * \brief Returns the canonical string for \a kind.
+ */
+QString simulationKindToString(SimulationKind kind)
+{
+    switch (kind) {
+    case SimulationKind::Manual:
+        return QStringLiteral("Manual");
+    case SimulationKind::Constant:
+        return QStringLiteral("Constant");
+    case SimulationKind::Counter:
+        return QStringLiteral("Counter");
+    case SimulationKind::Toggle:
+        return QStringLiteral("Toggle");
+    case SimulationKind::Random:
+        return QStringLiteral("Random");
+    case SimulationKind::Sine:
+        return QStringLiteral("Sine");
+    case SimulationKind::Ramp:
+        return QStringLiteral("Ramp");
+    }
+    return QStringLiteral("Manual");
+}
+
+/*!
+ * \brief Parses \a text into a SimulationKind, defaulting to Manual.
+ */
+SimulationKind simulationKindFromString(const QString &text)
+{
+    if (text == QLatin1String("Constant"))
+        return SimulationKind::Constant;
+    if (text == QLatin1String("Counter"))
+        return SimulationKind::Counter;
+    if (text == QLatin1String("Toggle"))
+        return SimulationKind::Toggle;
+    if (text == QLatin1String("Random"))
+        return SimulationKind::Random;
+    if (text == QLatin1String("Sine"))
+        return SimulationKind::Sine;
+    if (text == QLatin1String("Ramp"))
+        return SimulationKind::Ramp;
+    return SimulationKind::Manual;
+}
+
+/*!
+ * \brief Returns the supported simulation kind names, Manual first.
+ */
+QStringList simulationKindNames()
+{
+    return {
+        QStringLiteral("Manual"),  QStringLiteral("Constant"), QStringLiteral("Counter"),
+        QStringLiteral("Toggle"),  QStringLiteral("Random"),   QStringLiteral("Sine"),
+        QStringLiteral("Ramp"),
+    };
+}
+
+/*!
  * \brief Returns the supported built-in scalar data type names.
  */
 QStringList builtinDataTypeNames()

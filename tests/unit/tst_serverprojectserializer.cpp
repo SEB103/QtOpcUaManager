@@ -62,6 +62,11 @@ ProjectData ServerProjectSerializerTest::makeSampleProject()
     scalar.valueRank = -1;
     scalar.writable = true;
     scalar.initialValue = 42;
+    scalar.simulation.kind = SimulationKind::Sine;
+    scalar.simulation.intervalMs = 250.0;
+    scalar.simulation.min = -5.0;
+    scalar.simulation.max = 5.0;
+    scalar.simulation.periodMs = 8000.0;
     data.nodes.append(scalar);
 
     Node array;
@@ -108,6 +113,9 @@ void ServerProjectSerializerTest::roundTripPreservesData()
     QCOMPARE(scalar.valueRank, -1);
     QVERIFY(scalar.writable);
     QCOMPARE(scalar.initialValue.toInt(), 42);
+    QCOMPARE(scalar.simulation.kind, SimulationKind::Sine);
+    QCOMPARE(scalar.simulation.intervalMs, 250.0);
+    QCOMPARE(scalar.simulation.periodMs, 8000.0);
 
     const Node &array = copy.nodes.at(2);
     QCOMPARE(array.valueRank, 1);

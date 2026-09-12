@@ -1,6 +1,7 @@
 #ifndef PROJECTBUILDER_H
 #define PROJECTBUILDER_H
 
+#include <QHash>
 #include <QString>
 
 #include <open62541/server.h>
@@ -25,6 +26,23 @@ namespace ProjectBuilder {
  * a failure as fatal and not open the endpoint.
  */
 bool build(UA_Server *server, const ServerProject::ProjectData &project, QString &error);
+
+/**
+ * Registers \a project's custom namespaces on \a server and returns the map
+ * from project-relative namespace indices to runtime indices. Namespace
+ * registration is idempotent, so calling this after build() yields the same
+ * map without adding duplicates.
+ */
+QHash<quint16, UA_UInt16> registerNamespaces(UA_Server *server,
+                                             const ServerProject::ProjectData &project);
+
+/**
+ * Builds the runtime UA_NodeId for the project node id \a projectNodeId using
+ * \a nsMap. The caller owns the returned node id and must clear it with
+ * UA_NodeId_clear (string identifiers are heap-allocated).
+ */
+UA_NodeId toRuntimeNodeId(const QString &projectNodeId,
+                          const QHash<quint16, UA_UInt16> &nsMap);
 
 } // namespace ProjectBuilder
 

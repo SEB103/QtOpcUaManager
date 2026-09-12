@@ -273,7 +273,7 @@ namespace ProjectBuilder {
 /*!
  * \brief Adds every namespace and node from \a project to \a server.
  */
-bool build(UA_Server *server, const ProjectData &project, QString &error)
+QHash<quint16, UA_UInt16> registerNamespaces(UA_Server *server, const ProjectData &project)
 {
     QHash<quint16, UA_UInt16> nsMap;
     nsMap.insert(0, 0);
@@ -282,6 +282,21 @@ bool build(UA_Server *server, const ProjectData &project, QString &error)
         const UA_UInt16 runtimeNs = UA_Server_addNamespace(server, uri.constData());
         nsMap.insert(static_cast<quint16>(k + 1), runtimeNs);
     }
+    return nsMap;
+}
+
+UA_NodeId toRuntimeNodeId(const QString &projectNodeId, const QHash<quint16, UA_UInt16> &nsMap)
+{
+    const ParsedNodeId parsed = ServerProject::parseNodeId(projectNodeId);
+    const UA_UInt16 runtimeNs = nsMap.value(parsed.ns, 0);
+    if (parsed.numeric)
+        return UA_NODEID_NUMERIC(runtimeNs, static_cast<UA_UInt32>(parsed.identifier.toUInt()));
+    return UA_NODEID_STRING_ALLOC(runtimeNs, parsed.identifier.toUtf8().constData());
+}
+
+bool build(UA_Server *server, const ProjectData &project, QString &error)
+{
+    const QHash<quint16, UA_UInt16> nsMap = registerNamespaces(server, project);
 
     // Add nodes parent-before-child: repeatedly add every node whose parent has
     // already been created (or which sits directly under the Objects folder).

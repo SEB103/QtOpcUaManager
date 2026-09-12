@@ -47,6 +47,7 @@ class ServerStudio : public QObject
     // Address-space editing.
     Q_PROPERTY(QObject *nodeModel READ nodeModel CONSTANT)
     Q_PROPERTY(QStringList dataTypeNames READ dataTypeNames CONSTANT)
+    Q_PROPERTY(QStringList simulationKindNames READ simulationKindNames CONSTANT)
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId WRITE setSelectedNodeId
                    NOTIFY selectedNodeChanged)
     Q_PROPERTY(QVariantMap selectedNode READ selectedNode NOTIFY selectedNodeChanged)
@@ -83,6 +84,7 @@ public:
     // Editing accessors.
     QObject *nodeModel() const;
     QStringList dataTypeNames() const;
+    QStringList simulationKindNames() const;
     QString selectedNodeId() const { return m_selectedNodeId; }
     void setSelectedNodeId(const QString &nodeId);
     QVariantMap selectedNode() const;

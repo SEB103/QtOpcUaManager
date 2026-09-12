@@ -55,6 +55,14 @@ Pane {
             arrayCheck.checked = node.valueRank === 1
             writableCheck.checked = node.writable === true
             initialValueField.text = node.initialValue !== undefined ? node.initialValue : ""
+
+            const simIndex = cppServerStudio.simulationKindNames.indexOf(node.simulationKind)
+            simKindCombo.currentIndex = simIndex >= 0 ? simIndex : 0
+            simIntervalField.text = node.simInterval !== undefined ? node.simInterval : "1000"
+            simMinField.text = node.simMin !== undefined ? node.simMin : "0"
+            simMaxField.text = node.simMax !== undefined ? node.simMax : "100"
+            simStepField.text = node.simStep !== undefined ? node.simStep : "1"
+            simPeriodField.text = node.simPeriod !== undefined ? node.simPeriod : "10000"
         }
     }
 
@@ -69,6 +77,12 @@ Pane {
             fields["valueRank"] = arrayCheck.checked ? 1 : -1
             fields["writable"] = writableCheck.checked
             fields["initialValue"] = initialValueField.text
+            fields["simulationKind"] = simKindCombo.currentText
+            fields["simInterval"] = parseFloat(simIntervalField.text) || 1000
+            fields["simMin"] = parseFloat(simMinField.text) || 0
+            fields["simMax"] = parseFloat(simMaxField.text) || 0
+            fields["simStep"] = parseFloat(simStepField.text) || 0
+            fields["simPeriod"] = parseFloat(simPeriodField.text) || 10000
         }
         cppServerStudio.updateNode(cppServerStudio.selectedNodeId, fields)
     }
@@ -315,6 +329,80 @@ Pane {
                             visible: cppServerStudio.selectedNode.isVariable === true
                             placeholderText: arrayCheck.checked ? qsTr("comma-separated values")
                                                                 : qsTr("value")
+                        }
+
+                        Label {
+                            text: qsTr("Simulation:")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                        }
+                        ComboBox {
+                            id: simKindCombo
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                            model: cppServerStudio.simulationKindNames
+                        }
+
+                        Label {
+                            text: qsTr("Interval (ms):")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText !== "Manual"
+                        }
+                        TextField {
+                            id: simIntervalField
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText !== "Manual"
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        }
+
+                        Label {
+                            text: qsTr("Min / Max:")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText !== "Manual"
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText !== "Manual"
+                            spacing: 6
+                            TextField {
+                                id: simMinField
+                                Layout.fillWidth: true
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
+                            TextField {
+                                id: simMaxField
+                                Layout.fillWidth: true
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
+                        }
+
+                        Label {
+                            text: qsTr("Step:")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText === "Counter"
+                        }
+                        TextField {
+                            id: simStepField
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && simKindCombo.currentText === "Counter"
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        }
+
+                        Label {
+                            text: qsTr("Period (ms):")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && (simKindCombo.currentText === "Sine"
+                                         || simKindCombo.currentText === "Ramp")
+                        }
+                        TextField {
+                            id: simPeriodField
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                                     && (simKindCombo.currentText === "Sine"
+                                         || simKindCombo.currentText === "Ramp")
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
                         }
                     }
 

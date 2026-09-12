@@ -263,6 +263,27 @@ add_dependencies(tst_serverdiagnostics OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerDiagnostics.Integration COMMAND tst_serverdiagnostics)
 
+# Integration test that a simulated variable's value changes propagate through
+# an ordinary subscription.
+qt_add_executable(tst_serversimulation
+    integration/tst_serversimulation.cpp
+)
+
+target_link_libraries(tst_serversimulation
+    PRIVATE
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serversimulation
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serversimulation OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerSimulation.Integration COMMAND tst_serversimulation)
+
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )

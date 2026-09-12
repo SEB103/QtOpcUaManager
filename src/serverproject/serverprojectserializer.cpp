@@ -33,6 +33,17 @@ QJsonObject nodeToJson(const Node &node)
         obj["writable"] = node.writable;
         if (node.initialValue.isValid())
             obj["initialValue"] = QJsonValue::fromVariant(node.initialValue);
+
+        if (node.simulation.kind != SimulationKind::Manual) {
+            QJsonObject sim;
+            sim["kind"] = simulationKindToString(node.simulation.kind);
+            sim["intervalMs"] = node.simulation.intervalMs;
+            sim["min"] = node.simulation.min;
+            sim["max"] = node.simulation.max;
+            sim["step"] = node.simulation.step;
+            sim["periodMs"] = node.simulation.periodMs;
+            obj["simulation"] = sim;
+        }
     }
     return obj;
 }
@@ -57,6 +68,14 @@ Node nodeFromJson(const QJsonObject &obj)
         node.writable = obj.value("writable").toBool(false);
         if (obj.contains("initialValue"))
             node.initialValue = obj.value("initialValue").toVariant();
+
+        const QJsonObject sim = obj.value("simulation").toObject();
+        node.simulation.kind = simulationKindFromString(sim.value("kind").toString());
+        node.simulation.intervalMs = sim.value("intervalMs").toDouble(1000.0);
+        node.simulation.min = sim.value("min").toDouble(0.0);
+        node.simulation.max = sim.value("max").toDouble(100.0);
+        node.simulation.step = sim.value("step").toDouble(1.0);
+        node.simulation.periodMs = sim.value("periodMs").toDouble(10000.0);
     }
     return node;
 }

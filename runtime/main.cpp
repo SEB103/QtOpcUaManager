@@ -32,6 +32,7 @@
 #include "diagnosticsserver.h"
 #include "projectbuilder.h"
 #include "securitysetup.h"
+#include "simulationengine.h"
 #include "serverproject/serverprojectdata.h"
 #include "serverproject/serverprojectserializer.h"
 #include "serverproject/serverprojectvalidator.h"
@@ -253,6 +254,10 @@ int main(int argc, char *argv[])
         buildFixedAddressSpace(server);
     }
 
+    // Drive simulated variable values (project mode only). The engine's timer
+    // only fires once the Qt event loop below is running.
+    SimulationEngine *simulation = hasProject ? new SimulationEngine(server, project) : nullptr;
+
     const UA_StatusCode startupStatus = UA_Server_run_startup(server);
     if (startupStatus != UA_STATUSCODE_GOOD) {
         std::fprintf(stderr, "ERROR failed to start the endpoint on port %u: %s\n",
@@ -295,6 +300,7 @@ int main(int argc, char *argv[])
     app.exec();
 
     iterateTimer.stop();
+    delete simulation;
     UA_Server_run_shutdown(server);
     UA_Server_delete(server);
     std::printf("STOPPED\n");

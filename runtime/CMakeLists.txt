@@ -44,6 +44,8 @@ qt_add_executable(OpcUaServerRuntime
     projectbuilder.h
     securitysetup.cpp
     securitysetup.h
+    simulationengine.cpp
+    simulationengine.h
 )
 
 target_link_libraries(OpcUaServerRuntime

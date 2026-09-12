@@ -34,6 +34,43 @@ enum class NodeKind {
     Variable  /**< HasComponent-referenced BaseDataVariableType variable. */
 };
 
+/** Value source driving a variable's runtime value. */
+enum class SimulationKind {
+    Manual,   /**< No automatic updates; the value is written by clients. */
+    Constant, /**< Held at the minimum value. */
+    Counter,  /**< Increments by step each interval, wrapping at the maximum. */
+    Toggle,   /**< Alternates between minimum and maximum each interval. */
+    Random,   /**< A new random value in [min, max] each interval. */
+    Sine,     /**< A sine wave between min and max with the given period. */
+    Ramp      /**< A linear sawtooth from min to max over the period. */
+};
+
+/** Returns the canonical string for \a kind (e.g. "Sine"). */
+QString simulationKindToString(SimulationKind kind);
+
+/** Parses \a text into a SimulationKind, defaulting to Manual. */
+SimulationKind simulationKindFromString(const QString &text);
+
+/** Returns the supported simulation kind names, Manual first. */
+QStringList simulationKindNames();
+
+/** Value-source definition for a variable node. */
+struct SimulationDefinition
+{
+    /** The value source; Manual means no automatic updates. */
+    SimulationKind kind = SimulationKind::Manual;
+    /** Update interval in milliseconds. */
+    double intervalMs = 1000.0;
+    /** Lower bound of the generated value. */
+    double min = 0.0;
+    /** Upper bound of the generated value. */
+    double max = 100.0;
+    /** Increment per interval for Counter. */
+    double step = 1.0;
+    /** Period in milliseconds for Sine and Ramp. */
+    double periodMs = 10000.0;
+};
+
 /** Returns the canonical string for \a kind ("Folder"/"Object"/"Variable"). */
 QString nodeKindToString(NodeKind kind);
 
@@ -119,6 +156,9 @@ struct Node
 
     /** Initial value: a scalar QVariant, or a QVariantList for arrays. */
     QVariant initialValue;
+
+    /** Value source for the variable (Manual by default). */
+    SimulationDefinition simulation;
 
     /** Returns whether this node is a variable. */
     bool isVariable() const { return kind == NodeKind::Variable; }
