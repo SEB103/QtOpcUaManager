@@ -36,6 +36,18 @@ ApplicationWindow {
     /*! Pending action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
 
+    /*! Whether the Server Studio workspace is shown instead of the launcher. */
+    property bool serverStudioActive: false
+
+    /*!
+        Whether the OPC UA client workspace should be shown. It appears for an
+        active project and, in the Server Studio proof of concept, whenever the
+        client is connected (for example after "Open in Client") even without a
+        project.
+    */
+    readonly property bool workspaceActive:
+        cppProjectManager.hasActiveProject || cppManagerOpcUa.connected
+
     /*! Whether the collapsible log panel is shown in the workspace. */
     property bool logPanelVisible: false
 
@@ -99,14 +111,14 @@ ApplicationWindow {
         id: mainScreen
         anchors.fill: parent
         darkTheme: mainWindow.darkTheme
-        visible: cppProjectManager.hasActiveProject
+        visible: mainWindow.workspaceActive
         logPanelVisible: mainWindow.logPanelVisible
         trendPanelVisible: mainWindow.trendPanelVisible
     }
 
     // The status bar belongs to the workspace; the launcher has nothing to report.
     footer: Base.BsStatusBar {
-        visible: cppProjectManager.hasActiveProject
+        visible: mainWindow.workspaceActive
         message: mainWindow.statusMessage
         messageLevel: mainWindow.statusMessageLevel
         logPanelVisible: mainWindow.logPanelVisible
@@ -130,15 +142,41 @@ ApplicationWindow {
         }
     }
 
-    // The launcher is the entry point when no project is active.
+    // The launcher is the entry point when no project is active and the client
+    // is not connected through Server Studio.
     LauncherScreen {
         id: launcherScreen
         anchors.fill: parent
         darkTheme: mainWindow.darkTheme
-        visible: !cppProjectManager.hasActiveProject
+        visible: !mainWindow.workspaceActive && !mainWindow.serverStudioActive
 
         onOpenProjectRequested: openProjectDialog.open()
         onCreateProjectRequested: newProjectDialog.open()
+        onOpenServerStudioRequested: mainWindow.serverStudioActive = true
+    }
+
+    // Server Studio workspace: runs and controls the local OPC UA server runtime.
+    ServerStudioScreen {
+        id: serverStudioScreen
+        anchors.fill: parent
+        darkTheme: mainWindow.darkTheme
+        visible: mainWindow.serverStudioActive && !mainWindow.workspaceActive
+
+        onCloseRequested: mainWindow.serverStudioActive = false
+    }
+
+    Connections {
+        target: cppServerStudio
+
+        function onNotification(level, message) {
+            mainWindow.showNotification(level, message)
+        }
+
+        // After connecting the client to the local runtime, leave Server Studio
+        // so the client workspace (shown once connected) becomes visible.
+        function onOpenInClientRequested() {
+            mainWindow.serverStudioActive = false
+        }
     }
 
     Connections {

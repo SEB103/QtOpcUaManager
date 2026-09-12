@@ -1122,6 +1122,32 @@ void OpcUaManager::connectToProjectConnection()
 }
 
 /*!
+ * \brief Connects the client to a local endpoint at \a discoveryUrl.
+ *
+ * Builds an anonymous open62541 connection for the given discovery URL and
+ * drives it through the shared reconnect state machine, exactly like reopening
+ * a project. Endpoint URL rewriting is enabled so an endpoint the local runtime
+ * advertises under a different host still resolves to the discovery host. The
+ * empty stored endpoint makes the state machine fall back to the first endpoint.
+ */
+void OpcUaManager::connectToLocalEndpoint(const QString &discoveryUrl)
+{
+    if (discoveryUrl.isEmpty()) {
+        applyLastError(tr("No local endpoint is available."));
+        return;
+    }
+
+    ProjectConnectionConfig config;
+    config.discoveryUrl = discoveryUrl;
+    config.backend = QStringLiteral("open62541");
+    config.authMode = 0; // anonymous
+    config.endpointUrlRewriteEnabled = true;
+
+    emit notification(Diagnostics::Info, tr("Connecting to %1…").arg(discoveryUrl));
+    connectUsingConfig(config);
+}
+
+/*!
  * \internal
  * \brief Seeds the reconnect state machine from \a config and starts connecting.
  *

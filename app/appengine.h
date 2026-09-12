@@ -12,6 +12,7 @@ class LogModel;
 class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
+class ServerStudio;
 class QThread;
 
 QT_BEGIN_NAMESPACE
@@ -69,6 +70,9 @@ private:
 
     /** Project facade exposed to QML as \c cppProjectManager; owned by this engine. */
     ProjectManager* m_projectManager = nullptr;
+
+    /** Server Studio facade exposed to QML as \c cppServerStudio; owned by this engine. */
+    ServerStudio* m_serverStudio = nullptr;
 
     /** Application/build metadata exposed to QML as \c cppAppInfo; owned by this engine. */
     AppInfo* m_appInfo = nullptr;

@@ -70,6 +70,11 @@ option(
 add_subdirectory(src)
 add_subdirectory(qml)
 
+# Build the headless OPC UA server runtime (separate executable). It embeds
+# open62541 and is controlled by the GUI application over a real opc.tcp
+# connection; see runtime/CMakeLists.txt.
+add_subdirectory(runtime)
+
 qt_add_executable(appOpcUaManager
     app/main.cpp
     app/appcore.cpp
@@ -109,6 +114,10 @@ target_link_libraries(appOpcUaManager
 
 # Ensure statically linked QML plugins are retained and imported correctly.
 qt_import_qml_plugins(appOpcUaManager)
+
+# The GUI launches the server runtime, so make sure it is built alongside the
+# application and placed next to it in the build tree.
+add_dependencies(appOpcUaManager OpcUaServerRuntime)
 
 target_compile_definitions(appOpcUaManager
     PRIVATE OPCUAMANAGER_VERSION="${PROJECT_VERSION}"

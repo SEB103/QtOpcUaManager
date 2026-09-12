@@ -1,0 +1,55 @@
+# Headless OPC UA server runtime.
+#
+# This is a standalone executable, deliberately separate from the GUI
+# application: the existing OPC UA client must reach it over a real opc.tcp
+# connection so discovery, sessions, subscriptions, connection loss, restart
+# and crash can all be exercised realistically. It embeds open62541 directly
+# and links only Qt6::Core -- never Qt6::Gui/Quick or Qt6::OpcUa.
+
+find_package(Qt6 6.11 REQUIRED COMPONENTS Core)
+
+# Acquire open62541 as the embedded server stack. A separate process means its
+# symbols never clash with the open62541 build inside Qt's OPC UA client
+# backend. Phase 0 needs no security, so encryption is left off; it is turned
+# on (OpenSSL backend) in the Security Test Lab phase.
+include(FetchContent)
+
+set(UA_ENABLE_AMALGAMATION OFF CACHE BOOL "" FORCE)
+set(UA_ENABLE_ENCRYPTION OFF CACHE STRING "" FORCE)
+set(UA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(UA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(UA_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(UA_FORCE_WERROR OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(open62541
+    GIT_REPOSITORY https://github.com/open62541/open62541.git
+    GIT_TAG v1.4.14
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(open62541)
+
+qt_add_executable(OpcUaServerRuntime
+    main.cpp
+    projectbuilder.cpp
+    projectbuilder.h
+)
+
+target_link_libraries(OpcUaServerRuntime
+    PRIVATE
+        Qt6::Core
+        ServerProjectCore
+        open62541::open62541
+)
+
+# The GUI controller resolves the runtime next to the application executable
+# (QCoreApplication::applicationDirPath()). In the build tree the app lands in
+# the top-level binary dir, so place the runtime there too.
+set_target_properties(OpcUaServerRuntime PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    WIN32_EXECUTABLE FALSE
+)
+
+install(TARGETS OpcUaServerRuntime
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)

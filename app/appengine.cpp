@@ -22,6 +22,9 @@
 #include "licensemodel.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
+#include "qmlapi/servernodemodel.h"
+#include "qmlapi/serverruntimecontroller.h"
+#include "qmlapi/serverstudio.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/logfiltermodel.h"
@@ -263,6 +266,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     , m_initialUrl(initialUrl)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
     , m_projectManager(new ProjectManager(this))
+    , m_serverStudio(new ServerStudio(this))
     , m_appInfo(new AppInfo(this))
     , m_licenseModel(new LicenseModel(this))
     , m_logModel(new LogModel(2000, this))
@@ -294,6 +298,15 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<ProjectManager>("Cpp.ProjectManager", 1, 0, "ProjectManager", QStringLiteral("ProjectManager should not be created in QML."));
     m_projectManager->setOpcUaManager(m_opcUaManager);
     rootContext()->setContextProperty("cppProjectManager", m_projectManager);
+
+    // Server Studio facade drives the headless OPC UA server runtime and reuses
+    // the client facade for its "Open in Client" action. ServerRuntimeController
+    // is registered uncreatable so QML can name its State enum values.
+    qmlRegisterUncreatableType<ServerStudio>("Cpp.ServerStudio", 1, 0, "ServerStudio", QStringLiteral("ServerStudio should not be created in QML."));
+    qmlRegisterUncreatableType<ServerRuntimeController>("Cpp.ServerStudio", 1, 0, "ServerRuntimeController", QStringLiteral("ServerRuntimeController is owned by ServerStudio."));
+    qmlRegisterUncreatableType<ServerNodeModel>("Cpp.ServerStudio", 1, 0, "ServerNodeModel", QStringLiteral("ServerNodeModel is exposed by ServerStudio::nodeModel."));
+    m_serverStudio->setOpcUaManager(m_opcUaManager);
+    rootContext()->setContextProperty("cppServerStudio", m_serverStudio);
 
     // Application/build metadata and the bundled license documents shown by the
     // Help > About dialog. The license texts are embedded as resources under

@@ -56,6 +56,31 @@ target_link_libraries(OpcUaCore
         Qt6::Sql
 )
 
+# Server Studio domain model shared by the GUI editor and the headless runtime.
+# Qt6::Core only: no GUI, Quick, Qt OPC UA or open62541 dependency, so the
+# runtime can link it without pulling in the client stack.
+qt_add_library(ServerProjectCore STATIC)
+
+target_sources(ServerProjectCore
+    PRIVATE
+        serverproject/serverprojectdata.cpp
+        serverproject/serverprojectdata.h
+        serverproject/serverprojectserializer.cpp
+        serverproject/serverprojectserializer.h
+        serverproject/serverprojectvalidator.cpp
+        serverproject/serverprojectvalidator.h
+)
+
+target_include_directories(ServerProjectCore
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+target_link_libraries(ServerProjectCore
+    PUBLIC
+        Qt6::Core
+)
+
 # C++ facade exposed to QML as the cppManagerOpcUa context property.
 qt_add_library(OpcUaQmlApi STATIC)
 
@@ -65,6 +90,12 @@ target_sources(OpcUaQmlApi
         qmlapi/opcuamanager.h
         qmlapi/projectmanager.cpp
         qmlapi/projectmanager.h
+        qmlapi/servernodemodel.cpp
+        qmlapi/servernodemodel.h
+        qmlapi/serverruntimecontroller.cpp
+        qmlapi/serverruntimecontroller.h
+        qmlapi/serverstudio.cpp
+        qmlapi/serverstudio.h
         qmlapi/structuredvaluehighlighter.cpp
         qmlapi/structuredvaluehighlighter.h
 )
@@ -77,6 +108,7 @@ target_include_directories(OpcUaQmlApi
 target_link_libraries(OpcUaQmlApi
     PUBLIC
         OpcUaCore
+        ServerProjectCore
         Qt6::Core
         Qt6::Gui
         Qt6::Quick

@@ -507,6 +507,15 @@ public:
      */
     Q_INVOKABLE void connectToProjectConnection();
 
+    /**
+     * Connects the client to a local endpoint at \a discoveryUrl (for example
+     * opc.tcp://127.0.0.1:4840) using anonymous authentication and the
+     * open62541 backend. Used by Server Studio's "Open in Client" action to
+     * reach the local runtime through the ordinary client path. Does nothing
+     * when the client is already connected or busy.
+     */
+    Q_INVOKABLE void connectToLocalEndpoint(const QString &discoveryUrl);
+
     /** Returns whether legacy pre-project state exists to migrate into a project. */
     bool hasLegacyState() const;
 

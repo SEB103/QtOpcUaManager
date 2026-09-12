@@ -39,6 +39,13 @@ Pane {
     signal createProjectRequested()
 
     /*!
+        \qmlsignal LauncherScreen::openServerStudioRequested()
+        Emitted when the user opens Server Studio to run a local test server. The
+        host switches to the ServerStudioScreen.
+    */
+    signal openServerStudioRequested()
+
+    /*!
         Formats an ISO 8601 \a iso timestamp as a compact local date-time, or
         returns it unchanged when it cannot be parsed.
     */
@@ -207,6 +214,11 @@ Pane {
                 Layout.topMargin: 16
                 Layout.fillWidth: true
                 spacing: 12
+
+                Button {
+                    text: qsTr("Server Studio…")
+                    onClicked: launcher.openServerStudioRequested()
+                }
 
                 Item { Layout.fillWidth: true }
 

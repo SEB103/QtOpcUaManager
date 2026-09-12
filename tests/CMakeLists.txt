@@ -144,6 +144,30 @@ target_link_libraries(tst_structuredvalueformatter
 
 add_test(NAME StructuredValueFormatter.Unit COMMAND tst_structuredvalueformatter)
 
+qt_add_executable(tst_serverprojectserializer
+    unit/tst_serverprojectserializer.cpp
+)
+
+target_link_libraries(tst_serverprojectserializer
+    PRIVATE
+        ServerProjectCore
+        Qt6::Test
+)
+
+add_test(NAME ServerProjectSerializer.Unit COMMAND tst_serverprojectserializer)
+
+qt_add_executable(tst_serverprojectvalidator
+    unit/tst_serverprojectvalidator.cpp
+)
+
+target_link_libraries(tst_serverprojectvalidator
+    PRIVATE
+        ServerProjectCore
+        Qt6::Test
+)
+
+add_test(NAME ServerProjectValidator.Unit COMMAND tst_serverprojectvalidator)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )
@@ -155,6 +179,48 @@ target_link_libraries(tst_opcuaintegration
 )
 
 add_test(NAME OpcUa.ExternalIntegration COMMAND tst_opcuaintegration)
+
+# Integration test that launches the headless OpcUaServerRuntime as a fixture
+# and drives a real client against it. The runtime path is injected at compile
+# time so the test can locate the freshly built executable.
+qt_add_executable(tst_serverruntime
+    integration/tst_serverruntime.cpp
+)
+
+target_link_libraries(tst_serverruntime
+    PRIVATE
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverruntime
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverruntime OpcUaServerRuntime)
+
+add_test(NAME ServerRuntime.Integration COMMAND tst_serverruntime)
+
+# Integration test that the runtime builds its address space from a .uaserver
+# project and a client can browse the designed nodes.
+qt_add_executable(tst_serverprojectruntime
+    integration/tst_serverprojectruntime.cpp
+)
+
+target_link_libraries(tst_serverprojectruntime
+    PRIVATE
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverprojectruntime
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverprojectruntime OpcUaServerRuntime)
+
+add_test(NAME ServerProjectRuntime.Integration COMMAND tst_serverprojectruntime)
 
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
