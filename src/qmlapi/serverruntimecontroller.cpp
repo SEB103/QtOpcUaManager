@@ -91,7 +91,8 @@ QString ServerRuntimeController::resolveRuntimeExecutable() const
 /*!
  * \brief Starts the runtime on \a port.
  */
-void ServerRuntimeController::start(quint16 port, const QString &projectPath)
+void ServerRuntimeController::start(quint16 port, const QString &projectPath,
+                                    const QString &pkiPath)
 {
     if (m_state == State::Starting || m_state == State::Running) {
         qCWarning(lcServerRuntime) << "Server runtime is already running.";
@@ -108,6 +109,7 @@ void ServerRuntimeController::start(quint16 port, const QString &projectPath)
 
     m_port = port;
     m_projectPath = projectPath;
+    m_pkiPath = pkiPath;
     m_endpointUrl.clear();
     emit endpointUrlChanged();
     m_pendingOutput.clear();
@@ -116,6 +118,8 @@ void ServerRuntimeController::start(quint16 port, const QString &projectPath)
     QStringList arguments{QStringLiteral("--port"), QString::number(port)};
     if (!projectPath.isEmpty())
         arguments << QStringLiteral("--project") << projectPath;
+    if (!pkiPath.isEmpty())
+        arguments << QStringLiteral("--pki") << pkiPath;
 
     setState(State::Starting);
     qCInfo(lcServerRuntime) << "Starting server runtime on port" << port
@@ -167,9 +171,10 @@ void ServerRuntimeController::restart()
 {
     const quint16 previousPort = m_port;
     const QString previousProject = m_projectPath;
+    const QString previousPki = m_pkiPath;
     if (m_process->state() != QProcess::NotRunning)
         stop();
-    start(previousPort, previousProject);
+    start(previousPort, previousProject, previousPki);
 }
 
 /*!

@@ -21,12 +21,15 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QDir>
+#include <QStandardPaths>
 #include <QString>
 
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
 
 #include "projectbuilder.h"
+#include "securitysetup.h"
 #include "serverproject/serverprojectdata.h"
 #include "serverproject/serverprojectserializer.h"
 #include "serverproject/serverprojectvalidator.h"
@@ -162,7 +165,17 @@ int main(int argc, char *argv[])
         QStringLiteral("Path to a .uaserver project describing the address space."),
         QStringLiteral("path"));
     parser.addOption(projectOption);
+    QCommandLineOption pkiOption(
+        QStringLiteral("pki"),
+        QStringLiteral("Server PKI directory for the generated server certificate."),
+        QStringLiteral("dir"));
+    parser.addOption(pkiOption);
     parser.process(app);
+
+    const QString pkiDir = parser.isSet(pkiOption)
+        ? parser.value(pkiOption)
+        : QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation))
+              .filePath(QStringLiteral("opcuamanager-server-pki"));
 
     bool portOk = false;
     const uint parsedPort = parser.value(portOption).toUInt(&portOk);
@@ -210,10 +223,19 @@ int main(int argc, char *argv[])
     }
 
     UA_ServerConfig *config = UA_Server_getConfig(server);
-    const UA_StatusCode configStatus = UA_ServerConfig_setMinimal(config, port, nullptr);
+    UA_StatusCode configStatus = UA_STATUSCODE_GOOD;
+    QString configError;
+    if (hasProject) {
+        configStatus = SecuritySetup::apply(config, project, port, pkiDir, configError);
+    } else {
+        configStatus = UA_ServerConfig_setMinimal(config, port, nullptr);
+    }
     if (configStatus != UA_STATUSCODE_GOOD) {
+        const QByteArray reason = configError.isEmpty()
+            ? QByteArray(UA_StatusCode_name(configStatus))
+            : configError.toLocal8Bit();
         std::fprintf(stderr, "ERROR failed to configure the endpoint on port %u: %s\n",
-                     static_cast<unsigned>(port), UA_StatusCode_name(configStatus));
+                     static_cast<unsigned>(port), reason.constData());
         UA_Server_delete(server);
         return 4;
     }

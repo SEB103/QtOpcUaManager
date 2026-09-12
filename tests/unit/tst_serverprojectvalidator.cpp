@@ -31,6 +31,9 @@ private slots:
     /*! A namespace index beyond the declared namespaces is reported. */
     void rejectsNamespaceOutOfRange();
 
+    /*! Disabling anonymous access with no user accounts is reported. */
+    void rejectsNoAuthenticationMethod();
+
 private:
     /*! Returns a minimal valid project with a folder and one scalar variable. */
     static ProjectData makeValidProject();
@@ -103,6 +106,15 @@ void ServerProjectValidatorTest::rejectsNamespaceOutOfRange()
     ProjectData data = makeValidProject();
     data.nodes[0].nodeId = QStringLiteral("ns=5;s=Test");
     data.nodes[1].parentNodeId = data.nodes[0].nodeId;
+    const Validator::Result result = Validator::validate(data);
+    QVERIFY(!result.ok);
+}
+
+void ServerProjectValidatorTest::rejectsNoAuthenticationMethod()
+{
+    ProjectData data = makeValidProject();
+    data.security.allowAnonymous = false;
+    data.security.users.clear();
     const Validator::Result result = Validator::validate(data);
     QVERIFY(!result.ok);
 }

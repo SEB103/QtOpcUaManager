@@ -145,6 +145,50 @@ struct Configuration
 };
 
 /**
+ * A username/password login accepted by the test server.
+ *
+ * These are throwaway credentials for a local development/test server, stored
+ * in the (private, local) .uaserver file so authentication scenarios are
+ * reproducible. They must never be real secrets.
+ */
+struct UserCredential
+{
+    /** Login user name. */
+    QString username;
+    /** Login password (test credential; see the struct note). */
+    QString password;
+
+    /** Returns whether both fields match \a other. */
+    bool operator==(const UserCredential &other) const
+    {
+        return username == other.username && password == other.password;
+    }
+};
+
+/**
+ * Security configuration: which endpoints the server offers and how clients
+ * authenticate.
+ */
+struct SecurityConfiguration
+{
+    /** Whether anonymous sessions are accepted. */
+    bool allowAnonymous = true;
+
+    /** Accepted username/password logins. */
+    QList<UserCredential> users;
+
+    /** Whether a SecurityPolicy#None endpoint is offered. */
+    bool allowNone = true;
+
+    /**
+     * Whether encrypted endpoints are offered (Basic256Sha256 and the AES
+     * policies, each with Sign and SignAndEncrypt). Requires a server
+     * certificate, which the runtime generates into the server PKI if absent.
+     */
+    bool enableSecurity = false;
+};
+
+/**
  * Full in-memory representation of one .uaserver project.
  *
  * A project file is the single source of truth for the server: its identity and
@@ -166,6 +210,9 @@ struct ProjectData
 
     /** Address-space nodes belonging to the project. */
     QList<Node> nodes;
+
+    /** Security and authentication configuration. */
+    SecurityConfiguration security;
 };
 
 } // namespace ServerProject

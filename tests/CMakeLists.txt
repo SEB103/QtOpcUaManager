@@ -222,6 +222,27 @@ add_dependencies(tst_serverprojectruntime OpcUaServerRuntime)
 
 add_test(NAME ServerProjectRuntime.Integration COMMAND tst_serverprojectruntime)
 
+# Integration test for the Security Test Lab: authentication enforcement and
+# encrypted-endpoint advertisement.
+qt_add_executable(tst_serversecurity
+    integration/tst_serversecurity.cpp
+)
+
+target_link_libraries(tst_serversecurity
+    PRIVATE
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serversecurity
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serversecurity OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerSecurity.Integration COMMAND tst_serversecurity)
+
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )

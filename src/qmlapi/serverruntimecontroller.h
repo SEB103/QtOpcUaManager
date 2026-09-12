@@ -52,7 +52,8 @@ public:
      * OPCUAMANAGER_RUNTIME_PATH env var. When \a projectPath is empty the
      * runtime serves its built-in fixed address space.
      */
-    void start(quint16 port = 4840, const QString &projectPath = QString());
+    void start(quint16 port = 4840, const QString &projectPath = QString(),
+               const QString &pkiPath = QString());
 
     /** Requests a graceful shutdown (STOP over stdin), escalating to kill on timeout. */
     void stop();
@@ -100,6 +101,9 @@ private:
 
     /** Project path most recently used to start the runtime; empty for fixed. */
     QString m_projectPath;
+
+    /** Server PKI directory most recently used to start the runtime. */
+    QString m_pkiPath;
 
     /** Accumulates partial output lines across readyRead notifications. */
     QString m_pendingOutput;

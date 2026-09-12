@@ -10,12 +10,19 @@ find_package(Qt6 6.11 REQUIRED COMPONENTS Core)
 
 # Acquire open62541 as the embedded server stack. A separate process means its
 # symbols never clash with the open62541 build inside Qt's OPC UA client
-# backend. Phase 0 needs no security, so encryption is left off; it is turned
-# on (OpenSSL backend) in the Security Test Lab phase.
+# backend. Encryption uses the OpenSSL backend, reusing the OpenSSL that ships
+# with the Qt installation (the same one the client backend already deploys).
 include(FetchContent)
 
+if(WIN32 AND NOT DEFINED OPENSSL_ROOT_DIR)
+    set(_opcua_qt_openssl "C:/Qt/Tools/OpenSSLv3/Win_x64")
+    if(EXISTS "${_opcua_qt_openssl}/include/openssl/ssl.h")
+        set(OPENSSL_ROOT_DIR "${_opcua_qt_openssl}" CACHE PATH "OpenSSL root for open62541")
+    endif()
+endif()
+
 set(UA_ENABLE_AMALGAMATION OFF CACHE BOOL "" FORCE)
-set(UA_ENABLE_ENCRYPTION OFF CACHE STRING "" FORCE)
+set(UA_ENABLE_ENCRYPTION "OPENSSL" CACHE STRING "" FORCE)
 set(UA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(UA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(UA_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
@@ -33,6 +40,8 @@ qt_add_executable(OpcUaServerRuntime
     main.cpp
     projectbuilder.cpp
     projectbuilder.h
+    securitysetup.cpp
+    securitysetup.h
 )
 
 target_link_libraries(OpcUaServerRuntime

@@ -334,6 +334,105 @@ Pane {
             }
         }
 
+        // Security configuration.
+        Frame {
+            visible: cppServerStudio.hasProject
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 6
+
+                Label {
+                    text: qsTr("Security")
+                    font.bold: true
+                    color: Material.foreground
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
+
+                    CheckBox {
+                        id: anonCheck
+                        text: qsTr("Allow anonymous")
+                        checked: cppServerStudio.security.allowAnonymous
+                        onToggled: cppServerStudio.setSecurityFlags(
+                                       checked, noneCheck.checked, encCheck.checked)
+                    }
+                    CheckBox {
+                        id: noneCheck
+                        text: qsTr("Offer None endpoint")
+                        checked: cppServerStudio.security.allowNone
+                        onToggled: cppServerStudio.setSecurityFlags(
+                                       anonCheck.checked, checked, encCheck.checked)
+                    }
+                    CheckBox {
+                        id: encCheck
+                        text: qsTr("Enable encryption")
+                        checked: cppServerStudio.security.enableSecurity
+                        onToggled: cppServerStudio.setSecurityFlags(
+                                       anonCheck.checked, noneCheck.checked, checked)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    TextField {
+                        id: userField
+                        Layout.preferredWidth: 160
+                        placeholderText: qsTr("user name")
+                    }
+                    TextField {
+                        id: passField
+                        Layout.preferredWidth: 160
+                        placeholderText: qsTr("password")
+                    }
+                    Button {
+                        text: qsTr("Add user")
+                        enabled: userField.text.trim().length > 0
+                        onClicked: {
+                            cppServerStudio.addUser(userField.text, passField.text)
+                            userField.text = ""
+                            passField.text = ""
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Repeater {
+                        model: cppServerStudio.security.users
+
+                        delegate: Frame {
+                            id: userChip
+                            required property var modelData
+                            padding: 4
+
+                            RowLayout {
+                                spacing: 6
+                                Label {
+                                    text: userChip.modelData.username
+                                    color: Material.foreground
+                                }
+                                ToolButton {
+                                    text: "✕"
+                                    flat: true
+                                    onClicked: cppServerStudio.removeUser(userChip.modelData.username)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Runtime control bar.
         Frame {
             visible: cppServerStudio.hasProject

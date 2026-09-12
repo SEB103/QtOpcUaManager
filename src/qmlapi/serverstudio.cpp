@@ -205,6 +205,7 @@ void ServerStudio::newProject(const QString &displayName)
     refreshModel();
     setDirty(true);
     emit projectChanged();
+    emit securityChanged();
     emit selectedNodeChanged();
 }
 
@@ -226,6 +227,7 @@ bool ServerStudio::openProject(const QString &path)
     m_dirty = false;
     refreshModel();
     emit projectChanged();
+    emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
     emit notification(Diagnostics::Info, tr("Opened server project %1").arg(m_project.displayName));
@@ -260,6 +262,7 @@ bool ServerStudio::saveProjectAs(const QString &path)
     m_projectPath = local;
     setDirty(false);
     emit projectChanged();
+    emit securityChanged();
     return true;
 }
 
@@ -275,6 +278,7 @@ void ServerStudio::closeProject()
     m_dirty = false;
     refreshModel();
     emit projectChanged();
+    emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
 }
@@ -415,6 +419,67 @@ void ServerStudio::removeNode(const QString &nodeId)
     emit selectedNodeChanged();
 }
 
+// --- Security editing -------------------------------------------------------
+
+QVariantMap ServerStudio::security() const
+{
+    QVariantMap map;
+    map["allowAnonymous"] = m_project.security.allowAnonymous;
+    map["allowNone"] = m_project.security.allowNone;
+    map["enableSecurity"] = m_project.security.enableSecurity;
+    QVariantList users;
+    for (const ServerProject::UserCredential &user : m_project.security.users) {
+        QVariantMap userMap;
+        userMap["username"] = user.username;
+        userMap["password"] = user.password;
+        users.append(userMap);
+    }
+    map["users"] = users;
+    return map;
+}
+
+void ServerStudio::setSecurityFlags(bool allowAnonymous, bool allowNone, bool enableSecurity)
+{
+    if (!m_hasProject)
+        return;
+    m_project.security.allowAnonymous = allowAnonymous;
+    m_project.security.allowNone = allowNone;
+    m_project.security.enableSecurity = enableSecurity;
+    setDirty(true);
+    emit securityChanged();
+}
+
+void ServerStudio::addUser(const QString &username, const QString &password)
+{
+    if (!m_hasProject || username.trimmed().isEmpty())
+        return;
+    for (ServerProject::UserCredential &user : m_project.security.users) {
+        if (user.username == username) {
+            user.password = password;
+            setDirty(true);
+            emit securityChanged();
+            return;
+        }
+    }
+    m_project.security.users.append({username, password});
+    setDirty(true);
+    emit securityChanged();
+}
+
+void ServerStudio::removeUser(const QString &username)
+{
+    if (!m_hasProject)
+        return;
+    const qsizetype before = m_project.security.users.size();
+    m_project.security.users.removeIf([&username](const ServerProject::UserCredential &user) {
+        return user.username == username;
+    });
+    if (m_project.security.users.size() != before) {
+        setDirty(true);
+        emit securityChanged();
+    }
+}
+
 // --- Runtime control --------------------------------------------------------
 
 void ServerStudio::startServer()
@@ -439,7 +504,13 @@ void ServerStudio::startServer()
         return;
     }
 
-    m_controller.start(m_project.server.endpoint.port, snapshot);
+    // Independent server PKI, kept separate from the client PKI, so the
+    // generated server certificate persists across runs.
+    const QString pkiDir =
+        QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
+            .filePath(QStringLiteral("pki-server"));
+
+    m_controller.start(m_project.server.endpoint.port, snapshot, pkiDir);
 }
 
 void ServerStudio::stop()

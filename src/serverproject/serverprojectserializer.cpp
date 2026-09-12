@@ -93,6 +93,20 @@ QJsonObject Serializer::toJson(const ProjectData &data)
         nodes.append(nodeToJson(node));
     root["nodes"] = nodes;
 
+    QJsonObject security;
+    security["allowAnonymous"] = data.security.allowAnonymous;
+    security["allowNone"] = data.security.allowNone;
+    security["enableSecurity"] = data.security.enableSecurity;
+    QJsonArray users;
+    for (const UserCredential &user : data.security.users) {
+        QJsonObject userObj;
+        userObj["username"] = user.username;
+        userObj["password"] = user.password;
+        users.append(userObj);
+    }
+    security["users"] = users;
+    root["security"] = security;
+
     return root;
 }
 
@@ -130,6 +144,22 @@ bool Serializer::fromJson(const QJsonObject &root, ProjectData &data, QString &e
     const QJsonArray nodes = root.value("nodes").toArray();
     for (const QJsonValue &value : nodes)
         data.nodes.append(nodeFromJson(value.toObject()));
+
+    // The security object is optional; older files fall back to the defaults
+    // (anonymous allowed, None endpoint only).
+    const QJsonObject security = root.value("security").toObject();
+    data.security.allowAnonymous = security.value("allowAnonymous").toBool(true);
+    data.security.allowNone = security.value("allowNone").toBool(true);
+    data.security.enableSecurity = security.value("enableSecurity").toBool(false);
+    data.security.users.clear();
+    const QJsonArray users = security.value("users").toArray();
+    for (const QJsonValue &value : users) {
+        const QJsonObject userObj = value.toObject();
+        UserCredential user;
+        user.username = userObj.value("username").toString();
+        user.password = userObj.value("password").toString();
+        data.security.users.append(user);
+    }
 
     return true;
 }

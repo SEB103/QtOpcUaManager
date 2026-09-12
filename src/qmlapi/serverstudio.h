@@ -46,6 +46,9 @@ class ServerStudio : public QObject
                    NOTIFY selectedNodeChanged)
     Q_PROPERTY(QVariantMap selectedNode READ selectedNode NOTIFY selectedNodeChanged)
 
+    // Security configuration.
+    Q_PROPERTY(QVariantMap security READ security NOTIFY securityChanged)
+
 public:
     /** Creates the facade, its runtime controller and its tree model. */
     explicit ServerStudio(QObject *parent = nullptr);
@@ -116,6 +119,19 @@ public:
     /** Removes \a nodeId and all of its descendants. */
     Q_INVOKABLE void removeNode(const QString &nodeId);
 
+    // Security editing.
+    /** Returns the security configuration as a map for the security panel. */
+    QVariantMap security() const;
+
+    /** Sets the endpoint/authentication flags. */
+    Q_INVOKABLE void setSecurityFlags(bool allowAnonymous, bool allowNone, bool enableSecurity);
+
+    /** Adds or updates a username/password test login. */
+    Q_INVOKABLE void addUser(const QString &username, const QString &password);
+
+    /** Removes the test login \a username. */
+    Q_INVOKABLE void removeUser(const QString &username);
+
     // Runtime control.
     /** Starts the runtime serving the current project (auto-saving a snapshot). */
     Q_INVOKABLE void startServer();
@@ -138,6 +154,7 @@ signals:
     void projectChanged();
     void dirtyChanged();
     void selectedNodeChanged();
+    void securityChanged();
     void notification(int level, const QString &message);
     void openInClientRequested();
 

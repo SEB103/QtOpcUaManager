@@ -74,6 +74,23 @@ Validator::Result Validator::validate(const ProjectData &data)
         }
     }
 
+    // Security: the server must offer at least one endpoint and at least one
+    // way to authenticate.
+    if (!data.security.allowNone && !data.security.enableSecurity) {
+        result.errors.append(QStringLiteral(
+            "Security: no endpoint is offered (enable the None endpoint or encryption)."));
+    }
+    if (!data.security.allowAnonymous && data.security.users.isEmpty()) {
+        result.errors.append(QStringLiteral(
+            "Security: anonymous access is disabled but no user accounts are defined."));
+    }
+    for (const UserCredential &user : data.security.users) {
+        if (user.username.trimmed().isEmpty()) {
+            result.errors.append(QStringLiteral("Security: a user account has an empty user name."));
+            break;
+        }
+    }
+
     result.ok = result.errors.isEmpty();
     return result;
 }

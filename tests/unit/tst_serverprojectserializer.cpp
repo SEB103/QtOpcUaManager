@@ -40,6 +40,11 @@ ProjectData ServerProjectSerializerTest::makeSampleProject()
     data.server.endpoint.port = 48410;
     data.namespaces.append({QStringLiteral("urn:opcuamanager:demo")});
 
+    data.security.allowAnonymous = false;
+    data.security.allowNone = true;
+    data.security.enableSecurity = true;
+    data.security.users.append({QStringLiteral("admin"), QStringLiteral("secret")});
+
     Node folder;
     folder.kind = NodeKind::Folder;
     folder.nodeId = QStringLiteral("ns=1;s=Test");
@@ -108,6 +113,12 @@ void ServerProjectSerializerTest::roundTripPreservesData()
     QCOMPARE(array.valueRank, 1);
     QCOMPARE(array.initialValue.toList().size(), 3);
     QCOMPARE(array.initialValue.toList().at(2).toDouble(), 3.5);
+
+    QCOMPARE(copy.security.allowAnonymous, false);
+    QCOMPARE(copy.security.enableSecurity, true);
+    QCOMPARE(copy.security.users.size(), 1);
+    QCOMPARE(copy.security.users.first().username, QStringLiteral("admin"));
+    QCOMPARE(copy.security.users.first().password, QStringLiteral("secret"));
 }
 
 void ServerProjectSerializerTest::reportsFileNotFound()
