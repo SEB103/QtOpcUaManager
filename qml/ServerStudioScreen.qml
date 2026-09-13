@@ -151,6 +151,15 @@ Pane {
                 enabled: cppServerStudio.hasProject
                 onClicked: saveAsDialog.open()
             }
+            Button {
+                text: qsTr("Import NodeSet2…")
+                onClicked: importNodeSetDialog.open()
+            }
+            Button {
+                text: qsTr("Export NodeSet2…")
+                enabled: cppServerStudio.hasProject
+                onClicked: exportNodeSetDialog.open()
+            }
         }
 
         // Placeholder shown until a project exists.
@@ -758,5 +767,21 @@ Pane {
         defaultSuffix: "uaserver"
         nameFilters: [qsTr("Server projects (*.uaserver)")]
         onAccepted: cppServerStudio.saveProjectAs(selectedFile)
+    }
+
+    FileDialog {
+        id: importNodeSetDialog
+        title: qsTr("Import NodeSet2")
+        nameFilters: [qsTr("NodeSet2 files (*.xml)"), qsTr("All files (*)")]
+        onAccepted: cppServerStudio.importNodeSet(selectedFile)
+    }
+
+    FileDialog {
+        id: exportNodeSetDialog
+        title: qsTr("Export NodeSet2")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "xml"
+        nameFilters: [qsTr("NodeSet2 files (*.xml)")]
+        onAccepted: cppServerStudio.exportNodeSet(selectedFile)
     }
 }

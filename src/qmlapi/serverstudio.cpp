@@ -10,6 +10,7 @@
 #include "core/diagnosticslevel.h"
 #include "opcuamanager.h"
 #include "servernodemodel.h"
+#include "serverproject/serverprojectnodeset.h"
 #include "serverproject/serverprojectserializer.h"
 #include "serverproject/serverprojectvalidator.h"
 
@@ -436,6 +437,54 @@ void ServerStudio::closeProject()
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
+}
+
+bool ServerStudio::exportNodeSet(const QString &path)
+{
+    if (!m_hasProject) {
+        emit notification(Diagnostics::Warning, tr("Open a server project first."));
+        return false;
+    }
+    const ServerProject::NodeSet::Result result =
+        ServerProject::NodeSet::exportToFile(toLocalPath(path), m_project);
+    if (!result.ok) {
+        emit notification(Diagnostics::Error,
+                          tr("Cannot export NodeSet2: %1").arg(result.errorString));
+        return false;
+    }
+    emit notification(Diagnostics::Info, tr("Exported NodeSet2."));
+    return true;
+}
+
+bool ServerStudio::importNodeSet(const QString &path)
+{
+    const ServerProject::NodeSet::ImportResult result =
+        ServerProject::NodeSet::importFromFile(toLocalPath(path));
+    if (!result.ok) {
+        emit notification(Diagnostics::Error,
+                          tr("Cannot import NodeSet2: %1").arg(result.errorString));
+        return false;
+    }
+
+    if (!m_hasProject)
+        newProject(tr("Imported Server"));
+
+    // Replace the designed address space; keep the default namespace when the
+    // imported file declared none, so node-id namespace 1 still resolves.
+    if (!result.namespaces.isEmpty())
+        m_project.namespaces = result.namespaces;
+    m_project.enumTypes = result.enumTypes;
+    m_project.nodes = result.nodes;
+    m_selectedNodeId.clear();
+
+    refreshModel();
+    setDirty(true);
+    emit projectChanged();
+    emit enumsChanged();
+    emit selectedNodeChanged();
+    emit notification(Diagnostics::Info,
+                      tr("Imported %1 node(s) from NodeSet2.").arg(result.nodes.size()));
+    return true;
 }
 
 // --- Address-space editing --------------------------------------------------

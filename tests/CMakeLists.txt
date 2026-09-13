@@ -168,6 +168,18 @@ target_link_libraries(tst_serverprojectvalidator
 
 add_test(NAME ServerProjectValidator.Unit COMMAND tst_serverprojectvalidator)
 
+qt_add_executable(tst_serverprojectnodeset
+    unit/tst_serverprojectnodeset.cpp
+)
+
+target_link_libraries(tst_serverprojectnodeset
+    PRIVATE
+        ServerProjectCore
+        Qt6::Test
+)
+
+add_test(NAME ServerProjectNodeSet.Unit COMMAND tst_serverprojectnodeset)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )

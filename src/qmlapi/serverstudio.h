@@ -109,6 +109,12 @@ public:
     /** Closes the project, stopping the runtime if it is running. */
     Q_INVOKABLE void closeProject();
 
+    /** Exports the current address space to \a path as NodeSet2 XML. */
+    Q_INVOKABLE bool exportNodeSet(const QString &path);
+
+    /** Imports a NodeSet2 XML file at \a path into the project's address space. */
+    Q_INVOKABLE bool importNodeSet(const QString &path);
+
     // Address-space editing.
     /** Adds a folder under \a parentNodeId (empty = Objects root); returns its id. */
     Q_INVOKABLE QString addFolder(const QString &parentNodeId, const QString &browseName);

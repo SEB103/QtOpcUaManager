@@ -65,6 +65,8 @@ target_sources(ServerProjectCore
     PRIVATE
         serverproject/serverprojectdata.cpp
         serverproject/serverprojectdata.h
+        serverproject/serverprojectnodeset.cpp
+        serverproject/serverprojectnodeset.h
         serverproject/serverprojectserializer.cpp
         serverproject/serverprojectserializer.h
         serverproject/serverprojectvalidator.cpp
