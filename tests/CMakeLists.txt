@@ -180,6 +180,18 @@ target_link_libraries(tst_serverprojectnodeset
 
 add_test(NAME ServerProjectNodeSet.Unit COMMAND tst_serverprojectnodeset)
 
+qt_add_executable(tst_serverclone
+    unit/tst_serverclone.cpp
+)
+
+target_link_libraries(tst_serverclone
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME ServerClone.Unit COMMAND tst_serverclone)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )

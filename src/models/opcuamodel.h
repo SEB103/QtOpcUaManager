@@ -65,6 +65,31 @@ public:
     };
     Q_ENUM(Role)
 
+    /**
+     * One browsed node captured for an address-space snapshot (clone).
+     *
+     * A neutral data transfer object so this model, which lives in the
+     * OPC UA client layer, does not depend on the server-project domain model.
+     */
+    struct SnapshotNode {
+        QString nodeId;        /**< Original server node id. */
+        QString parentNodeId;  /**< Original parent node id; empty for a subtree root child. */
+        QString browseName;
+        QString displayName;
+        int nodeClass = 0;     /**< QOpcUa::NodeClass value. */
+        QString dataTypeId;    /**< Variable DataType node id, e.g. "ns=0;i=6". */
+        int valueRank = -1;
+        bool isFolder = false;
+        bool isVariable = false;
+    };
+
+    /**
+     * Returns a pre-order list of the already-browsed descendants of the node
+     * \a rootNodeId (its direct children have an empty \c parentNodeId). Used to
+     * clone a real server's browsed address space into a server project.
+     */
+    QList<SnapshotNode> snapshotUnder(const QString &rootNodeId) const;
+
     /** Creates the model. */
     explicit OpcUaModel(QObject *parent = nullptr);
 

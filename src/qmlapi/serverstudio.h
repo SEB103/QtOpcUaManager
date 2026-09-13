@@ -115,6 +115,13 @@ public:
     /** Imports a NodeSet2 XML file at \a path into the project's address space. */
     Q_INVOKABLE bool importNodeSet(const QString &path);
 
+    /**
+     * Clones the currently browsed address space of the connected client into a
+     * new server project (structure and data types; values default). The user
+     * browses the areas of interest in the client first.
+     */
+    Q_INVOKABLE bool cloneFromClient();
+
     // Address-space editing.
     /** Adds a folder under \a parentNodeId (empty = Objects root); returns its id. */
     Q_INVOKABLE QString addFolder(const QString &parentNodeId, const QString &browseName);

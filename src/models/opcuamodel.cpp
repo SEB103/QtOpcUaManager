@@ -832,3 +832,61 @@ QModelIndex OpcUaModel::indexForItem(TreeItem *item, int column) const
 
     return createIndex(item->row(), column, item);
 }
+
+namespace {
+/*!
+ * \internal
+ * \brief Depth-first search for the tree item with node id \a nodeId.
+ */
+TreeItem *findItemByNodeId(TreeItem *item, const QString &nodeId)
+{
+    if (!item)
+        return nullptr;
+    if (item->nodeId() == nodeId)
+        return item;
+    for (int i = 0; i < item->childCount(); ++i) {
+        if (TreeItem *found = findItemByNodeId(item->child(i), nodeId))
+            return found;
+    }
+    return nullptr;
+}
+
+/*!
+ * \internal
+ * \brief Appends \a parent's descendants (pre-order) to \a out.
+ *
+ * Direct children of the subtree root carry the empty \a parentNodeId so they
+ * become top-level nodes in a clone; deeper nodes carry their real parent id.
+ */
+void collectSnapshot(TreeItem *parent, const QString &parentNodeId,
+                     QList<OpcUaModel::SnapshotNode> &out)
+{
+    for (int i = 0; i < parent->childCount(); ++i) {
+        TreeItem *child = parent->child(i);
+        OpcUaModel::SnapshotNode node;
+        node.nodeId = child->nodeId();
+        node.parentNodeId = parentNodeId;
+        node.browseName = child->browseName();
+        node.displayName = child->displayName();
+        node.nodeClass = child->nodeClass();
+        node.dataTypeId = child->dataTypeId();
+        node.valueRank = child->valueRank();
+        node.isFolder = child->isFolder();
+        node.isVariable = child->nodeClass() == static_cast<int>(QOpcUa::NodeClass::Variable);
+        out.append(node);
+        collectSnapshot(child, child->nodeId(), out);
+    }
+}
+} // namespace
+
+/*!
+ * \brief Returns a pre-order snapshot of the browsed descendants of \a rootNodeId.
+ */
+QList<OpcUaModel::SnapshotNode> OpcUaModel::snapshotUnder(const QString &rootNodeId) const
+{
+    QList<SnapshotNode> result;
+    TreeItem *root = findItemByNodeId(mRootItem.get(), rootNodeId);
+    if (root)
+        collectSnapshot(root, QString(), result);
+    return result;
+}

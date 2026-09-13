@@ -104,6 +104,12 @@ public:
      */
     QString dataTypeName() const;
 
+    /** Returns the node id of a variable's DataType attribute, e.g. "ns=0;i=6". */
+    QString dataTypeId() const { return m_dataTypeId; }
+
+    /** Returns the OPC UA ValueRank of a variable: -1 scalar, >=0 array. */
+    int valueRank() const { return m_valueRank; }
+
     /** Returns the icon key used by the QML tree to pick a glyph and tint. */
     QString iconName() const;
 

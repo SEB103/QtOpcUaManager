@@ -3,11 +3,13 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QHash>
 #include <QSet>
 #include <QStandardPaths>
 #include <QUrl>
 
 #include "core/diagnosticslevel.h"
+#include "models/opcuamodel.h"
 #include "opcuamanager.h"
 #include "servernodemodel.h"
 #include "serverproject/serverprojectnodeset.h"
@@ -66,6 +68,27 @@ QVariant scalarFromText(const QString &dataType, const QString &text)
         return trimmed.isEmpty() ? qulonglong(0) : trimmed.toULongLong();
     // Remaining integer types.
     return trimmed.isEmpty() ? qlonglong(0) : trimmed.toLongLong();
+}
+
+/*!
+ * \internal
+ * \brief Maps a namespace-0 DataType node id to a built-in type name.
+ *
+ * Unknown or custom data types fall back to Int32 for a structural clone.
+ */
+QString dataTypeIdToBuiltin(const QString &dataTypeId)
+{
+    static const QHash<int, QString> map = {
+        {1, QStringLiteral("Boolean")}, {2, QStringLiteral("SByte")},
+        {3, QStringLiteral("Byte")},    {4, QStringLiteral("Int16")},
+        {5, QStringLiteral("UInt16")},  {6, QStringLiteral("Int32")},
+        {7, QStringLiteral("UInt32")},  {8, QStringLiteral("Int64")},
+        {9, QStringLiteral("UInt64")},  {10, QStringLiteral("Float")},
+        {11, QStringLiteral("Double")}, {12, QStringLiteral("String")},
+    };
+    if (dataTypeId.startsWith(QLatin1String("ns=0;i=")))
+        return map.value(dataTypeId.mid(7).toInt(), QStringLiteral("Int32"));
+    return QStringLiteral("Int32");
 }
 
 } // namespace
@@ -484,6 +507,84 @@ bool ServerStudio::importNodeSet(const QString &path)
     emit selectedNodeChanged();
     emit notification(Diagnostics::Info,
                       tr("Imported %1 node(s) from NodeSet2.").arg(result.nodes.size()));
+    return true;
+}
+
+bool ServerStudio::cloneFromClient()
+{
+    if (!m_opcUaManager || !m_opcUaManager->treeModel()) {
+        emit notification(Diagnostics::Error, tr("No OPC UA client is available."));
+        return false;
+    }
+
+    const QList<OpcUaModel::SnapshotNode> snapshot =
+        m_opcUaManager->treeModel()->snapshotUnder(QStringLiteral("ns=0;i=85"));
+    if (snapshot.isEmpty()) {
+        emit notification(Diagnostics::Warning,
+                          tr("Browse the server's Objects in the client before cloning."));
+        return false;
+    }
+
+    ServerProject::ProjectData project;
+    project.displayName = tr("Cloned Server");
+    project.namespaces.append({QStringLiteral("urn:opcuamanager:clone")});
+
+    QHash<QString, QString> idMap;   // original node id -> cloned node id
+    QHash<QString, QString> pathMap; // original node id -> browse-name path
+    QSet<QString> usedIds;
+    for (const OpcUaModel::SnapshotNode &source : snapshot) {
+        // Only folders/objects and variables are cloneable; skip methods, types.
+        constexpr int kObject = 1;
+        constexpr int kVariable = 2;
+        if (source.nodeClass != kObject && source.nodeClass != kVariable)
+            continue;
+
+        const QString segment = slug(source.browseName.isEmpty() ? source.displayName
+                                                                 : source.browseName);
+        const QString parentPath =
+            source.parentNodeId.isEmpty() ? QString() : pathMap.value(source.parentNodeId);
+        const QString path = parentPath.isEmpty() ? segment
+                                                  : (parentPath + QLatin1Char('.') + segment);
+
+        QString nodeId = QStringLiteral("ns=1;s=%1").arg(path);
+        int suffix = 2;
+        while (usedIds.contains(nodeId))
+            nodeId = QStringLiteral("ns=1;s=%1_%2").arg(path).arg(suffix++);
+        usedIds.insert(nodeId);
+        idMap.insert(source.nodeId, nodeId);
+        pathMap.insert(source.nodeId, path);
+
+        Node node;
+        node.nodeId = nodeId;
+        node.parentNodeId =
+            source.parentNodeId.isEmpty() ? QString() : idMap.value(source.parentNodeId);
+        node.browseName = source.browseName.isEmpty() ? segment : source.browseName;
+        node.displayName = source.displayName.isEmpty() ? node.browseName : source.displayName;
+        if (source.isVariable) {
+            node.kind = NodeKind::Variable;
+            node.dataType = dataTypeIdToBuiltin(source.dataTypeId);
+            node.valueRank = source.valueRank >= 1 ? 1 : -1;
+            node.writable = false;
+            node.initialValue = node.valueRank == 1
+                                    ? QVariant(QVariantList())
+                                    : scalarFromText(node.dataType, QString());
+        } else {
+            node.kind = source.isFolder ? NodeKind::Folder : NodeKind::Object;
+        }
+        project.nodes.append(node);
+    }
+
+    m_project = project;
+    m_projectPath.clear();
+    m_hasProject = true;
+    m_selectedNodeId.clear();
+    refreshModel();
+    setDirty(true);
+    emit projectChanged();
+    emit enumsChanged();
+    emit selectedNodeChanged();
+    emit notification(Diagnostics::Info,
+                      tr("Cloned %1 node(s) from the client.").arg(project.nodes.size()));
     return true;
 }
 

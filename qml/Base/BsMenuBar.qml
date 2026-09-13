@@ -119,6 +119,13 @@ MenuBar {
     */
     signal aboutRequested()
 
+    /*!
+        \qmlsignal BsMenuBar::cloneToServerStudioRequested()
+        Emitted to clone the browsed client address space into a Server Studio
+        project. The host calls \c cppServerStudio.cloneFromClient().
+    */
+    signal cloneToServerStudioRequested()
+
     Menu {
         title: qsTr("Application")
 
@@ -222,6 +229,14 @@ MenuBar {
             text: qsTr("&Close Project")
             enabled: cppProjectManager.hasActiveProject
             onTriggered: appMenuBar.closeProjectRequested()
+        }
+
+        MenuSeparator {}
+
+        MenuItem {
+            text: qsTr("Clone to Server Studio")
+            enabled: cppManagerOpcUa.connected
+            onTriggered: appMenuBar.cloneToServerStudioRequested()
         }
     }
 

@@ -111,14 +111,14 @@ ApplicationWindow {
         id: mainScreen
         anchors.fill: parent
         darkTheme: mainWindow.darkTheme
-        visible: mainWindow.workspaceActive
+        visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
         logPanelVisible: mainWindow.logPanelVisible
         trendPanelVisible: mainWindow.trendPanelVisible
     }
 
     // The status bar belongs to the workspace; the launcher has nothing to report.
     footer: Base.BsStatusBar {
-        visible: mainWindow.workspaceActive
+        visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
         message: mainWindow.statusMessage
         messageLevel: mainWindow.statusMessageLevel
         logPanelVisible: mainWindow.logPanelVisible
@@ -160,7 +160,7 @@ ApplicationWindow {
         id: serverStudioScreen
         anchors.fill: parent
         darkTheme: mainWindow.darkTheme
-        visible: mainWindow.serverStudioActive && !mainWindow.workspaceActive
+        visible: mainWindow.serverStudioActive
 
         onCloseRequested: mainWindow.serverStudioActive = false
     }
@@ -239,6 +239,11 @@ ApplicationWindow {
 
         function onSaveProjectAsRequested() {
             saveProjectDialog.open()
+        }
+
+        function onCloneToServerStudioRequested() {
+            if (cppServerStudio.cloneFromClient())
+                mainWindow.serverStudioActive = true
         }
     }
 
