@@ -177,6 +177,112 @@ QStringList ServerStudio::simulationKindNames() const
     return ServerProject::simulationKindNames();
 }
 
+QStringList ServerStudio::enumTypeNames() const
+{
+    QStringList names;
+    for (const ServerProject::EnumType &enumType : m_project.enumTypes)
+        names.append(enumType.name);
+    return names;
+}
+
+QVariantList ServerStudio::enumTypes() const
+{
+    QVariantList list;
+    for (const ServerProject::EnumType &enumType : m_project.enumTypes) {
+        QVariantMap map;
+        map["name"] = enumType.name;
+        map["nodeId"] = enumType.nodeId;
+        QVariantList entries;
+        for (const ServerProject::EnumEntry &entry : enumType.entries) {
+            QVariantMap entryMap;
+            entryMap["value"] = entry.value;
+            entryMap["name"] = entry.name;
+            entries.append(entryMap);
+        }
+        map["entries"] = entries;
+        list.append(map);
+    }
+    return list;
+}
+
+QString ServerStudio::addEnumType(const QString &name)
+{
+    if (!m_hasProject)
+        return {};
+    const QString trimmed = name.trimmed();
+    if (trimmed.isEmpty())
+        return {};
+    for (const ServerProject::EnumType &existing : m_project.enumTypes) {
+        if (existing.name == trimmed)
+            return existing.nodeId;
+    }
+
+    ServerProject::EnumType enumType;
+    enumType.name = trimmed;
+    QString nodeId = QStringLiteral("ns=1;s=Enum.%1").arg(slug(trimmed));
+    int suffix = 2;
+    const auto idTaken = [this](const QString &id) {
+        for (const ServerProject::EnumType &e : m_project.enumTypes)
+            if (e.nodeId == id)
+                return true;
+        return false;
+    };
+    while (idTaken(nodeId))
+        nodeId = QStringLiteral("ns=1;s=Enum.%1_%2").arg(slug(trimmed)).arg(suffix++);
+    enumType.nodeId = nodeId;
+
+    m_project.enumTypes.append(enumType);
+    setDirty(true);
+    emit enumsChanged();
+    return nodeId;
+}
+
+void ServerStudio::addEnumEntry(const QString &enumName, int value, const QString &entryName)
+{
+    if (!m_hasProject || entryName.trimmed().isEmpty())
+        return;
+    for (ServerProject::EnumType &enumType : m_project.enumTypes) {
+        if (enumType.name == enumName) {
+            enumType.entries.append({value, entryName.trimmed()});
+            setDirty(true);
+            emit enumsChanged();
+            return;
+        }
+    }
+}
+
+void ServerStudio::removeEnumType(const QString &enumName)
+{
+    if (!m_hasProject)
+        return;
+    QString removedId;
+    for (const ServerProject::EnumType &enumType : m_project.enumTypes) {
+        if (enumType.name == enumName) {
+            removedId = enumType.nodeId;
+            break;
+        }
+    }
+    if (removedId.isEmpty())
+        return;
+
+    m_project.enumTypes.removeIf([&enumName](const ServerProject::EnumType &e) {
+        return e.name == enumName;
+    });
+    // Detach variables that referenced the removed enum; fall back to Int32.
+    for (ServerProject::Node &node : m_project.nodes) {
+        if (node.enumTypeId == removedId) {
+            node.enumTypeId.clear();
+            if (node.dataType.isEmpty())
+                node.dataType = QStringLiteral("Int32");
+        }
+    }
+
+    setDirty(true);
+    refreshModel();
+    emit enumsChanged();
+    emit selectedNodeChanged();
+}
+
 void ServerStudio::setSelectedNodeId(const QString &nodeId)
 {
     if (m_selectedNodeId == nodeId)
@@ -219,6 +325,17 @@ QVariantMap ServerStudio::selectedNode() const
         map["simMax"] = node->simulation.max;
         map["simStep"] = node->simulation.step;
         map["simPeriod"] = node->simulation.periodMs;
+
+        QString enumName;
+        if (!node->enumTypeId.isEmpty()) {
+            for (const ServerProject::EnumType &enumType : m_project.enumTypes) {
+                if (enumType.nodeId == node->enumTypeId) {
+                    enumName = enumType.name;
+                    break;
+                }
+            }
+        }
+        map["enumTypeName"] = enumName;
     }
     return map;
 }
@@ -239,6 +356,7 @@ void ServerStudio::newProject(const QString &displayName)
     refreshModel();
     setDirty(true);
     emit projectChanged();
+    emit enumsChanged();
     emit securityChanged();
     emit selectedNodeChanged();
 }
@@ -261,6 +379,7 @@ bool ServerStudio::openProject(const QString &path)
     m_dirty = false;
     refreshModel();
     emit projectChanged();
+    emit enumsChanged();
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
@@ -296,6 +415,7 @@ bool ServerStudio::saveProjectAs(const QString &path)
     m_projectPath = local;
     setDirty(false);
     emit projectChanged();
+    emit enumsChanged();
     emit securityChanged();
     return true;
 }
@@ -312,6 +432,7 @@ void ServerStudio::closeProject()
     m_dirty = false;
     refreshModel();
     emit projectChanged();
+    emit enumsChanged();
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
@@ -427,6 +548,16 @@ void ServerStudio::updateNode(const QString &nodeId, const QVariantMap &fields)
                 node.simulation.step = fields.value(QStringLiteral("simStep")).toDouble();
             if (fields.contains(QStringLiteral("simPeriod")))
                 node.simulation.periodMs = fields.value(QStringLiteral("simPeriod")).toDouble();
+            if (fields.contains(QStringLiteral("enumTypeName"))) {
+                const QString enumName = fields.value(QStringLiteral("enumTypeName")).toString();
+                node.enumTypeId.clear();
+                for (const ServerProject::EnumType &enumType : m_project.enumTypes) {
+                    if (enumType.name == enumName) {
+                        node.enumTypeId = enumType.nodeId;
+                        break;
+                    }
+                }
+            }
         }
 
         refreshModel();

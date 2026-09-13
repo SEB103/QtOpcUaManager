@@ -45,6 +45,12 @@ ProjectData ServerProjectSerializerTest::makeSampleProject()
     data.security.enableSecurity = true;
     data.security.users.append({QStringLiteral("admin"), QStringLiteral("secret")});
 
+    EnumType mode;
+    mode.name = QStringLiteral("Mode");
+    mode.nodeId = QStringLiteral("ns=1;s=Enum.Mode");
+    mode.entries = {{0, QStringLiteral("Off")}, {1, QStringLiteral("On")}};
+    data.enumTypes.append(mode);
+
     Node folder;
     folder.kind = NodeKind::Folder;
     folder.nodeId = QStringLiteral("ns=1;s=Test");
@@ -127,6 +133,13 @@ void ServerProjectSerializerTest::roundTripPreservesData()
     QCOMPARE(copy.security.users.size(), 1);
     QCOMPARE(copy.security.users.first().username, QStringLiteral("admin"));
     QCOMPARE(copy.security.users.first().password, QStringLiteral("secret"));
+
+    QCOMPARE(copy.enumTypes.size(), 1);
+    QCOMPARE(copy.enumTypes.first().name, QStringLiteral("Mode"));
+    QCOMPARE(copy.enumTypes.first().nodeId, QStringLiteral("ns=1;s=Enum.Mode"));
+    QCOMPARE(copy.enumTypes.first().entries.size(), 2);
+    QCOMPARE(copy.enumTypes.first().entries.at(1).value, 1);
+    QCOMPARE(copy.enumTypes.first().entries.at(1).name, QStringLiteral("On"));
 }
 
 void ServerProjectSerializerTest::reportsFileNotFound()

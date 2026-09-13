@@ -108,6 +108,39 @@ struct ParsedNodeId
  */
 ParsedNodeId parseNodeId(const QString &nodeId);
 
+/** One named value of an enumeration data type. */
+struct EnumEntry
+{
+    /** Integer value on the wire. */
+    int value = 0;
+    /** Human-readable name shown to clients. */
+    QString name;
+
+    /** Returns whether both fields match \a other. */
+    bool operator==(const EnumEntry &other) const
+    {
+        return value == other.value && name == other.name;
+    }
+};
+
+/**
+ * A custom enumeration data type.
+ *
+ * Enumerations are Int32 on the wire with an EnumValues property listing the
+ * named values, so they need no custom binary encoding and can be created at
+ * runtime (unlike structures/ExtensionObjects, which require compile-time
+ * generated type layouts and are deferred).
+ */
+struct EnumType
+{
+    /** Display name / browse name of the enumeration type. */
+    QString name;
+    /** Canonical node id of the enumeration DataType node, e.g. "ns=1;s=Enum.Color". */
+    QString nodeId;
+    /** The named values of the enumeration. */
+    QList<EnumEntry> entries;
+};
+
 /** A custom OPC UA namespace declared by the project. */
 struct Namespace
 {
@@ -147,6 +180,13 @@ struct Node
 
     /** Built-in data type name for variables; empty for folders and objects. */
     QString dataType;
+
+    /**
+     * Node id of a custom EnumType this variable is an instance of. When set,
+     * the variable is an enumeration (Int32 on the wire) and \c dataType is
+     * ignored.
+     */
+    QString enumTypeId;
 
     /** Value rank: -1 scalar, 1 one-dimensional array; ignored for non-variables. */
     int valueRank = -1;
@@ -247,6 +287,9 @@ struct ProjectData
 
     /** Custom namespaces; entry 0 corresponds to node-id namespace index 1. */
     QList<Namespace> namespaces;
+
+    /** Custom enumeration data types. */
+    QList<EnumType> enumTypes;
 
     /** Address-space nodes belonging to the project. */
     QList<Node> nodes;

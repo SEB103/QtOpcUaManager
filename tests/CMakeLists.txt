@@ -284,6 +284,26 @@ add_dependencies(tst_serversimulation OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerSimulation.Integration COMMAND tst_serversimulation)
 
+# Integration test for custom enumeration data types.
+qt_add_executable(tst_serverenum
+    integration/tst_serverenum.cpp
+)
+
+target_link_libraries(tst_serverenum
+    PRIVATE
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverenum
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverenum OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerEnum.Integration COMMAND tst_serverenum)
+
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )

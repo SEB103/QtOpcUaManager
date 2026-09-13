@@ -174,6 +174,81 @@ UA_NodeId makeNodeId(const ParsedNodeId &parsed, UA_UInt16 runtimeNs, const QByt
 
 /*!
  * \internal
+ * \brief Adds one enumeration DataType node plus its EnumValues property.
+ */
+bool addEnumType(UA_Server *server, const ServerProject::EnumType &enumType,
+                 const QHash<quint16, UA_UInt16> &nsMap, QString &error)
+{
+    const ParsedNodeId parsed = ServerProject::parseNodeId(enumType.nodeId);
+    const UA_UInt16 runtimeNs = nsMap.value(parsed.ns, 0);
+    const QByteArray nameBytes = enumType.name.toUtf8();
+
+    UA_NodeId typeId = ProjectBuilder::toRuntimeNodeId(enumType.nodeId, nsMap);
+
+    UA_DataTypeAttributes dtAttr = UA_DataTypeAttributes_default;
+    dtAttr.displayName =
+        UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>(nameBytes.constData()));
+    // Model the enum as an Int32 subtype (not Enumeration): open62541 rejects an
+    // Int32 value whose DataType is an Enumeration subtype because Enumeration is
+    // not below Int32 in the type tree, so an Enumeration-typed variable cannot be
+    // added at runtime with an Int32 value. Subtyping under Int32 keeps the value
+    // valid while still exposing the named values through the EnumValues property.
+    UA_StatusCode status = UA_Server_addDataTypeNode(
+        server, typeId, UA_NODEID_NUMERIC(0, UA_NS0ID_INT32),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(runtimeNs, const_cast<char *>(nameBytes.constData())), dtAttr, nullptr,
+        nullptr);
+    if (status != UA_STATUSCODE_GOOD) {
+        error = QStringLiteral("Failed to add enum type '%1': %2")
+                    .arg(enumType.name, QString::fromUtf8(UA_StatusCode_name(status)));
+        UA_NodeId_clear(&typeId);
+        return false;
+    }
+
+    // Attach the standard EnumValues property so clients can resolve the names.
+    std::vector<UA_EnumValueType> values(static_cast<size_t>(enumType.entries.size()));
+    for (int i = 0; i < enumType.entries.size(); ++i) {
+        UA_EnumValueType_init(&values[i]);
+        values[i].value = enumType.entries.at(i).value;
+        const QByteArray entryName = enumType.entries.at(i).name.toUtf8();
+        values[i].displayName = UA_LOCALIZEDTEXT_ALLOC(const_cast<char *>("en-US"),
+                                                       const_cast<char *>(entryName.constData()));
+    }
+
+    UA_VariableAttributes vAttr = UA_VariableAttributes_default;
+    vAttr.displayName =
+        UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>("EnumValues"));
+    vAttr.dataType = UA_NODEID_NUMERIC(0, UA_NS0ID_ENUMVALUETYPE);
+    // A one-dimensional array of any length; ArrayDimensions must match ValueRank.
+    UA_UInt32 arrayDimensions[1] = {0};
+    vAttr.valueRank = 1;
+    vAttr.arrayDimensions = arrayDimensions;
+    vAttr.arrayDimensionsSize = 1;
+    vAttr.accessLevel = UA_ACCESSLEVELMASK_READ;
+    UA_Variant_setArrayCopy(&vAttr.value, values.data(), values.size(),
+                            &UA_TYPES[UA_TYPES_ENUMVALUETYPE]);
+
+    status = UA_Server_addVariableNode(server, UA_NODEID_NULL, typeId,
+                                       UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                       UA_QUALIFIEDNAME(0, const_cast<char *>("EnumValues")),
+                                       UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE), vAttr, nullptr,
+                                       nullptr);
+
+    UA_Variant_clear(&vAttr.value);
+    for (UA_EnumValueType &value : values)
+        UA_EnumValueType_clear(&value);
+    UA_NodeId_clear(&typeId);
+
+    if (status != UA_STATUSCODE_GOOD) {
+        error = QStringLiteral("Failed to add EnumValues for '%1': %2")
+                    .arg(enumType.name, QString::fromUtf8(UA_StatusCode_name(status)));
+        return false;
+    }
+    return true;
+}
+
+/*!
+ * \internal
  * \brief Adds one node to \a server, translating namespaces through \a nsMap.
  */
 bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16> &nsMap,
@@ -210,35 +285,48 @@ bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16
         UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>(displayBytes.constData()));
 
     UA_StatusCode status = UA_STATUSCODE_GOOD;
+    const bool isEnumVariable = node.kind == NodeKind::Variable && !node.enumTypeId.isEmpty();
     if (node.kind == NodeKind::Variable) {
-        const int typeIndex = uaTypeIndexFor(node.dataType);
+        const int typeIndex = isEnumVariable ? UA_TYPES_INT32 : uaTypeIndexFor(node.dataType);
         if (typeIndex < 0) {
             error = QStringLiteral("Unsupported data type '%1' for node '%2'.")
                         .arg(node.dataType, node.nodeId);
             return false;
         }
 
+        // An enum variable is Int32 on the wire but its DataType attribute points
+        // at the custom enum type node so clients can resolve the value names.
+        UA_NodeId enumDataType = UA_NODEID_NULL;
+        if (isEnumVariable)
+            enumDataType = ProjectBuilder::toRuntimeNodeId(node.enumTypeId, nsMap);
+
         UA_VariableAttributes attr = UA_VariableAttributes_default;
         attr.displayName = displayName;
         if (!node.description.isEmpty())
             attr.description = UA_LOCALIZEDTEXT(const_cast<char *>("en-US"),
                                                const_cast<char *>(descriptionBytes.constData()));
-        attr.dataType = UA_TYPES[typeIndex].typeId;
-        attr.valueRank = node.valueRank;
+        attr.dataType = isEnumVariable ? enumDataType : UA_TYPES[typeIndex].typeId;
+        attr.valueRank = isEnumVariable ? -1 : node.valueRank;
         attr.accessLevel = UA_ACCESSLEVELMASK_READ;
         if (node.writable)
             attr.accessLevel |= UA_ACCESSLEVELMASK_WRITE;
 
-        if (node.valueRank == 1)
+        if (isEnumVariable) {
+            UA_Int32 enumValue = node.initialValue.isValid() ? node.initialValue.toInt() : 0;
+            UA_Variant_setScalarCopy(&attr.value, &enumValue, &UA_TYPES[UA_TYPES_INT32]);
+        } else if (node.valueRank == 1) {
             setArray(attr.value, node.dataType, node.initialValue.toList());
-        else if (node.initialValue.isValid())
+        } else if (node.initialValue.isValid()) {
             setScalar(attr.value, node.dataType, node.initialValue);
+        }
 
         status = UA_Server_addVariableNode(
             server, id, parentId, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT), browseName,
             UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, nullptr, nullptr);
 
         UA_Variant_clear(&attr.value);
+        if (isEnumVariable)
+            UA_NodeId_clear(&enumDataType);
     } else {
         UA_ObjectAttributes attr = UA_ObjectAttributes_default;
         attr.displayName = displayName;
@@ -297,6 +385,12 @@ UA_NodeId toRuntimeNodeId(const QString &projectNodeId, const QHash<quint16, UA_
 bool build(UA_Server *server, const ProjectData &project, QString &error)
 {
     const QHash<quint16, UA_UInt16> nsMap = registerNamespaces(server, project);
+
+    // Custom enumeration types must exist before variables reference them.
+    for (const ServerProject::EnumType &enumType : project.enumTypes) {
+        if (!addEnumType(server, enumType, nsMap, error))
+            return false;
+    }
 
     // Add nodes parent-before-child: repeatedly add every node whose parent has
     // already been created (or which sits directly under the Objects folder).

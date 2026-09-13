@@ -14,6 +14,20 @@ Validator::Result Validator::validate(const ProjectData &data)
     const QStringList knownTypes = builtinDataTypeNames();
     const int namespaceCount = data.namespaces.size();
 
+    // Validate enumeration types and collect their ids for variable references.
+    QSet<QString> enumTypeIds;
+    for (const EnumType &enumType : data.enumTypes) {
+        const QString label = enumType.name.isEmpty() ? QStringLiteral("<unnamed enum>")
+                                                      : enumType.name;
+        if (!parseNodeId(enumType.nodeId).valid)
+            result.errors.append(QStringLiteral("Enum '%1' has a malformed node id.").arg(label));
+        if (enumTypeIds.contains(enumType.nodeId))
+            result.errors.append(QStringLiteral("Duplicate enum node id '%1'.").arg(enumType.nodeId));
+        enumTypeIds.insert(enumType.nodeId);
+        if (enumType.entries.isEmpty())
+            result.errors.append(QStringLiteral("Enum '%1' has no values.").arg(label));
+    }
+
     QSet<QString> seenNodeIds;
     for (const Node &node : data.nodes) {
         const QString label = node.nodeId.isEmpty()
@@ -46,7 +60,13 @@ Validator::Result Validator::validate(const ProjectData &data)
             result.errors.append(QStringLiteral("Node '%1' has an empty browse name.").arg(label));
 
         if (node.kind == NodeKind::Variable) {
-            if (!knownTypes.contains(node.dataType)) {
+            if (!node.enumTypeId.isEmpty()) {
+                if (!enumTypeIds.contains(node.enumTypeId)) {
+                    result.errors.append(
+                        QStringLiteral("Variable '%1' references a missing enum type '%2'.")
+                            .arg(label, node.enumTypeId));
+                }
+            } else if (!knownTypes.contains(node.dataType)) {
                 result.errors.append(
                     QStringLiteral("Variable '%1' has an unsupported data type '%2'.")
                         .arg(label, node.dataType));

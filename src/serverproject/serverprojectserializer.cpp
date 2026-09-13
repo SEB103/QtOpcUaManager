@@ -29,6 +29,8 @@ QJsonObject nodeToJson(const Node &node)
 
     if (node.kind == NodeKind::Variable) {
         obj["dataType"] = node.dataType;
+        if (!node.enumTypeId.isEmpty())
+            obj["enumTypeId"] = node.enumTypeId;
         obj["valueRank"] = node.valueRank;
         obj["writable"] = node.writable;
         if (node.initialValue.isValid())
@@ -64,6 +66,7 @@ Node nodeFromJson(const QJsonObject &obj)
 
     if (node.kind == NodeKind::Variable) {
         node.dataType = obj.value("dataType").toString();
+        node.enumTypeId = obj.value("enumTypeId").toString();
         node.valueRank = obj.value("valueRank").toInt(-1);
         node.writable = obj.value("writable").toBool(false);
         if (obj.contains("initialValue"))
@@ -106,6 +109,23 @@ QJsonObject Serializer::toJson(const ProjectData &data)
         namespaces.append(nsObj);
     }
     root["namespaces"] = namespaces;
+
+    QJsonArray enumTypes;
+    for (const EnumType &enumType : data.enumTypes) {
+        QJsonObject enumObj;
+        enumObj["name"] = enumType.name;
+        enumObj["nodeId"] = enumType.nodeId;
+        QJsonArray entries;
+        for (const EnumEntry &entry : enumType.entries) {
+            QJsonObject entryObj;
+            entryObj["value"] = entry.value;
+            entryObj["name"] = entry.name;
+            entries.append(entryObj);
+        }
+        enumObj["entries"] = entries;
+        enumTypes.append(enumObj);
+    }
+    root["enumTypes"] = enumTypes;
 
     QJsonArray nodes;
     for (const Node &node : data.nodes)
@@ -157,6 +177,24 @@ bool Serializer::fromJson(const QJsonObject &root, ProjectData &data, QString &e
         Namespace ns;
         ns.uri = value.toObject().value("uri").toString();
         data.namespaces.append(ns);
+    }
+
+    data.enumTypes.clear();
+    const QJsonArray enumTypes = root.value("enumTypes").toArray();
+    for (const QJsonValue &value : enumTypes) {
+        const QJsonObject enumObj = value.toObject();
+        EnumType enumType;
+        enumType.name = enumObj.value("name").toString();
+        enumType.nodeId = enumObj.value("nodeId").toString();
+        const QJsonArray entries = enumObj.value("entries").toArray();
+        for (const QJsonValue &entryValue : entries) {
+            const QJsonObject entryObj = entryValue.toObject();
+            EnumEntry entry;
+            entry.value = entryObj.value("value").toInt();
+            entry.name = entryObj.value("name").toString();
+            enumType.entries.append(entry);
+        }
+        data.enumTypes.append(enumType);
     }
 
     data.nodes.clear();

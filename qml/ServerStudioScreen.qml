@@ -63,7 +63,21 @@ Pane {
             simMaxField.text = node.simMax !== undefined ? node.simMax : "100"
             simStepField.text = node.simStep !== undefined ? node.simStep : "1"
             simPeriodField.text = node.simPeriod !== undefined ? node.simPeriod : "10000"
+
+            const enumName = node.enumTypeName !== undefined ? node.enumTypeName : ""
+            enumTypeCombo.currentIndex = enumName === ""
+                ? 0 : (cppServerStudio.enumTypeNames.indexOf(enumName) + 1)
         }
+    }
+
+    /*! Formats an enum type's entries as "value=name" pairs for display. */
+    function enumEntriesText(entries) {
+        if (!entries || entries.length === 0)
+            return qsTr("(no values)")
+        let parts = []
+        for (let i = 0; i < entries.length; ++i)
+            parts.push(entries[i].value + "=" + entries[i].name)
+        return parts.join(", ")
     }
 
     /*! Applies the editable property controls back to the selected node. */
@@ -83,6 +97,8 @@ Pane {
             fields["simMax"] = parseFloat(simMaxField.text) || 0
             fields["simStep"] = parseFloat(simStepField.text) || 0
             fields["simPeriod"] = parseFloat(simPeriodField.text) || 10000
+            fields["enumTypeName"] = enumTypeCombo.currentText === "(none)"
+                ? "" : enumTypeCombo.currentText
         }
         cppServerStudio.updateNode(cppServerStudio.selectedNodeId, fields)
     }
@@ -297,7 +313,19 @@ Pane {
                             id: dataTypeCombo
                             Layout.fillWidth: true
                             visible: cppServerStudio.selectedNode.isVariable === true
+                            enabled: enumTypeCombo.currentText === "(none)"
                             model: cppServerStudio.dataTypeNames
+                        }
+
+                        Label {
+                            text: qsTr("Enum type:")
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                        }
+                        ComboBox {
+                            id: enumTypeCombo
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isVariable === true
+                            model: ["(none)"].concat(cppServerStudio.enumTypeNames)
                         }
 
                         Label {
@@ -514,6 +542,103 @@ Pane {
                                     flat: true
                                     onClicked: cppServerStudio.removeUser(userChip.modelData.username)
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Enumeration types.
+        Frame {
+            visible: cppServerStudio.hasProject
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 6
+
+                Label {
+                    text: qsTr("Enumeration types")
+                    font.bold: true
+                    color: Material.foreground
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    TextField {
+                        id: newEnumField
+                        Layout.preferredWidth: 200
+                        placeholderText: qsTr("new enum type name")
+                    }
+                    Button {
+                        text: qsTr("Add enum type")
+                        enabled: newEnumField.text.trim().length > 0
+                        onClicked: {
+                            cppServerStudio.addEnumType(newEnumField.text)
+                            newEnumField.text = ""
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                Repeater {
+                    model: cppServerStudio.enumTypes
+
+                    delegate: Frame {
+                        id: enumRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        padding: 6
+
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 8
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Label {
+                                    text: enumRow.modelData.name
+                                    font.bold: true
+                                    color: Material.foreground
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                    font.pixelSize: 12
+                                    opacity: 0.8
+                                    color: Material.foreground
+                                    text: studio.enumEntriesText(enumRow.modelData.entries)
+                                }
+                            }
+
+                            TextField {
+                                id: enumEntryValue
+                                Layout.preferredWidth: 60
+                                placeholderText: qsTr("value")
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
+                            TextField {
+                                id: enumEntryName
+                                Layout.preferredWidth: 120
+                                placeholderText: qsTr("name")
+                            }
+                            Button {
+                                text: qsTr("Add value")
+                                enabled: enumEntryName.text.trim().length > 0
+                                onClicked: {
+                                    cppServerStudio.addEnumEntry(enumRow.modelData.name,
+                                                                 parseInt(enumEntryValue.text) || 0,
+                                                                 enumEntryName.text)
+                                    enumEntryValue.text = ""
+                                    enumEntryName.text = ""
+                                }
+                            }
+                            Button {
+                                text: qsTr("Remove")
+                                onClicked: cppServerStudio.removeEnumType(enumRow.modelData.name)
                             }
                         }
                     }

@@ -48,6 +48,8 @@ class ServerStudio : public QObject
     Q_PROPERTY(QObject *nodeModel READ nodeModel CONSTANT)
     Q_PROPERTY(QStringList dataTypeNames READ dataTypeNames CONSTANT)
     Q_PROPERTY(QStringList simulationKindNames READ simulationKindNames CONSTANT)
+    Q_PROPERTY(QStringList enumTypeNames READ enumTypeNames NOTIFY enumsChanged)
+    Q_PROPERTY(QVariantList enumTypes READ enumTypes NOTIFY enumsChanged)
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId WRITE setSelectedNodeId
                    NOTIFY selectedNodeChanged)
     Q_PROPERTY(QVariantMap selectedNode READ selectedNode NOTIFY selectedNodeChanged)
@@ -85,6 +87,8 @@ public:
     QObject *nodeModel() const;
     QStringList dataTypeNames() const;
     QStringList simulationKindNames() const;
+    QStringList enumTypeNames() const;
+    QVariantList enumTypes() const;
     QString selectedNodeId() const { return m_selectedNodeId; }
     void setSelectedNodeId(const QString &nodeId);
     QVariantMap selectedNode() const;
@@ -129,6 +133,16 @@ public:
     /** Removes \a nodeId and all of its descendants. */
     Q_INVOKABLE void removeNode(const QString &nodeId);
 
+    // Enumeration types.
+    /** Adds a new empty enumeration type named \a name; returns its node id. */
+    Q_INVOKABLE QString addEnumType(const QString &name);
+
+    /** Adds an entry (\a value, \a entryName) to the enum named \a enumName. */
+    Q_INVOKABLE void addEnumEntry(const QString &enumName, int value, const QString &entryName);
+
+    /** Removes the enum type \a enumName and clears variables that referenced it. */
+    Q_INVOKABLE void removeEnumType(const QString &enumName);
+
     // Security editing.
     /** Returns the security configuration as a map for the security panel. */
     QVariantMap security() const;
@@ -166,6 +180,7 @@ signals:
     void dirtyChanged();
     void selectedNodeChanged();
     void securityChanged();
+    void enumsChanged();
     void notification(int level, const QString &message);
     void openInClientRequested();
 
