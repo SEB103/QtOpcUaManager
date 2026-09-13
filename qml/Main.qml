@@ -93,11 +93,44 @@ ApplicationWindow {
             action()
     }
 
-    // Guard application exit: prompt to save when the active project is dirty.
+    /*! Action deferred until the Server Studio unsaved-changes prompt is answered. */
+    property var serverStudioPendingAction: null
+
+    /*!
+        Runs \a action immediately, or, when the Server Studio project has unsaved
+        changes, defers it behind the Server Studio unsaved-changes prompt. Used
+        for operations that replace the server project (clone) and for quit.
+    */
+    function runServerStudioGuarded(action) {
+        if (cppServerStudio.dirty) {
+            mainWindow.serverStudioPendingAction = action
+            serverStudioUnsavedDialog.open()
+        } else {
+            action()
+        }
+    }
+
+    /*! Runs and clears the deferred action stored by runServerStudioGuarded(). */
+    function proceedServerStudioPending() {
+        const action = mainWindow.serverStudioPendingAction
+        mainWindow.serverStudioPendingAction = null
+        if (action)
+            action()
+    }
+
+    /*! Clones the browsed client address space into Server Studio and shows it. */
+    function doCloneToServerStudio() {
+        if (cppServerStudio.cloneFromClient())
+            mainWindow.serverStudioActive = true
+    }
+
+    // Guard application exit: prompt to save when the active project or the
+    // Server Studio project is dirty. Resolve the client project first, then the
+    // Server Studio project, then quit.
     onClosing: (close) => {
-        if (cppProjectManager.dirty) {
+        if (cppProjectManager.dirty || cppServerStudio.dirty) {
             close.accepted = false
-            runGuarded(() => Qt.quit())
+            runGuarded(() => mainWindow.runServerStudioGuarded(() => Qt.quit()))
         }
     }
 
@@ -241,9 +274,13 @@ ApplicationWindow {
             saveProjectDialog.open()
         }
 
+        function onServerManagerRequested() {
+            mainWindow.serverStudioActive = true
+        }
+
         function onCloneToServerStudioRequested() {
-            if (cppServerStudio.cloneFromClient())
-                mainWindow.serverStudioActive = true
+            // Cloning replaces the current Server Studio project; guard unsaved work.
+            mainWindow.runServerStudioGuarded(() => mainWindow.doCloneToServerStudio())
         }
     }
 
@@ -419,6 +456,42 @@ ApplicationWindow {
             wrapMode: Text.Wrap
             text: qsTr("The project \"%1\" has unsaved changes. Save them before continuing?")
                       .arg(cppProjectManager.activeProjectName)
+        }
+    }
+
+    // Guards Server Studio project loss on clone and on application quit.
+    Dialog {
+        id: serverStudioUnsavedDialog
+
+        x: Math.round((mainWindow.width - width) / 2)
+        y: Math.round((mainWindow.height - height) / 2)
+        width: Math.min(mainWindow.width - 80, 460)
+        title: qsTr("Unsaved server changes")
+        modal: true
+        focus: true
+        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+        closePolicy: Popup.CloseOnEscape
+
+        // Save the server project, then continue only if the save succeeded.
+        onAccepted: {
+            if (cppServerStudio.saveProject())
+                mainWindow.proceedServerStudioPending()
+            else
+                mainWindow.serverStudioPendingAction = null
+        }
+        // Discard changes and continue with the deferred action.
+        onDiscarded: {
+            serverStudioUnsavedDialog.close()
+            mainWindow.proceedServerStudioPending()
+        }
+        // Cancel abandons the deferred action.
+        onRejected: mainWindow.serverStudioPendingAction = null
+
+        Label {
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: qsTr("The server project \"%1\" has unsaved changes. Save them before continuing?")
+                      .arg(cppServerStudio.projectName)
         }
     }
 

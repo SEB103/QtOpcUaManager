@@ -37,6 +37,13 @@ MenuBar {
     signal themeToggleRequested()
 
     /*!
+        \qmlsignal BsMenuBar::serverManagerRequested()
+        Emitted when the user switches to the Server Manager (Server Studio)
+        section. The corresponding handler is \c onServerManagerRequested.
+    */
+    signal serverManagerRequested()
+
+    /*!
         \qmlsignal BsMenuBar::lastConnectionRequested()
         Emitted when the user selects "Connect to Last Server". The corresponding
         handler is \c onLastConnectionRequested.
@@ -155,6 +162,13 @@ MenuBar {
         MenuItem {
             text: qsTr("Sta&rt/Stop")
             enabled: false
+        }
+
+        MenuSeparator {}
+
+        MenuItem {
+            text: qsTr("Server &Manager")
+            onTriggered: appMenuBar.serverManagerRequested()
         }
 
         MenuSeparator {}

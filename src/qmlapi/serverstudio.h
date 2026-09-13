@@ -31,6 +31,7 @@ class ServerStudio : public QObject
     Q_PROPERTY(bool crashed READ crashed NOTIFY stateChanged)
     Q_PROPERTY(QString stateText READ stateText NOTIFY stateChanged)
     Q_PROPERTY(QString endpointUrl READ endpointUrl NOTIFY endpointUrlChanged)
+    Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY restartRequiredChanged)
 
     // Live diagnostics reported by a running runtime.
     Q_PROPERTY(int sessionCount READ sessionCount NOTIFY diagnosticsChanged)
@@ -72,6 +73,14 @@ public:
     bool crashed() const;
     QString stateText() const;
     QString endpointUrl() const;
+
+    /**
+     * Whether the running server's started configuration diverges from the
+     * current in-memory project, i.e. edits are pending a restart to apply.
+     * Always false while the server is not running.
+     */
+    bool restartRequired() const;
+
     int sessionCount() const;
     int secureChannelCount() const;
     QString diagnosticsText() const;
@@ -188,6 +197,7 @@ public:
 signals:
     void stateChanged();
     void endpointUrlChanged();
+    void restartRequiredChanged();
     void diagnosticsChanged();
     void projectChanged();
     void dirtyChanged();
@@ -239,6 +249,12 @@ private:
 
     /** Whether the project has unsaved changes. */
     bool m_dirty = false;
+
+    /**
+     * Whether the project was edited since the running server last (re)started.
+     * Combined with the running state to drive restartRequired().
+     */
+    bool m_configChangedSinceStart = false;
 
     /** Node id currently selected in the editor. */
     QString m_selectedNodeId;

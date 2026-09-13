@@ -31,6 +31,32 @@ Pane {
     /*! Node id used as the parent for newly added nodes (empty = Objects root). */
     readonly property string addParentId: cppServerStudio.selectedNodeId
 
+    /*! Action deferred until the unsaved-changes prompt is answered. */
+    property var pendingAction: null
+
+    /*!
+        Runs \a action now, or, when the project has unsaved changes, defers it
+        behind the unsaved-changes prompt. Used for operations that replace the
+        in-memory project (new, open, import). Plain navigation (Back) does not
+        need a guard because the project state survives leaving the screen.
+    */
+    function runGuarded(action) {
+        if (cppServerStudio.dirty) {
+            studio.pendingAction = action
+            unsavedDialog.open()
+        } else {
+            action()
+        }
+    }
+
+    /*! Runs and clears the deferred action stored by runGuarded(). */
+    function proceedPending() {
+        const action = studio.pendingAction
+        studio.pendingAction = null
+        if (action)
+            action()
+    }
+
     background: Rectangle {
         color: Material.background
     }
@@ -132,11 +158,11 @@ Pane {
 
             Button {
                 text: qsTr("New")
-                onClicked: newProjectDialog.open()
+                onClicked: studio.runGuarded(() => newProjectDialog.open())
             }
             Button {
                 text: qsTr("Open…")
-                onClicked: openDialog.open()
+                onClicked: studio.runGuarded(() => openDialog.open())
             }
             Button {
                 text: qsTr("Save")
@@ -153,7 +179,7 @@ Pane {
             }
             Button {
                 text: qsTr("Import NodeSet2…")
-                onClicked: importNodeSetDialog.open()
+                onClicked: studio.runGuarded(() => importNodeSetDialog.open())
             }
             Button {
                 text: qsTr("Export NodeSet2…")
@@ -182,11 +208,11 @@ Pane {
                 Button {
                     text: qsTr("New Server Project")
                     highlighted: true
-                    onClicked: newProjectDialog.open()
+                    onClicked: studio.runGuarded(() => newProjectDialog.open())
                 }
                 Button {
                     text: qsTr("Open…")
-                    onClicked: openDialog.open()
+                    onClicked: studio.runGuarded(() => openDialog.open())
                 }
             }
             Item { Layout.fillHeight: true }
@@ -712,6 +738,40 @@ Pane {
                     }
                 }
 
+                // Pending-changes banner: a running server keeps serving the
+                // configuration captured at start; edits apply only on restart.
+                Frame {
+                    Layout.fillWidth: true
+                    visible: cppServerStudio.restartRequired
+                    padding: 8
+
+                    background: Rectangle {
+                        radius: 4
+                        color: Qt.rgba(Material.color(Material.Amber).r,
+                                       Material.color(Material.Amber).g,
+                                       Material.color(Material.Amber).b, 0.18)
+                        border.color: Material.color(Material.Amber)
+                        border.width: 1
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 10
+
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            color: Material.foreground
+                            text: qsTr("Configuration changed — restart the server to apply the changes.")
+                        }
+                        Button {
+                            text: qsTr("Restart")
+                            highlighted: true
+                            onClicked: cppServerStudio.restart()
+                        }
+                    }
+                }
+
                 // Live diagnostics reported by the running runtime.
                 Label {
                     Layout.fillWidth: true
@@ -783,5 +843,44 @@ Pane {
         defaultSuffix: "xml"
         nameFilters: [qsTr("NodeSet2 files (*.xml)")]
         onAccepted: cppServerStudio.exportNodeSet(selectedFile)
+    }
+
+    // Guards operations that replace the current project (new, open, import)
+    // when it has unsaved changes.
+    Dialog {
+        id: unsavedDialog
+
+        anchors.centerIn: parent
+        width: Math.min(studio.width - 80, 460)
+        title: qsTr("Unsaved changes")
+        modal: true
+        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+
+        // Save, then continue only if the save succeeded (a never-saved project
+        // has no path and cannot save silently; the action is abandoned then).
+        onAccepted: {
+            if (cppServerStudio.saveProject())
+                studio.proceedPending()
+            else
+                studio.pendingAction = null
+        }
+        // Discard changes and continue with the deferred action.
+        onDiscarded: {
+            unsavedDialog.close()
+            studio.proceedPending()
+        }
+        // Cancel abandons the deferred action.
+        onRejected: studio.pendingAction = null
+
+        ColumnLayout {
+            width: parent.width
+
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: qsTr("The server project \"%1\" has unsaved changes. Save them before continuing?")
+                          .arg(cppServerStudio.projectName)
+            }
+        }
     }
 }

@@ -102,6 +102,9 @@ ServerStudio::ServerStudio(QObject *parent)
 {
     connect(&m_controller, &ServerRuntimeController::stateChanged,
             this, &ServerStudio::stateChanged);
+    // The running state gates restartRequired(), so a state change may flip it.
+    connect(&m_controller, &ServerRuntimeController::stateChanged,
+            this, &ServerStudio::restartRequiredChanged);
     connect(&m_controller, &ServerRuntimeController::endpointUrlChanged,
             this, &ServerStudio::endpointUrlChanged);
     connect(&m_controller, &ServerRuntimeController::diagnosticsChanged,
@@ -161,6 +164,11 @@ QString ServerStudio::stateText() const
 QString ServerStudio::endpointUrl() const
 {
     return m_controller.endpointUrl();
+}
+
+bool ServerStudio::restartRequired() const
+{
+    return running() && m_configChangedSinceStart;
 }
 
 int ServerStudio::sessionCount() const
@@ -839,6 +847,11 @@ void ServerStudio::startServer()
         QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
             .filePath(QStringLiteral("pki-server"));
 
+    // The snapshot just written reflects the current project, so nothing is
+    // pending a restart until the next edit.
+    m_configChangedSinceStart = false;
+    emit restartRequiredChanged();
+
     m_controller.start(m_project.server.endpoint.port, snapshot, pkiDir);
 }
 
@@ -849,7 +862,11 @@ void ServerStudio::stop()
 
 void ServerStudio::restart()
 {
-    m_controller.restart();
+    // Re-serialize the current project rather than reusing the controller's
+    // stored snapshot path, so edits made since the last start are applied.
+    if (m_controller.state() != ServerRuntimeController::State::Stopped)
+        m_controller.stop();
+    startServer();
 }
 
 void ServerStudio::kill()
@@ -876,6 +893,15 @@ void ServerStudio::openInClient()
 
 void ServerStudio::setDirty(bool dirty)
 {
+    // Any edit while the server is running means its started configuration is
+    // stale until a restart. Track this even when the project is already dirty,
+    // so a second edit after start is still recorded (the guard below would
+    // otherwise return early).
+    if (dirty && running() && !m_configChangedSinceStart) {
+        m_configChangedSinceStart = true;
+        emit restartRequiredChanged();
+    }
+
     if (m_dirty == dirty)
         return;
     m_dirty = dirty;
