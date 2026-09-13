@@ -513,8 +513,40 @@ bool ServerStudio::importNodeSet(const QString &path)
     emit projectChanged();
     emit enumsChanged();
     emit selectedNodeChanged();
-    emit notification(Diagnostics::Info,
-                      tr("Imported %1 node(s) from NodeSet2.").arg(result.nodes.size()));
+
+    if (result.skippedCount > 0) {
+        // Report exactly which node classes the model could not represent.
+        const auto kindLabel = [this](const QString &kind) -> QString {
+            if (kind == QLatin1String("UAMethod"))
+                return tr("Methods");
+            if (kind == QLatin1String("UAObjectType"))
+                return tr("Object types");
+            if (kind == QLatin1String("UAVariableType"))
+                return tr("Variable types");
+            if (kind == QLatin1String("UAReferenceType"))
+                return tr("Reference types");
+            if (kind == QLatin1String("UAView"))
+                return tr("Views");
+            if (kind == QLatin1String("UADataType"))
+                return tr("Data types");
+            return kind;
+        };
+        QStringList kinds = result.skippedKinds.keys();
+        kinds.sort();
+        QStringList parts;
+        for (const QString &kind : kinds)
+            parts.append(QStringLiteral("%1: %2")
+                             .arg(kindLabel(kind))
+                             .arg(result.skippedKinds.value(kind)));
+        emit notification(Diagnostics::Info,
+                          tr("Imported %1 node(s); skipped %2 (%3).")
+                              .arg(result.nodes.size())
+                              .arg(result.skippedCount)
+                              .arg(parts.join(QStringLiteral(", "))));
+    } else {
+        emit notification(Diagnostics::Info,
+                          tr("Imported %1 node(s) from NodeSet2.").arg(result.nodes.size()));
+    }
     return true;
 }
 

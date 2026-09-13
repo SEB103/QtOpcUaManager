@@ -1,5 +1,6 @@
 // Unit test for NodeSet2 export/import round-trip at the model level.
 
+#include <QFile>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -17,6 +18,9 @@ class ServerProjectNodeSetTest : public QObject
 private slots:
     /*! Exported NodeSet2 re-imports to an equivalent, valid address space. */
     void roundTrip();
+
+    /*! Aliases resolve to real ids and unsupported node classes are reported. */
+    void aliasesAndSkippedNodes();
 
 private:
     static ProjectData makeProject();
@@ -125,6 +129,81 @@ void ServerProjectNodeSetTest::roundTrip()
     rebuilt.nodes = imported.nodes;
     const Validator::Result validation = Validator::validate(rebuilt);
     QVERIFY2(validation.ok, qPrintable(validation.errors.join(QLatin1String("; "))));
+}
+
+void ServerProjectNodeSetTest::aliasesAndSkippedNodes()
+{
+    // A hand-written third-party NodeSet2: it uses an <Aliases> section, gives a
+    // variable's DataType via a custom alias name, and contains node classes the
+    // model cannot represent (a method, an object type and a non-enum data type).
+    const QString xml = QStringLiteral(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+        "<UANodeSet xmlns=\"http://opcfoundation.org/UA/2011/03/UANodeSet.xsd\">\n"
+        "  <NamespaceUris>\n"
+        "    <Uri>urn:test:aliases</Uri>\n"
+        "  </NamespaceUris>\n"
+        "  <Aliases>\n"
+        "    <Alias Alias=\"MyInt\">i=6</Alias>\n"
+        "    <Alias Alias=\"Organizes\">i=35</Alias>\n"
+        "    <Alias Alias=\"HasComponent\">i=47</Alias>\n"
+        "  </Aliases>\n"
+        "  <UAObject NodeId=\"ns=1;s=Plant\" BrowseName=\"1:Plant\">\n"
+        "    <DisplayName>Plant</DisplayName>\n"
+        "    <References>\n"
+        "      <Reference ReferenceType=\"Organizes\" IsForward=\"false\">i=85</Reference>\n"
+        "    </References>\n"
+        "  </UAObject>\n"
+        "  <UAVariable NodeId=\"ns=1;s=Plant.Count\" BrowseName=\"1:Count\" DataType=\"MyInt\">\n"
+        "    <DisplayName>Count</DisplayName>\n"
+        "    <References>\n"
+        "      <Reference ReferenceType=\"HasComponent\" IsForward=\"false\">ns=1;s=Plant</Reference>\n"
+        "    </References>\n"
+        "  </UAVariable>\n"
+        "  <UAMethod NodeId=\"ns=1;s=DoIt\" BrowseName=\"1:DoIt\">\n"
+        "    <DisplayName>DoIt</DisplayName>\n"
+        "  </UAMethod>\n"
+        "  <UAObjectType NodeId=\"ns=1;s=MyType\" BrowseName=\"1:MyType\">\n"
+        "    <DisplayName>MyType</DisplayName>\n"
+        "  </UAObjectType>\n"
+        "  <UADataType NodeId=\"ns=1;s=SomeStruct\" BrowseName=\"1:SomeStruct\">\n"
+        "    <DisplayName>SomeStruct</DisplayName>\n"
+        "  </UADataType>\n"
+        "</UANodeSet>\n");
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("thirdparty.xml"));
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+    QVERIFY(file.write(xml.toUtf8()) > 0);
+    file.close();
+
+    const NodeSet::ImportResult imported = NodeSet::importFromFile(path);
+    QVERIFY2(imported.ok, qPrintable(imported.errorString));
+
+    // Only the object and the variable are representable.
+    QCOMPARE(imported.nodes.size(), 2);
+    QHash<QString, Node> byId;
+    for (const Node &node : imported.nodes)
+        byId.insert(node.nodeId, node);
+
+    // The DataType alias "MyInt" resolved to i=6, i.e. the built-in Int32. A
+    // literal fallback would have left the raw alias name "MyInt" instead.
+    const Node count = byId.value(QStringLiteral("ns=1;s=Plant.Count"));
+    QCOMPARE(count.kind, NodeKind::Variable);
+    QCOMPARE(count.dataType, QStringLiteral("Int32"));
+    QCOMPARE(count.parentNodeId, QStringLiteral("ns=1;s=Plant"));
+
+    // The object under the Objects folder maps to a top-level folder.
+    const Node plant = byId.value(QStringLiteral("ns=1;s=Plant"));
+    QCOMPARE(plant.kind, NodeKind::Folder);
+    QVERIFY(plant.parentNodeId.isEmpty());
+
+    // The method, object type and non-enum data type are reported as skipped.
+    QCOMPARE(imported.skippedCount, 3);
+    QCOMPARE(imported.skippedKinds.value(QStringLiteral("UAMethod")), 1);
+    QCOMPARE(imported.skippedKinds.value(QStringLiteral("UAObjectType")), 1);
+    QCOMPARE(imported.skippedKinds.value(QStringLiteral("UADataType")), 1);
 }
 
 QTEST_GUILESS_MAIN(ServerProjectNodeSetTest)

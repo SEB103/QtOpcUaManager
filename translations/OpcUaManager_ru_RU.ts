@@ -1672,63 +1672,98 @@
         <translation>Импортированный сервер</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="517"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="521"/>
+        <source>Methods</source>
+        <translation>Методы</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="523"/>
+        <source>Object types</source>
+        <translation>Типы объектов</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="525"/>
+        <source>Variable types</source>
+        <translation>Типы переменных</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="527"/>
+        <source>Reference types</source>
+        <translation>Типы ссылок</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="529"/>
+        <source>Views</source>
+        <translation>Представления</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="531"/>
+        <source>Data types</source>
+        <translation>Типы данных</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="542"/>
+        <source>Imported %1 node(s); skipped %2 (%3).</source>
+        <translation>Импортировано узлов: %1; пропущено: %2 (%3).</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="548"/>
         <source>Imported %1 node(s) from NodeSet2.</source>
         <translation>Импортировано узлов из NodeSet2: %1.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="524"/>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="885"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="556"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="917"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="532"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="564"/>
         <source>Browse the server&apos;s Objects in the client before cloning.</source>
         <translation>Просмотрите Objects сервера в клиенте перед клонированием.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="537"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="569"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="595"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="627"/>
         <source>Cloned %1 node(s) from the client.</source>
         <translation>Клонировано узлов из клиента: %1.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="620"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="652"/>
         <source>Folder</source>
         <translation>Папка</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="637"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="669"/>
         <source>Object</source>
         <translation>Объект</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="655"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="687"/>
         <source>Variable</source>
         <translation>Переменная</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="825"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="857"/>
         <source>Create or open a server project first.</source>
         <translation>Сначала создайте или откройте проект сервера.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="833"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="865"/>
         <source>Project is not valid: %1</source>
         <translation>Проект недействителен: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="840"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="872"/>
         <source>Could not prepare the server project.</source>
         <translation>Не удалось подготовить проект сервера.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="881"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="913"/>
         <source>Start the server runtime before opening it in the client.</source>
         <translation>Запустите среду выполнения сервера перед открытием её в клиенте.</translation>
     </message>

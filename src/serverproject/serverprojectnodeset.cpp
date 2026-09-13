@@ -270,13 +270,53 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
         return result;
     }
 
+    // First pass: collect <Aliases> so that DataType and reference values given
+    // as alias names (for example DataType="Int32") resolve to real node ids,
+    // regardless of where the Aliases block appears in the document.
+    QHash<QString, QString> aliases;
+    {
+        QXmlStreamReader aliasXml(&file);
+        while (!aliasXml.atEnd()) {
+            if (aliasXml.readNext() != QXmlStreamReader::StartElement)
+                continue;
+            if (aliasXml.name() == QLatin1String("Aliases")) {
+                while (aliasXml.readNextStartElement()) {
+                    if (aliasXml.name() == QLatin1String("Alias")) {
+                        const QString alias =
+                            aliasXml.attributes().value(QStringLiteral("Alias")).toString();
+                        const QString id = aliasXml.readElementText().trimmed();
+                        if (!alias.isEmpty())
+                            aliases.insert(alias, id);
+                    } else {
+                        aliasXml.skipCurrentElement();
+                    }
+                }
+            }
+        }
+    }
+    file.seek(0);
+
+    // Resolves an id reference: a raw node id passes through, an alias name is
+    // looked up (falling back to the literal when unknown).
+    const auto resolveId = [&aliases](const QString &ref) -> QString {
+        if (ref.isEmpty() || ref.startsWith(QLatin1String("i="))
+            || ref.startsWith(QLatin1String("ns=")) || ref.startsWith(QLatin1String("g="))
+            || ref.startsWith(QLatin1String("b="))) {
+            return ref;
+        }
+        return aliases.value(ref, ref);
+    };
+
     QXmlStreamReader xml(&file);
     while (!xml.atEnd()) {
         if (xml.readNext() != QXmlStreamReader::StartElement)
             continue;
 
         const QString element = xml.name().toString();
-        if (element == QLatin1String("NamespaceUris")) {
+        if (element == QLatin1String("Aliases")) {
+            // Already collected in the first pass.
+            xml.skipCurrentElement();
+        } else if (element == QLatin1String("NamespaceUris")) {
             while (xml.readNextStartElement()) {
                 if (xml.name() == QLatin1String("Uri"))
                     result.namespaces.append({xml.readElementText()});
@@ -309,8 +349,13 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
                     xml.skipCurrentElement();
                 }
             }
-            if (isEnum && !enumType.nodeId.isEmpty())
+            if (isEnum && !enumType.nodeId.isEmpty()) {
                 result.enumTypes.append(enumType);
+            } else {
+                // A non-enumeration data type cannot be represented by the model.
+                result.skippedKinds[QStringLiteral("UADataType")] += 1;
+                result.skippedCount += 1;
+            }
         } else if (element == QLatin1String("UAObject")
                    || element == QLatin1String("UAVariable")) {
             const bool isVariable = element == QLatin1String("UAVariable");
@@ -325,7 +370,8 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
             QString typeDefinition;
             QString hierarchicalRef;
             if (isVariable) {
-                dataTypeRef = xml.attributes().value(QStringLiteral("DataType")).toString();
+                dataTypeRef =
+                    resolveId(xml.attributes().value(QStringLiteral("DataType")).toString());
                 if (xml.attributes().value(QStringLiteral("ValueRank")).toInt() == 1)
                     node.valueRank = 1;
             }
@@ -343,7 +389,7 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
                             const bool isForward =
                                 xml.attributes().value(QStringLiteral("IsForward")).toString()
                                 != QLatin1String("false");
-                            const QString target = xml.readElementText();
+                            const QString target = resolveId(xml.readElementText());
                             if (refType == QLatin1String("HasTypeDefinition") && isForward)
                                 typeDefinition = target;
                             else if (!isForward
@@ -390,6 +436,16 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
 
             if (!node.nodeId.isEmpty())
                 result.nodes.append(node);
+        } else if (element == QLatin1String("UAObjectType")
+                   || element == QLatin1String("UAVariableType")
+                   || element == QLatin1String("UAMethod")
+                   || element == QLatin1String("UAReferenceType")
+                   || element == QLatin1String("UAView")) {
+            // Node classes the Server Studio model cannot represent yet: count
+            // them so the import can report exactly what it dropped.
+            result.skippedKinds[element] += 1;
+            result.skippedCount += 1;
+            xml.skipCurrentElement();
         }
     }
 

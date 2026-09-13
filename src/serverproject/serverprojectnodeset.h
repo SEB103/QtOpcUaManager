@@ -1,6 +1,7 @@
 #ifndef SERVERPROJECTNODESET_H
 #define SERVERPROJECTNODESET_H
 
+#include <QHash>
 #include <QString>
 
 #include "serverprojectdata.h"
@@ -33,6 +34,15 @@ public:
         QList<Namespace> namespaces;
         QList<EnumType> enumTypes;
         QList<Node> nodes;
+
+        /** Total number of top-level nodes the model cannot represent. */
+        int skippedCount = 0;
+
+        /**
+         * Per-element-name counts of skipped nodes (for example "UAMethod" or
+         * "UAObjectType"), so the import can honestly report what it dropped.
+         */
+        QHash<QString, int> skippedKinds;
     };
 
     /** Writes \a data's address space to \a filePath as NodeSet2 XML. */
