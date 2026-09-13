@@ -34,6 +34,9 @@ private slots:
     /*! Verifies that updateValue() fills the value fields of the matching row. */
     void updateValueUpdatesMatchingRow();
 
+    /*! Verifies currentValueForNode() returns the live value or empty. */
+    void currentValueForNodeReturnsMonitoredValue();
+
     /*! Verifies that clearValues() clears live fields but keeps rows. */
     void clearValuesKeepsRows();
 
@@ -124,6 +127,31 @@ void DataAccessModelTest::updateValueUpdatesMatchingRow()
     unknown.value = QStringLiteral("999");
     model.updateValue(unknown);
     QCOMPARE(spy.size(), 1);
+}
+
+/*!
+ * \brief Verifies currentValueForNode() returns the live value or empty.
+ *
+ * This is the seam Clone Server uses to carry a client's current value into a
+ * cloned variable, so it must return the live text for a monitored node and an
+ * empty string when the node is unknown or has no value yet.
+ */
+void DataAccessModelTest::currentValueForNodeReturnsMonitoredValue()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=B")));
+
+    OpcUaValueUpdate update;
+    update.nodeId = QStringLiteral("ns=1;s=A");
+    update.value = QStringLiteral("42");
+    model.updateValue(update);
+
+    QCOMPARE(model.currentValueForNode(QStringLiteral("ns=1;s=A")), QStringLiteral("42"));
+    // A monitored node that has not received a value yet returns empty.
+    QVERIFY(model.currentValueForNode(QStringLiteral("ns=1;s=B")).isEmpty());
+    // An unmonitored node id returns empty.
+    QVERIFY(model.currentValueForNode(QStringLiteral("ns=1;s=Z")).isEmpty());
 }
 
 /*!

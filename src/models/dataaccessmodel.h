@@ -153,6 +153,15 @@ public:
     /** Returns whether a row with \a server and \a nodeId already exists. */
     bool contains(const QString &server, const QString &nodeId) const;
 
+    /**
+     * Returns the formatted current value text of the monitored node \a nodeId,
+     * or an empty string when the node is not monitored (no live value known).
+     *
+     * Values are stored as display text, so callers that need a typed value
+     * parse this according to the target data type.
+     */
+    Q_INVOKABLE QString currentValueForNode(const QString &nodeId) const;
+
     /** Returns the node id at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString nodeIdAt(int row) const;
 

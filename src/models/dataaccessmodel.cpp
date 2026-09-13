@@ -173,6 +173,15 @@ bool DataAccessModel::contains(const QString &server, const QString &nodeId) con
 }
 
 /*!
+ * \brief Returns the current value text for the monitored node \a nodeId.
+ */
+QString DataAccessModel::currentValueForNode(const QString &nodeId) const
+{
+    const int row = indexForNodeId(nodeId);
+    return row >= 0 ? m_rows.at(row).value : QString();
+}
+
+/*!
  * \brief Returns the node id at \a row.
  */
 QString DataAccessModel::nodeIdAt(int row) const

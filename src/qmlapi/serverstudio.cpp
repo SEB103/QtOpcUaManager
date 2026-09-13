@@ -9,6 +9,7 @@
 #include <QUrl>
 
 #include "core/diagnosticslevel.h"
+#include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
 #include "opcuamanager.h"
 #include "servernodemodel.h"
@@ -605,9 +606,15 @@ bool ServerStudio::cloneFromClient()
             node.dataType = dataTypeIdToBuiltin(source.dataTypeId);
             node.valueRank = source.valueRank >= 1 ? 1 : -1;
             node.writable = false;
+            // Carry the client's current value for monitored scalar variables so
+            // the clone reproduces realistic data; fall back to the type default
+            // when no live value is known. Arrays keep the default for now.
+            QString currentText;
+            if (node.valueRank != 1 && m_opcUaManager->dataModel())
+                currentText = m_opcUaManager->dataModel()->currentValueForNode(source.nodeId);
             node.initialValue = node.valueRank == 1
                                     ? QVariant(QVariantList())
-                                    : scalarFromText(node.dataType, QString());
+                                    : scalarFromText(node.dataType, currentText);
         } else {
             node.kind = source.isFolder ? NodeKind::Folder : NodeKind::Object;
         }
