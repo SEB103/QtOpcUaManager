@@ -37,6 +37,9 @@ public:
     /** Removes all rows. */
     void clear();
 
+    /** Rebuilds the rows from the last snapshot after a UI language switch. */
+    void retranslate();
+
     /** Returns the value shown for \a attribute, or an empty string when absent. */
     Q_INVOKABLE QString valueFor(const QString &attribute) const;
 
@@ -59,6 +62,12 @@ private:
 
     /** Owned attribute rows in display order. */
     QList<Entry> m_entries;
+
+    /** Last snapshot the rows were built from, kept so retranslate() can rebuild. */
+    OpcUaAttributeData m_lastData;
+
+    /** Whether m_lastData holds a snapshot to rebuild from. */
+    bool m_hasData {false};
 };
 
 #endif // ATTRIBUTESMODEL_H

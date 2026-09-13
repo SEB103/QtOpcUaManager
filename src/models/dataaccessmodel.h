@@ -211,6 +211,9 @@ public:
     /** Returns the translated header title of \a column. */
     Q_INVOKABLE QString columnTitle(int column) const;
 
+    /** Re-emits header and cell changes so the view re-reads translated text. */
+    void retranslate();
+
     /** Returns data for \a index and \a role. */
     QVariant data(const QModelIndex &index, int role) const override;
     /** Returns horizontal header titles. */

@@ -80,6 +80,12 @@ AttributesModel::AttributesModel(QObject *parent)
  */
 void AttributesModel::setAttributes(const OpcUaAttributeData &data)
 {
+    // Keep the raw snapshot so retranslate() can rebuild the translated value
+    // descriptions (value rank, dimensions, sampling interval) after a language
+    // switch without another server read.
+    m_lastData = data;
+    m_hasData = true;
+
     QList<Entry> entries;
     const auto append = [&entries](const QString &name, const QString &value) {
         entries.push_back(Entry{name, value});
@@ -131,12 +137,28 @@ void AttributesModel::setAttributes(const OpcUaAttributeData &data)
  */
 void AttributesModel::clear()
 {
+    m_hasData = false;
+    m_lastData = OpcUaAttributeData{};
+
     if (m_entries.isEmpty())
         return;
 
     beginResetModel();
     m_entries.clear();
     endResetModel();
+}
+
+/*!
+ * \brief Rebuilds the rows from the last snapshot after a UI language switch.
+ *
+ * The attribute names are fixed OPC UA identifiers, but some values are rendered
+ * with tr() (value rank, dimension count, sampling interval), so the rows are
+ * rebuilt from the cached snapshot to pick up the new language.
+ */
+void AttributesModel::retranslate()
+{
+    if (m_hasData)
+        setAttributes(m_lastData);
 }
 
 /*!

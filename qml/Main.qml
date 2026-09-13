@@ -473,6 +473,22 @@ ApplicationWindow {
             columnSpacing: 10
             rowSpacing: 8
 
+            // Language applies live to the whole UI and is remembered for the next
+            // launch; missing translations fall back to English.
+            Label { text: qsTr("Interface language:"); Layout.preferredWidth: 180 }
+            ComboBox {
+                id: settingsLanguageCombo
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                model: cppLocale.availableLanguages
+                textRole: "name"
+                valueRole: "code"
+                currentIndex: indexOfValue(cppLocale.currentLanguage)
+                onActivated: cppLocale.setLanguage(currentValue)
+                Accessible.name: qsTr("Interface language")
+            }
+            Item { Layout.preferredWidth: 100 }
+
             Label { text: qsTr("Default projects folder:"); Layout.preferredWidth: 180 }
             TextField {
                 Layout.fillWidth: true

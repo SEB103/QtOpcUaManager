@@ -8,6 +8,7 @@
 
 class AppInfo;
 class LicenseModel;
+class LocaleController;
 class LogModel;
 class OpcUaManager;
 class OpcUaService;
@@ -42,6 +43,12 @@ public:
 
     /** Injects the INI \a settings store into the OPC UA facade for persistence. */
     void setSettings(QSettings* settings);
+
+    /**
+     * Publishes the language \a controller to QML as \c cppLocale and refreshes
+     * C++-side model text when it reports a live language switch.
+     */
+    void setLocaleController(LocaleController* controller);
 
     /** Returns the filtered application log exposed to QML. */
     LogFilterModel* logModel() const { return m_logFilterModel; }
@@ -79,6 +86,9 @@ private:
 
     /** Bundled license documents exposed to QML as \c cppLicenseModel; owned by this engine. */
     LicenseModel* m_licenseModel = nullptr;
+
+    /** UI language selector exposed to QML as \c cppLocale; owned by main(). */
+    LocaleController* m_localeController = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

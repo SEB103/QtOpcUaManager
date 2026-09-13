@@ -318,6 +318,22 @@ void OpcUaManager::setSettings(QSettings *settings)
     m_settings = settings;
 }
 
+/*!
+ * \brief Refreshes the owned models' tr()-built text after a UI language switch.
+ *
+ * QML bindings are retranslated by the engine, but the table headers and the
+ * attribute descriptions these models produce with tr() are cached, so they are
+ * rebuilt explicitly here. Live subscription values, timestamps, and status text
+ * are server data and are left untouched.
+ */
+void OpcUaManager::retranslate()
+{
+    if (m_dataModel)
+        m_dataModel->retranslate();
+    if (m_attributesModel)
+        m_attributesModel->retranslate();
+}
+
 DataAccessModel *OpcUaManager::dataModel() const
 {
     return m_dataModel;

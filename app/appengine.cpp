@@ -20,6 +20,7 @@
 
 #include "appinfo.h"
 #include "licensemodel.h"
+#include "localecontroller.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
 #include "qmlapi/servernodemodel.h"
@@ -368,6 +369,32 @@ void AppEngine::setSettings(QSettings* settings)
         m_opcUaManager->setSettings(settings);
     if (m_projectManager)
         m_projectManager->setSettings(settings);
+}
+
+/*!
+ * \brief Publishes the language controller to QML and wires C++-side refresh.
+ * \param controller Non-owning language selector, or null to skip wiring.
+ *
+ * QQmlApplicationEngine::retranslate() refreshes QML bindings that contain
+ * translated strings, but item models cache text built with tr(). Refreshing
+ * those models on languageChanged() keeps the Data Access and Attributes views in
+ * step with the rest of the UI on a live switch.
+ */
+void AppEngine::setLocaleController(LocaleController* controller)
+{
+    m_localeController = controller;
+    if (!controller)
+        return;
+
+    qmlRegisterUncreatableType<LocaleController>(
+        "Cpp.Locale", 1, 0, "LocaleController",
+        QStringLiteral("LocaleController is exposed as the cppLocale context property."));
+    rootContext()->setContextProperty("cppLocale", controller);
+
+    connect(controller, &LocaleController::languageChanged, this, [this]() {
+        if (m_opcUaManager)
+            m_opcUaManager->retranslate();
+    });
 }
 
 void AppEngine::createOpcUaRuntime()

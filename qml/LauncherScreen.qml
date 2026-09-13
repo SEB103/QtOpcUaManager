@@ -76,6 +76,31 @@ Pane {
             y: 40
             spacing: 16
 
+            // Language selector shown before any project is opened, so the start
+            // page itself already appears in the chosen language. Applies live.
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Item { Layout.fillWidth: true }
+
+                Label {
+                    text: qsTr("Language:")
+                    color: Material.foreground
+                    opacity: 0.7
+                }
+
+                ComboBox {
+                    id: launcherLanguageCombo
+                    model: cppLocale.availableLanguages
+                    textRole: "name"
+                    valueRole: "code"
+                    currentIndex: indexOfValue(cppLocale.currentLanguage)
+                    onActivated: cppLocale.setLanguage(currentValue)
+                    Accessible.name: qsTr("Interface language")
+                }
+            }
+
             // Application wordmark logo shown at the top of the start page. The
             // source is a transparent-background PNG so it blends with either
             // theme; sourceSize caps the decoded size for a 128 px display.

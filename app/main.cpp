@@ -3,14 +3,13 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QIcon>
-#include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QString>
-#include <QTranslator>
 #include <QtQml/QQmlExtensionPlugin>
 
 #include "appcore.h"
 #include "appengine.h"
+#include "localecontroller.h"
 #include "core/apppaths.h"
 #include "productinfo.h"
 
@@ -54,15 +53,11 @@ int main(int argc, char *argv[])
     app.createSettings(QCoreApplication::applicationName(),
                        AppPaths::instance().configDir());
 
-    QTranslator translator;
-    const QStringList uiLanguages = QLocale::system().uiLanguages();
-    for (const QString &locale : uiLanguages) {
-        const QString baseName = QStringLiteral("OpcUaManager_") + QLocale(locale).name();
-        if (translator.load(QStringLiteral(":/translations/") + baseName)) {
-            app.installTranslator(&translator);
-            break;
-        }
-    }
+    // Install the UI language before any QML is created. The controller resolves
+    // the saved preference (falling back to the system locale, then English) and
+    // outlives the engine so it can also switch languages live at runtime.
+    LocaleController localeController(app.settings());
+    localeController.applyInitialLanguage();
 
     QCommandLineParser parser;
     parser.setApplicationDescription(
@@ -80,6 +75,12 @@ int main(int argc, char *argv[])
 
     AppEngine engine(initialUrl.trimmed());
     engine.setSettings(app.settings());
+
+    // Expose the language selector to QML and let it retranslate the engine on a
+    // live switch. Wiring happens before loadFromModule so cppLocale is available
+    // to the first objects the engine creates.
+    engine.setLocaleController(&localeController);
+    localeController.setEngine(&engine);
 
     QObject::connect(
         &engine,

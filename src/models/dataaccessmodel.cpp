@@ -335,6 +335,22 @@ QString DataAccessModel::columnTitle(int column) const
 }
 
 /*!
+ * \brief Re-emits header and cell changes so the view re-reads translated text.
+ *
+ * The column titles are the model's only translated strings; the header refresh
+ * is what the table needs. The cell refresh is emitted as well so a delegate that
+ * formats numbers or dates with the UI locale updates too.
+ */
+void DataAccessModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, ColumnCount - 1);
+    if (!m_rows.isEmpty()) {
+        emit dataChanged(index(0, 0),
+                         index(int(m_rows.size()) - 1, ColumnCount - 1));
+    }
+}
+
+/*!
  * \brief Returns the row index for \a nodeId, or -1 when not present.
  */
 int DataAccessModel::indexForNodeId(const QString &nodeId) const

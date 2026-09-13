@@ -264,6 +264,9 @@ public:
      */
     void setSettings(QSettings *settings);
 
+    /** Refreshes the owned models' tr()-built text after a UI language switch. */
+    void retranslate();
+
     /** Returns the owned Data Access View table model exposed to QML. */
     DataAccessModel *dataModel() const;
 
