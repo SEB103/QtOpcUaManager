@@ -27,6 +27,9 @@ private slots:
     /*! Loading a future version reports UnsupportedVersion. */
     void reportsUnsupportedVersion();
 
+    /*! A legacy file without acceptAllClientCerts defaults it to true. */
+    void legacyFileDefaultsAcceptAllClientCerts();
+
 private:
     /*! Builds a representative project with a folder, scalar and array variable. */
     static ProjectData makeSampleProject();
@@ -43,6 +46,7 @@ ProjectData ServerProjectSerializerTest::makeSampleProject()
     data.security.allowAnonymous = false;
     data.security.allowNone = true;
     data.security.enableSecurity = true;
+    data.security.acceptAllClientCerts = false;
     data.security.users.append({QStringLiteral("admin"), QStringLiteral("secret")});
 
     EnumType mode;
@@ -130,6 +134,7 @@ void ServerProjectSerializerTest::roundTripPreservesData()
 
     QCOMPARE(copy.security.allowAnonymous, false);
     QCOMPARE(copy.security.enableSecurity, true);
+    QCOMPARE(copy.security.acceptAllClientCerts, false);
     QCOMPARE(copy.security.users.size(), 1);
     QCOMPARE(copy.security.users.first().username, QStringLiteral("admin"));
     QCOMPARE(copy.security.users.first().password, QStringLiteral("secret"));
@@ -178,6 +183,25 @@ void ServerProjectSerializerTest::reportsUnsupportedVersion()
     const Serializer::LoadResult result = Serializer::load(path);
     QVERIFY(!result.ok);
     QCOMPARE(result.error, Serializer::Error::UnsupportedVersion);
+}
+
+void ServerProjectSerializerTest::legacyFileDefaultsAcceptAllClientCerts()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("legacy.uaserver"));
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    // A v1 file whose security block predates the acceptAllClientCerts field.
+    file.write(QByteArrayLiteral(
+        "{ \"formatVersion\": 1, \"displayName\": \"Legacy\", \"nodes\": [],"
+        " \"security\": { \"allowAnonymous\": true, \"enableSecurity\": true } }"));
+    file.close();
+
+    const Serializer::LoadResult result = Serializer::load(path);
+    QVERIFY2(result.ok, qPrintable(result.errorString));
+    // The convenience default keeps older projects behaving as before.
+    QCOMPARE(result.data.security.acceptAllClientCerts, true);
 }
 
 QTEST_GUILESS_MAIN(ServerProjectSerializerTest)

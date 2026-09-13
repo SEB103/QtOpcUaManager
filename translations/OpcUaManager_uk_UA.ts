@@ -1061,57 +1061,57 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="322"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="331"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="323"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="332"/>
         <source>Display Name</source>
         <translation>Відображувана назва</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="324"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="333"/>
         <source>Value</source>
         <translation>Значення</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="325"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="334"/>
         <source>Data Type</source>
         <translation>Тип даних</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="326"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="335"/>
         <source>Status</source>
         <translation>Статус</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="327"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="336"/>
         <source>Interval, ms</source>
         <translation>Інтервал, мс</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="328"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="337"/>
         <source>Source Timestamp</source>
         <translation>Позначка часу джерела</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="329"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="338"/>
         <source>Server Timestamp</source>
         <translation>Позначка часу сервера</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="330"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="339"/>
         <source>Node Path</source>
         <translation>Шлях вузла</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="331"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="340"/>
         <source>Node Id</source>
         <translation>Node Id</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="332"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="341"/>
         <source>Server</source>
         <translation>Сервер</translation>
     </message>
@@ -1586,184 +1586,199 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="151"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="153"/>
         <source>Stopped</source>
         <translation>Зупинено</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="153"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="155"/>
         <source>Starting…</source>
         <translation>Запуск…</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="155"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="157"/>
         <source>Running — %1</source>
         <translation>Працює — %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="157"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="159"/>
         <source>Stopping…</source>
         <translation>Зупинення…</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="159"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="161"/>
         <source>Crashed</source>
         <translation>Аварійно завершено</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="161"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="163"/>
         <source>Unknown</source>
         <translation>Невідомо</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="187"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="189"/>
         <source>No diagnostics (server stopped).</source>
         <translation>Немає діагностики (сервер зупинено).</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="189"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="191"/>
         <source>Sessions: %1 · Secure channels: %2 · Uptime: %3 s</source>
         <translation>Сеанси: %1 · Захищені канали: %2 · Час роботи: %3 с</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="379"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="381"/>
         <source>Untitled Server</source>
         <translation>Сервер без назви</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="403"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="405"/>
         <source>Cannot open server project: %1</source>
         <translation>Не вдалося відкрити проект сервера: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="418"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="420"/>
         <source>Opened server project %1</source>
         <translation>Проект сервера %1 відкрито</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="430"/>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="444"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="432"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="446"/>
         <source>Cannot save server project: %1</source>
         <translation>Не вдалося зберегти проект сервера: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="476"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="478"/>
         <source>Open a server project first.</source>
         <translation>Спочатку відкрийте проект сервера.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="483"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="485"/>
         <source>Cannot export NodeSet2: %1</source>
         <translation>Не вдалося експортувати NodeSet2: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="486"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="488"/>
         <source>Exported NodeSet2.</source>
         <translation>NodeSet2 експортовано.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="496"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="498"/>
         <source>Cannot import NodeSet2: %1</source>
         <translation>Не вдалося імпортувати NodeSet2: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="501"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="503"/>
         <source>Imported Server</source>
         <translation>Імпортований сервер</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="521"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="523"/>
         <source>Methods</source>
         <translation>Методи</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="523"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="525"/>
         <source>Object types</source>
-        <translation>Типи об'єктів</translation>
+        <translation>Типи об&apos;єктів</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="525"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="527"/>
         <source>Variable types</source>
         <translation>Типи змінних</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="527"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="529"/>
         <source>Reference types</source>
         <translation>Типи посилань</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="529"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="531"/>
         <source>Views</source>
         <translation>Подання</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="531"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="533"/>
         <source>Data types</source>
         <translation>Типи даних</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="542"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="544"/>
         <source>Imported %1 node(s); skipped %2 (%3).</source>
         <translation>Імпортовано вузлів: %1; пропущено: %2 (%3).</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="548"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="550"/>
         <source>Imported %1 node(s) from NodeSet2.</source>
         <translation>Імпортовано вузлів із NodeSet2: %1.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="556"/>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="917"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="558"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="976"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="564"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="566"/>
         <source>Browse the server&apos;s Objects in the client before cloning.</source>
         <translation>Перегляньте Objects сервера в клієнті перед клонуванням.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="569"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="571"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="627"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="635"/>
         <source>Cloned %1 node(s) from the client.</source>
         <translation>Клоновано вузлів із клієнта: %1.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="652"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="660"/>
         <source>Folder</source>
         <translation>Тека</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="669"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="677"/>
         <source>Object</source>
         <translation>Об’єкт</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="687"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="695"/>
         <source>Variable</source>
         <translation>Змінна</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="857"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="875"/>
         <source>Create or open a server project first.</source>
         <translation>Спочатку створіть або відкрийте проект сервера.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="865"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="883"/>
         <source>Project is not valid: %1</source>
         <translation>Проект недійсний: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="872"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="890"/>
         <source>Could not prepare the server project.</source>
         <translation>Не вдалося підготувати проект сервера.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="913"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="931"/>
+        <source>The certificate is no longer available.</source>
+        <translation>Сертифікат більше недоступний.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="939"/>
+        <source>Could not trust the certificate.</source>
+        <translation>Не вдалося додати сертифікат до довірених.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="944"/>
+        <source>Certificate trusted. Restart the server to apply it.</source>
+        <translation>Сертифікат додано до довірених. Перезапустіть сервер, щоб застосувати.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="972"/>
         <source>Start the server runtime before opening it in the client.</source>
         <translation>Запустіть середовище виконання сервера перед відкриттям його в клієнті.</translation>
     </message>
@@ -1771,330 +1786,355 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="102"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="111"/>
         <source>(no values)</source>
         <translation>(немає значень)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="143"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="152"/>
         <source>← Back</source>
         <translation>← Назад</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="156"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="165"/>
         <source>Server Studio</source>
         <translation>Server Studio</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="160"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="169"/>
         <source>New</source>
         <translation>Створити</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="164"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="214"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="173"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="223"/>
         <source>Open…</source>
         <translation>Відкрити…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="168"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="177"/>
         <source>Save</source>
         <translation>Зберегти</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="176"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="185"/>
         <source>Save As…</source>
         <translation>Зберегти як…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="181"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="190"/>
         <source>Import NodeSet2…</source>
         <translation>Імпорт NodeSet2…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="185"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="194"/>
         <source>Export NodeSet2…</source>
         <translation>Експорт NodeSet2…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="201"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="210"/>
         <source>Create a new server project or open an existing one.</source>
         <translation>Створіть новий проект сервера або відкрийте наявний.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="209"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="794"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="218"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="866"/>
         <source>New Server Project</source>
         <translation>Новий проект сервера</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="237"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="246"/>
         <source>+ Folder</source>
         <translation>+ Тека</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="238"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="247"/>
         <source>Folder</source>
         <translation>Тека</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="241"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="250"/>
         <source>+ Variable</source>
         <translation>+ Змінна</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="242"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="251"/>
         <source>Variable</source>
         <translation>Змінна</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="247"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="675"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="256"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="747"/>
         <source>Remove</source>
         <translation>Видалити</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="303"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="312"/>
         <source>Select a node to edit its properties.</source>
         <translation>Виберіть вузол, щоб змінити його властивості.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="315"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="324"/>
         <source>Node id:</source>
         <translation>Node Id:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="324"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="333"/>
         <source>Kind:</source>
         <translation>Тип:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="331"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="340"/>
         <source>Display name:</source>
         <translation>Відображувана назва:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="337"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="346"/>
         <source>Description:</source>
         <translation>Опис:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="344"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="353"/>
         <source>Data type:</source>
         <translation>Тип даних:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="356"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="365"/>
         <source>Enum type:</source>
         <translation>Тип переліку:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="367"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="376"/>
         <source>Array:</source>
         <translation>Масив:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="373"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="382"/>
         <source>One-dimensional array</source>
         <translation>Одновимірний масив</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="377"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="386"/>
         <source>Writable:</source>
         <translation>Запис дозволено:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="386"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="395"/>
         <source>Initial value:</source>
         <translation>Початкове значення:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="393"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="402"/>
         <source>comma-separated values</source>
         <translation>значення через кому</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="394"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="655"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="403"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="727"/>
         <source>value</source>
         <translation>значення</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="398"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="407"/>
         <source>Simulation:</source>
         <translation>Симуляція:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="409"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="418"/>
         <source>Interval (ms):</source>
         <translation>Інтервал (мс):</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="422"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="431"/>
         <source>Min / Max:</source>
         <translation>Мін / Макс:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="444"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="453"/>
         <source>Step:</source>
         <translation>Крок:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="457"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="466"/>
         <source>Period (ms):</source>
         <translation>Період (мс):</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="477"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="486"/>
         <source>Apply</source>
         <translation>Застосувати</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="498"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="507"/>
         <source>Security</source>
         <translation>Безпека</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="509"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="518"/>
         <source>Allow anonymous</source>
         <translation>Дозволити анонімний доступ</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="516"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="525"/>
         <source>Offer None endpoint</source>
         <translation>Пропонувати кінцеву точку None</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="523"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="532"/>
         <source>Enable encryption</source>
         <translation>Увімкнути шифрування</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="538"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="539"/>
+        <source>Accept all client certificates</source>
+        <translation>Приймати всі клієнтські сертифікати</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="559"/>
+        <source>Rejected client certificates</source>
+        <translation>Відхилені клієнтські сертифікати</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="565"/>
+        <source>Refresh</source>
+        <translation>Оновити</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="572"/>
+        <source>No rejected certificates.</source>
+        <translation>Немає відхилених сертифікатів.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="593"/>
+        <source>Trust</source>
+        <translation>Довіряти</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="610"/>
         <source>user name</source>
         <translation>ім’я користувача</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="543"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="615"/>
         <source>password</source>
         <translation>пароль</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="546"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="618"/>
         <source>Add user</source>
         <translation>Додати користувача</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="597"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="669"/>
         <source>Enumeration types</source>
         <translation>Типи переліків</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="608"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="680"/>
         <source>new enum type name</source>
         <translation>назва нового типу переліку</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="611"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="683"/>
         <source>Add enum type</source>
         <translation>Додати тип переліку</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="661"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="733"/>
         <source>name</source>
         <translation>назва</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="664"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="736"/>
         <source>Add value</source>
         <translation>Додати значення</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="714"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="786"/>
         <source>Start</source>
         <translation>Запуск</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="720"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="792"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="725"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="768"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="797"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="840"/>
         <source>Restart</source>
         <translation>Перезапуск</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="730"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="802"/>
         <source>Kill</source>
         <translation>Завершити</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="735"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="807"/>
         <source>Open in Client</source>
         <translation>Відкрити в клієнті</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="765"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="837"/>
         <source>Configuration changed — restart the server to apply the changes.</source>
         <translation>Конфігурацію змінено — перезапустіть сервер, щоб застосувати зміни.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="806"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="878"/>
         <source>Project name:</source>
         <translation>Назва проекту:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="810"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="882"/>
         <source>My Test Server</source>
         <translation>Мій тестовий сервер</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="818"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="890"/>
         <source>Open Server Project</source>
         <translation>Відкрити проект сервера</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="819"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="828"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="891"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="900"/>
         <source>Server projects (*.uaserver)</source>
         <translation>Проекти сервера (*.uaserver)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="819"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="835"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="891"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="907"/>
         <source>All files (*)</source>
         <translation>Усі файли (*)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="825"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="897"/>
         <source>Save Server Project As</source>
         <translation>Зберегти проект сервера як</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="834"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="906"/>
         <source>Import NodeSet2</source>
         <translation>Імпорт NodeSet2</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="835"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="844"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="907"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="916"/>
         <source>NodeSet2 files (*.xml)</source>
         <translation>Файли NodeSet2 (*.xml)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="841"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="913"/>
         <source>Export NodeSet2</source>
         <translation>Експорт NodeSet2</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="855"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="927"/>
         <source>Unsaved changes</source>
         <translation>Незбережені зміни</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="881"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="953"/>
         <source>The server project &quot;%1&quot; has unsaved changes. Save them before continuing?</source>
         <translation>Серверний проєкт «%1» має незбережені зміни. Зберегти їх перед продовженням?</translation>
     </message>

@@ -266,6 +266,15 @@ struct SecurityConfiguration
      * certificate, which the runtime generates into the server PKI if absent.
      */
     bool enableSecurity = false;
+
+    /**
+     * Whether the server accepts any client certificate (the convenience
+     * default, preserving older behavior). When false, the runtime enforces a
+     * real trust list from the server PKI: unknown client certificates are
+     * rejected and written to the rejected store until the user trusts them.
+     * Only relevant when \l enableSecurity is true.
+     */
+    bool acceptAllClientCerts = true;
 };
 
 /**

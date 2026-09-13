@@ -136,6 +136,7 @@ QJsonObject Serializer::toJson(const ProjectData &data)
     security["allowAnonymous"] = data.security.allowAnonymous;
     security["allowNone"] = data.security.allowNone;
     security["enableSecurity"] = data.security.enableSecurity;
+    security["acceptAllClientCerts"] = data.security.acceptAllClientCerts;
     QJsonArray users;
     for (const UserCredential &user : data.security.users) {
         QJsonObject userObj;
@@ -208,6 +209,8 @@ bool Serializer::fromJson(const QJsonObject &root, ProjectData &data, QString &e
     data.security.allowAnonymous = security.value("allowAnonymous").toBool(true);
     data.security.allowNone = security.value("allowNone").toBool(true);
     data.security.enableSecurity = security.value("enableSecurity").toBool(false);
+    // Defaults to true so older files keep the accept-all convenience behavior.
+    data.security.acceptAllClientCerts = security.value("acceptAllClientCerts").toBool(true);
     data.security.users.clear();
     const QJsonArray users = security.value("users").toArray();
     for (const QJsonValue &value : users) {

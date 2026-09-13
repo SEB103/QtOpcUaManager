@@ -34,6 +34,9 @@ Pane {
     /*! Action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
 
+    /*! File names of certificates the server has rejected, refreshed on demand. */
+    property var rejectedCerts: []
+
     /*!
         Runs \a action now, or, when the project has unsaved changes, defers it
         behind the unsaved-changes prompt. Used for operations that replace the
@@ -68,7 +71,13 @@ Pane {
         function onSelectedNodeChanged() {
             studio.loadSelectedIntoEditor()
         }
+
+        function onSecurityChanged() {
+            studio.rejectedCerts = cppServerStudio.rejectedCertificates()
+        }
     }
+
+    Component.onCompleted: studio.rejectedCerts = cppServerStudio.rejectedCertificates()
 
     /*! Copies the selected node's fields into the editable property controls. */
     function loadSelectedIntoEditor() {
@@ -525,7 +534,70 @@ Pane {
                         onToggled: cppServerStudio.setSecurityFlags(
                                        anonCheck.checked, noneCheck.checked, checked)
                     }
+                    CheckBox {
+                        id: acceptAllCertsCheck
+                        text: qsTr("Accept all client certificates")
+                        enabled: encCheck.checked
+                        checked: cppServerStudio.security.acceptAllClientCerts
+                        onToggled: cppServerStudio.setAcceptAllClientCerts(checked)
+                    }
                     Item { Layout.fillWidth: true }
+                }
+
+                // Rejected client certificates: shown when a real trust list is
+                // enforced. The runtime writes rejected certificates to disk with
+                // no signal, so the list is refreshed on demand.
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    visible: encCheck.checked && !acceptAllCertsCheck.checked
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Label {
+                            text: qsTr("Rejected client certificates")
+                            color: Material.foreground
+                            opacity: 0.8
+                        }
+                        Item { Layout.fillWidth: true }
+                        Button {
+                            text: qsTr("Refresh")
+                            onClicked: studio.rejectedCerts = cppServerStudio.rejectedCertificates()
+                        }
+                    }
+
+                    Label {
+                        visible: studio.rejectedCerts.length === 0
+                        text: qsTr("No rejected certificates.")
+                        color: Material.foreground
+                        opacity: 0.6
+                    }
+
+                    Repeater {
+                        model: studio.rejectedCerts
+
+                        delegate: RowLayout {
+                            id: rejectedRow
+                            required property string modelData
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Label {
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
+                                text: rejectedRow.modelData
+                                color: Material.foreground
+                            }
+                            Button {
+                                text: qsTr("Trust")
+                                onClicked: {
+                                    if (cppServerStudio.trustRejectedCertificate(rejectedRow.modelData))
+                                        studio.rejectedCerts = cppServerStudio.rejectedCertificates()
+                                }
+                            }
+                        }
+                    }
                 }
 
                 RowLayout {

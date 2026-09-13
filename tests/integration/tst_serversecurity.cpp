@@ -2,6 +2,7 @@
 // project's authentication policy and advertises encrypted endpoints. Both
 // launch the runtime as a fixture and use a real client.
 
+#include <QDir>
 #include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -34,6 +35,13 @@ private slots:
 
     /*! A server with encryption enabled advertises a Basic256Sha256 endpoint. */
     void secureEndpointAdvertised();
+
+    /*!
+     * With acceptAllClientCerts disabled the runtime builds a real (empty) trust
+     * list, still starts, and advertises the secure endpoint. This exercises the
+     * strict trust-list configuration path.
+     */
+    void strictTrustModeStartsAndAdvertises();
 
     /*! Stops any running runtime after each test. */
     void cleanup();
@@ -167,6 +175,44 @@ void ServerSecurityTest::secureEndpointAdvertised()
         }
     }
     QVERIFY2(foundSecure, "no Basic256Sha256 endpoint was advertised");
+}
+
+void ServerSecurityTest::strictTrustModeStartsAndAdvertises()
+{
+    ProjectData project;
+    project.security.allowAnonymous = true;
+    project.security.allowNone = true;
+    project.security.enableSecurity = true;
+    // Strict mode: the runtime enforces a real trust list from the server PKI
+    // instead of accepting every client certificate.
+    project.security.acceptAllClientCerts = false;
+
+    const quint16 port = 48413;
+    QVERIFY2(launch(project, port), "runtime did not become ready in strict trust mode");
+
+    std::unique_ptr<QOpcUaClient> client(m_provider.createClient(QStringLiteral("open62541")));
+    QVERIFY(client);
+    const QString url = QStringLiteral("opc.tcp://127.0.0.1:%1").arg(port);
+
+    QSignalSpy endpointsSpy(client.get(), &QOpcUaClient::endpointsRequestFinished);
+    client->requestEndpoints(QUrl(url));
+    QVERIFY2(endpointsSpy.wait(10000), "no endpoints response");
+    const auto endpoints =
+        endpointsSpy.takeFirst().at(0).value<QList<QOpcUaEndpointDescription>>();
+
+    bool foundSecure = false;
+    for (const QOpcUaEndpointDescription &endpoint : endpoints) {
+        if (endpoint.securityPolicy().contains(QLatin1String("Basic256Sha256"))) {
+            foundSecure = true;
+            break;
+        }
+    }
+    QVERIFY2(foundSecure, "strict trust mode did not advertise a secure endpoint");
+
+    // The server PKI skeleton, including the rejected store, was created.
+    const QString rejectedDir =
+        m_dir.filePath(QStringLiteral("pki-%1/rejected/certs").arg(port));
+    QVERIFY2(QDir(rejectedDir).exists(), "the rejected certificate store was not created");
 }
 
 void ServerSecurityTest::cleanup()

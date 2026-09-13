@@ -172,11 +172,26 @@ public:
     /** Sets the endpoint/authentication flags. */
     Q_INVOKABLE void setSecurityFlags(bool allowAnonymous, bool allowNone, bool enableSecurity);
 
+    /**
+     * Sets whether the server accepts any client certificate. When false, the
+     * runtime enforces a real trust list from the server PKI.
+     */
+    Q_INVOKABLE void setAcceptAllClientCerts(bool acceptAll);
+
     /** Adds or updates a username/password test login. */
     Q_INVOKABLE void addUser(const QString &username, const QString &password);
 
     /** Removes the test login \a username. */
     Q_INVOKABLE void removeUser(const QString &username);
+
+    /** Returns the file names of certificates the server has rejected. */
+    Q_INVOKABLE QStringList rejectedCertificates() const;
+
+    /**
+     * Moves the rejected certificate \a fileName into the trusted store, so the
+     * next connection from that client is accepted. Returns whether it moved.
+     */
+    Q_INVOKABLE bool trustRejectedCertificate(const QString &fileName);
 
     // Runtime control.
     /** Starts the runtime serving the current project (auto-saving a snapshot). */
@@ -228,6 +243,9 @@ private:
 
     /** Writes the current project to a snapshot file for the runtime; empty on error. */
     QString writeRuntimeSnapshot();
+
+    /** Returns the independent server PKI directory used by the runtime. */
+    QString serverPkiDir() const;
 
     /** Supervises the headless runtime process; owned by this facade. */
     ServerRuntimeController m_controller;

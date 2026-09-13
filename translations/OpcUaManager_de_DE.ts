@@ -1057,57 +1057,57 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="322"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="331"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="323"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="332"/>
         <source>Display Name</source>
         <translation>Anzeigename</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="324"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="333"/>
         <source>Value</source>
         <translation>Wert</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="325"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="334"/>
         <source>Data Type</source>
         <translation>Datentyp</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="326"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="335"/>
         <source>Status</source>
         <translation>Status</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="327"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="336"/>
         <source>Interval, ms</source>
         <translation>Intervall, ms</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="328"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="337"/>
         <source>Source Timestamp</source>
         <translation>Quell-Zeitstempel</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="329"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="338"/>
         <source>Server Timestamp</source>
         <translation>Server-Zeitstempel</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="330"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="339"/>
         <source>Node Path</source>
         <translation>Knotenpfad</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="331"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="340"/>
         <source>Node Id</source>
         <translation>Knoten-ID</translation>
     </message>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="332"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="341"/>
         <source>Server</source>
         <translation>Server</translation>
     </message>
@@ -1580,184 +1580,199 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="151"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="153"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="153"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="155"/>
         <source>Starting…</source>
         <translation>Wird gestartet…</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="155"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="157"/>
         <source>Running — %1</source>
         <translation>Läuft — %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="157"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="159"/>
         <source>Stopping…</source>
         <translation>Wird gestoppt…</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="159"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="161"/>
         <source>Crashed</source>
         <translation>Abgestürzt</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="161"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="163"/>
         <source>Unknown</source>
         <translation>Unbekannt</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="187"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="189"/>
         <source>No diagnostics (server stopped).</source>
         <translation>Keine Diagnose (Server gestoppt).</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="189"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="191"/>
         <source>Sessions: %1 · Secure channels: %2 · Uptime: %3 s</source>
         <translation>Sitzungen: %1 · Sichere Kanäle: %2 · Laufzeit: %3 s</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="379"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="381"/>
         <source>Untitled Server</source>
         <translation>Unbenannter Server</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="403"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="405"/>
         <source>Cannot open server project: %1</source>
         <translation>Serverprojekt kann nicht geöffnet werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="418"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="420"/>
         <source>Opened server project %1</source>
         <translation>Serverprojekt %1 geöffnet</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="430"/>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="444"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="432"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="446"/>
         <source>Cannot save server project: %1</source>
         <translation>Serverprojekt kann nicht gespeichert werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="476"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="478"/>
         <source>Open a server project first.</source>
         <translation>Öffnen Sie zuerst ein Serverprojekt.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="483"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="485"/>
         <source>Cannot export NodeSet2: %1</source>
         <translation>NodeSet2 kann nicht exportiert werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="486"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="488"/>
         <source>Exported NodeSet2.</source>
         <translation>NodeSet2 exportiert.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="496"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="498"/>
         <source>Cannot import NodeSet2: %1</source>
         <translation>NodeSet2 kann nicht importiert werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="501"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="503"/>
         <source>Imported Server</source>
         <translation>Importierter Server</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="521"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="523"/>
         <source>Methods</source>
         <translation>Methoden</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="523"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="525"/>
         <source>Object types</source>
         <translation>Objekttypen</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="525"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="527"/>
         <source>Variable types</source>
         <translation>Variablentypen</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="527"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="529"/>
         <source>Reference types</source>
         <translation>Referenztypen</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="529"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="531"/>
         <source>Views</source>
         <translation>Ansichten</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="531"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="533"/>
         <source>Data types</source>
         <translation>Datentypen</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="542"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="544"/>
         <source>Imported %1 node(s); skipped %2 (%3).</source>
         <translation>%1 Knoten importiert; %2 übersprungen (%3).</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="548"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="550"/>
         <source>Imported %1 node(s) from NodeSet2.</source>
         <translation>%1 Knoten aus NodeSet2 importiert.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="556"/>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="917"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="558"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="976"/>
         <source>No OPC UA client is available.</source>
         <translation>Es ist kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="564"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="566"/>
         <source>Browse the server&apos;s Objects in the client before cloning.</source>
         <translation>Durchsuchen Sie die Objects des Servers im Client, bevor Sie klonen.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="569"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="571"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="627"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="635"/>
         <source>Cloned %1 node(s) from the client.</source>
         <translation>%1 Knoten vom Client geklont.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="652"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="660"/>
         <source>Folder</source>
         <translation>Ordner</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="669"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="677"/>
         <source>Object</source>
         <translation>Objekt</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="687"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="695"/>
         <source>Variable</source>
         <translation>Variable</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="857"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="875"/>
         <source>Create or open a server project first.</source>
         <translation>Erstellen oder öffnen Sie zuerst ein Serverprojekt.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="865"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="883"/>
         <source>Project is not valid: %1</source>
         <translation>Projekt ist ungültig: %1</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="872"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="890"/>
         <source>Could not prepare the server project.</source>
         <translation>Das Serverprojekt konnte nicht vorbereitet werden.</translation>
     </message>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="913"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="931"/>
+        <source>The certificate is no longer available.</source>
+        <translation>Das Zertifikat ist nicht mehr verfügbar.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="939"/>
+        <source>Could not trust the certificate.</source>
+        <translation>Das Zertifikat konnte nicht als vertrauenswürdig eingestuft werden.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="944"/>
+        <source>Certificate trusted. Restart the server to apply it.</source>
+        <translation>Zertifikat als vertrauenswürdig eingestuft. Server neu starten, um es anzuwenden.</translation>
+    </message>
+    <message>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="972"/>
         <source>Start the server runtime before opening it in the client.</source>
         <translation>Starten Sie die Server-Laufzeit, bevor Sie sie im Client öffnen.</translation>
     </message>
@@ -1765,330 +1780,355 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="102"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="111"/>
         <source>(no values)</source>
         <translation>(keine Werte)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="143"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="152"/>
         <source>← Back</source>
         <translation>← Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="156"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="165"/>
         <source>Server Studio</source>
         <translation>Server Studio</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="160"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="169"/>
         <source>New</source>
         <translation>Neu</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="164"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="214"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="173"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="223"/>
         <source>Open…</source>
         <translation>Öffnen…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="168"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="177"/>
         <source>Save</source>
         <translation>Speichern</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="176"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="185"/>
         <source>Save As…</source>
         <translation>Speichern unter…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="181"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="190"/>
         <source>Import NodeSet2…</source>
         <translation>NodeSet2 importieren…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="185"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="194"/>
         <source>Export NodeSet2…</source>
         <translation>NodeSet2 exportieren…</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="201"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="210"/>
         <source>Create a new server project or open an existing one.</source>
         <translation>Erstellen Sie ein neues Serverprojekt oder öffnen Sie ein vorhandenes.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="209"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="794"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="218"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="866"/>
         <source>New Server Project</source>
         <translation>Neues Serverprojekt</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="237"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="246"/>
         <source>+ Folder</source>
         <translation>+ Ordner</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="238"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="247"/>
         <source>Folder</source>
         <translation>Ordner</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="241"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="250"/>
         <source>+ Variable</source>
         <translation>+ Variable</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="242"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="251"/>
         <source>Variable</source>
         <translation>Variable</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="247"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="675"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="256"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="747"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="303"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="312"/>
         <source>Select a node to edit its properties.</source>
         <translation>Wählen Sie einen Knoten, um seine Eigenschaften zu bearbeiten.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="315"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="324"/>
         <source>Node id:</source>
         <translation>Knoten-ID:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="324"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="333"/>
         <source>Kind:</source>
         <translation>Art:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="331"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="340"/>
         <source>Display name:</source>
         <translation>Anzeigename:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="337"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="346"/>
         <source>Description:</source>
         <translation>Beschreibung:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="344"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="353"/>
         <source>Data type:</source>
         <translation>Datentyp:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="356"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="365"/>
         <source>Enum type:</source>
         <translation>Enum-Typ:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="367"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="376"/>
         <source>Array:</source>
         <translation>Array:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="373"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="382"/>
         <source>One-dimensional array</source>
         <translation>Eindimensionales Array</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="377"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="386"/>
         <source>Writable:</source>
         <translation>Beschreibbar:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="386"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="395"/>
         <source>Initial value:</source>
         <translation>Anfangswert:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="393"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="402"/>
         <source>comma-separated values</source>
         <translation>kommagetrennte Werte</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="394"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="655"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="403"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="727"/>
         <source>value</source>
         <translation>Wert</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="398"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="407"/>
         <source>Simulation:</source>
         <translation>Simulation:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="409"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="418"/>
         <source>Interval (ms):</source>
         <translation>Intervall (ms):</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="422"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="431"/>
         <source>Min / Max:</source>
         <translation>Min / Max:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="444"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="453"/>
         <source>Step:</source>
         <translation>Schritt:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="457"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="466"/>
         <source>Period (ms):</source>
         <translation>Periode (ms):</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="477"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="486"/>
         <source>Apply</source>
         <translation>Anwenden</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="498"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="507"/>
         <source>Security</source>
         <translation>Sicherheit</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="509"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="518"/>
         <source>Allow anonymous</source>
         <translation>Anonym zulassen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="516"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="525"/>
         <source>Offer None endpoint</source>
         <translation>None-Endpunkt anbieten</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="523"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="532"/>
         <source>Enable encryption</source>
         <translation>Verschlüsselung aktivieren</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="538"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="539"/>
+        <source>Accept all client certificates</source>
+        <translation>Alle Client-Zertifikate akzeptieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="559"/>
+        <source>Rejected client certificates</source>
+        <translation>Abgelehnte Client-Zertifikate</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="565"/>
+        <source>Refresh</source>
+        <translation>Aktualisieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="572"/>
+        <source>No rejected certificates.</source>
+        <translation>Keine abgelehnten Zertifikate.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="593"/>
+        <source>Trust</source>
+        <translation>Vertrauen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ServerStudioScreen.qml" line="610"/>
         <source>user name</source>
         <translation>Benutzername</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="543"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="615"/>
         <source>password</source>
         <translation>Passwort</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="546"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="618"/>
         <source>Add user</source>
         <translation>Benutzer hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="597"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="669"/>
         <source>Enumeration types</source>
         <translation>Aufzählungstypen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="608"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="680"/>
         <source>new enum type name</source>
         <translation>Name des neuen Enum-Typs</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="611"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="683"/>
         <source>Add enum type</source>
         <translation>Enum-Typ hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="661"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="733"/>
         <source>name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="664"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="736"/>
         <source>Add value</source>
         <translation>Wert hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="714"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="786"/>
         <source>Start</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="720"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="792"/>
         <source>Stop</source>
         <translation>Stopp</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="725"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="768"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="797"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="840"/>
         <source>Restart</source>
         <translation>Neu starten</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="730"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="802"/>
         <source>Kill</source>
         <translation>Beenden</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="735"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="807"/>
         <source>Open in Client</source>
         <translation>Im Client öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="765"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="837"/>
         <source>Configuration changed — restart the server to apply the changes.</source>
         <translation>Konfiguration geändert – Server neu starten, um die Änderungen anzuwenden.</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="806"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="878"/>
         <source>Project name:</source>
         <translation>Projektname:</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="810"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="882"/>
         <source>My Test Server</source>
         <translation>Mein Testserver</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="818"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="890"/>
         <source>Open Server Project</source>
         <translation>Serverprojekt öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="819"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="828"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="891"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="900"/>
         <source>Server projects (*.uaserver)</source>
         <translation>Serverprojekte (*.uaserver)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="819"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="835"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="891"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="907"/>
         <source>All files (*)</source>
         <translation>Alle Dateien (*)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="825"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="897"/>
         <source>Save Server Project As</source>
         <translation>Serverprojekt speichern unter</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="834"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="906"/>
         <source>Import NodeSet2</source>
         <translation>NodeSet2 importieren</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="835"/>
-        <location filename="../qml/ServerStudioScreen.qml" line="844"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="907"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="916"/>
         <source>NodeSet2 files (*.xml)</source>
         <translation>NodeSet2-Dateien (*.xml)</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="841"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="913"/>
         <source>Export NodeSet2</source>
         <translation>NodeSet2 exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="855"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="927"/>
         <source>Unsaved changes</source>
         <translation>Ungespeicherte Änderungen</translation>
     </message>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="881"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="953"/>
         <source>The server project &quot;%1&quot; has unsaved changes. Save them before continuing?</source>
         <translation>Das Serverprojekt „%1“ hat ungespeicherte Änderungen. Vor dem Fortfahren speichern?</translation>
     </message>

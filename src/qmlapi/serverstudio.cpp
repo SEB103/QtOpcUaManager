@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QSet>
@@ -803,6 +804,7 @@ QVariantMap ServerStudio::security() const
     map["allowAnonymous"] = m_project.security.allowAnonymous;
     map["allowNone"] = m_project.security.allowNone;
     map["enableSecurity"] = m_project.security.enableSecurity;
+    map["acceptAllClientCerts"] = m_project.security.acceptAllClientCerts;
     QVariantList users;
     for (const ServerProject::UserCredential &user : m_project.security.users) {
         QVariantMap userMap;
@@ -821,6 +823,15 @@ void ServerStudio::setSecurityFlags(bool allowAnonymous, bool allowNone, bool en
     m_project.security.allowAnonymous = allowAnonymous;
     m_project.security.allowNone = allowNone;
     m_project.security.enableSecurity = enableSecurity;
+    setDirty(true);
+    emit securityChanged();
+}
+
+void ServerStudio::setAcceptAllClientCerts(bool acceptAll)
+{
+    if (!m_hasProject || m_project.security.acceptAllClientCerts == acceptAll)
+        return;
+    m_project.security.acceptAllClientCerts = acceptAll;
     setDirty(true);
     emit securityChanged();
 }
@@ -880,18 +891,59 @@ void ServerStudio::startServer()
         return;
     }
 
-    // Independent server PKI, kept separate from the client PKI, so the
-    // generated server certificate persists across runs.
-    const QString pkiDir =
-        QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
-            .filePath(QStringLiteral("pki-server"));
-
     // The snapshot just written reflects the current project, so nothing is
     // pending a restart until the next edit.
     m_configChangedSinceStart = false;
     emit restartRequiredChanged();
 
-    m_controller.start(m_project.server.endpoint.port, snapshot, pkiDir);
+    m_controller.start(m_project.server.endpoint.port, snapshot, serverPkiDir());
+}
+
+QString ServerStudio::serverPkiDir() const
+{
+    // Independent server PKI, kept separate from the client PKI, so the
+    // generated server certificate and trust list persist across runs.
+    return QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
+        .filePath(QStringLiteral("pki-server"));
+}
+
+QStringList ServerStudio::rejectedCertificates() const
+{
+    const QDir dir(serverPkiDir() + QStringLiteral("/rejected/certs"));
+    if (!dir.exists())
+        return {};
+    return dir.entryList({QStringLiteral("*.der"), QStringLiteral("*.crt")}, QDir::Files,
+                         QDir::Time);
+}
+
+bool ServerStudio::trustRejectedCertificate(const QString &fileName)
+{
+    // Guard against path traversal: only accept a bare file name.
+    if (fileName.isEmpty() || fileName.contains(QLatin1Char('/'))
+        || fileName.contains(QLatin1Char('\\'))) {
+        return false;
+    }
+
+    const QString pki = serverPkiDir();
+    const QString source = pki + QStringLiteral("/rejected/certs/") + fileName;
+    const QString trustedDir = pki + QStringLiteral("/trusted/certs");
+    if (!QFileInfo::exists(source)) {
+        emit notification(Diagnostics::Warning, tr("The certificate is no longer available."));
+        return false;
+    }
+    QDir().mkpath(trustedDir);
+
+    const QString target = trustedDir + QLatin1Char('/') + fileName;
+    QFile::remove(target); // replace any stale copy so the rename can succeed
+    if (!QFile::rename(source, target)) {
+        emit notification(Diagnostics::Error, tr("Could not trust the certificate."));
+        return false;
+    }
+
+    emit notification(Diagnostics::Info,
+                      tr("Certificate trusted. Restart the server to apply it."));
+    emit securityChanged();
+    return true;
 }
 
 void ServerStudio::stop()

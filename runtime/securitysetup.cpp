@@ -1,11 +1,14 @@
 #include "securitysetup.h"
 
+#include <string>
 #include <vector>
 
 #include <QByteArray>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QStringList>
 
 #include <open62541/plugin/accesscontrol_default.h>
 #include <open62541/plugin/create_certificate.h>
@@ -100,6 +103,168 @@ bool loadOrCreateCertificate(const QString &pkiDir, const QString &applicationUr
 
 /*!
  * \internal
+ * \brief Creates the server PKI folder skeleton under \a pkiDir if missing.
+ *
+ * The layout mirrors the OPC UA convention: own/ for the server key pair,
+ * trusted/ for accepted client certificates, issuers/ for intermediate CA
+ * certificates, and rejected/ for certificates the server refused. Each store
+ * has certs/ and crl/ subfolders.
+ */
+void ensurePkiLayout(const QString &pkiDir)
+{
+    const QStringList subDirs = {
+        QStringLiteral("own"),
+        QStringLiteral("trusted/certs"),  QStringLiteral("trusted/crl"),
+        QStringLiteral("issuers/certs"),  QStringLiteral("issuers/crl"),
+        QStringLiteral("rejected/certs"), QStringLiteral("rejected/crl"),
+    };
+    for (const QString &sub : subDirs)
+        QDir().mkpath(pkiDir + QLatin1Char('/') + sub);
+}
+
+/*!
+ * \internal
+ * \brief Reads every file matching \a filters in \a dir as a UA_ByteString.
+ *
+ * The caller owns the returned byte strings and must clear each one.
+ */
+std::vector<UA_ByteString> loadCertificateList(const QString &dir, const QStringList &filters)
+{
+    std::vector<UA_ByteString> list;
+    const QDir directory(dir);
+    if (!directory.exists())
+        return list;
+    const QStringList files = directory.entryList(filters, QDir::Files);
+    for (const QString &name : files) {
+        const UA_ByteString bytes = readByteString(directory.filePath(name));
+        if (bytes.length > 0)
+            list.push_back(bytes);
+    }
+    return list;
+}
+
+/*!
+ * \internal
+ * \brief Context for the rejected-certificate-capturing verifier wrapper.
+ *
+ * On Windows only the in-memory UA_CertificateVerification_Trustlist verifier
+ * is available (the folder-based variant that writes rejected certificates is
+ * Linux-only), so this wraps the trust-list verifier to persist a rejected
+ * client certificate to disk before returning the original failure.
+ */
+struct RejectedCapture
+{
+    UA_StatusCode (*origVerify)(const UA_CertificateVerification *, const UA_ByteString *) = nullptr;
+    void (*origClear)(UA_CertificateVerification *) = nullptr;
+    void *origContext = nullptr;
+    std::string rejectedDir;
+};
+
+/*!
+ * \internal
+ * \brief Writes a rejected client \a certificate to the rejected/certs store.
+ *
+ * The file is named by the certificate's SHA-1 fingerprint, so re-offering the
+ * same certificate does not create duplicates.
+ */
+void saveRejectedCertificate(const std::string &rejectedDir, const UA_ByteString *certificate)
+{
+    if (!certificate || certificate->length == 0)
+        return;
+    const QByteArray der(reinterpret_cast<const char *>(certificate->data),
+                         int(certificate->length));
+    const QString fingerprint =
+        QString::fromLatin1(QCryptographicHash::hash(der, QCryptographicHash::Sha1).toHex());
+    const QString path = QString::fromStdString(rejectedDir) + QLatin1Char('/')
+                         + fingerprint + QStringLiteral(".der");
+    if (QFileInfo::exists(path))
+        return;
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly))
+        file.write(der);
+}
+
+/*!
+ * \internal
+ * \brief Verifier wrapper: delegates to the trust-list verifier and, on
+ *        failure, saves the offered certificate to the rejected store.
+ */
+UA_StatusCode verifyAndCaptureRejected(const UA_CertificateVerification *cv,
+                                       const UA_ByteString *certificate)
+{
+    auto *capture = static_cast<RejectedCapture *>(cv->context);
+    UA_CertificateVerification inner = *cv;
+    inner.context = capture->origContext;
+    inner.verifyCertificate = capture->origVerify;
+    inner.clear = capture->origClear;
+    const UA_StatusCode status = capture->origVerify(&inner, certificate);
+    if (status != UA_STATUSCODE_GOOD)
+        saveRejectedCertificate(capture->rejectedDir, certificate);
+    return status;
+}
+
+/*!
+ * \internal
+ * \brief Clear wrapper: clears the wrapped verifier and frees the context.
+ */
+void clearCapturedVerifier(UA_CertificateVerification *cv)
+{
+    auto *capture = static_cast<RejectedCapture *>(cv->context);
+    if (!capture)
+        return;
+    if (capture->origClear) {
+        UA_CertificateVerification inner = *cv;
+        inner.context = capture->origContext;
+        inner.clear = capture->origClear;
+        capture->origClear(&inner);
+    }
+    delete capture;
+    cv->context = nullptr;
+    cv->verifyCertificate = nullptr;
+    cv->clear = nullptr;
+}
+
+/*!
+ * \internal
+ * \brief Wraps \a cv so rejected client certificates are saved to \a rejectedDir.
+ */
+void wrapRejectedCapture(UA_CertificateVerification *cv, const QString &rejectedDir)
+{
+    auto *capture = new RejectedCapture;
+    capture->origVerify = cv->verifyCertificate;
+    capture->origClear = cv->clear;
+    capture->origContext = cv->context;
+    capture->rejectedDir = rejectedDir.toStdString();
+
+    cv->context = capture;
+    cv->verifyCertificate = &verifyAndCaptureRejected;
+    cv->clear = &clearCapturedVerifier;
+}
+
+/*!
+ * \internal
+ * \brief Builds a real trust-list verifier for \a cv from the server PKI.
+ *
+ * Loads trusted and issuer certificates and CRLs from \a pkiDir, installs the
+ * trust-list verifier, then wraps it to persist rejected certificates. Returns
+ * the trust-list construction status.
+ */
+UA_StatusCode applyTrustList(UA_CertificateVerification *cv, const QString &pkiDir,
+                             std::vector<UA_ByteString> &trusted,
+                             std::vector<UA_ByteString> &issuers,
+                             std::vector<UA_ByteString> &crls)
+{
+    const UA_StatusCode status = UA_CertificateVerification_Trustlist(
+        cv, trusted.data(), trusted.size(), issuers.data(), issuers.size(),
+        crls.data(), crls.size());
+    if (status != UA_STATUSCODE_GOOD)
+        return status;
+    wrapRejectedCapture(cv, pkiDir + QStringLiteral("/rejected/certs"));
+    return UA_STATUSCODE_GOOD;
+}
+
+/*!
+ * \internal
  * \brief Removes SecurityPolicy#None endpoints from \a config in place.
  */
 void pruneNoneEndpoints(UA_ServerConfig *config)
@@ -152,10 +317,59 @@ UA_StatusCode apply(UA_ServerConfig *config, const ProjectData &project, quint16
             return status;
         }
 
-        // Test lab: accept any client certificate so secure sessions succeed
-        // without a manual trust exchange.
-        UA_CertificateVerification_AcceptAll(&config->secureChannelPKI);
-        UA_CertificateVerification_AcceptAll(&config->sessionPKI);
+        // Align the server's ApplicationURI with the URI in its certificate's
+        // SubjectAltName. A real trust-list verifier enforces this match at
+        // endpoint startup (BadCertificateUriInvalid otherwise); the AcceptAll
+        // path tolerates a mismatch but keeping them consistent is correct.
+        const QByteArray appUriUtf8 = applicationUri.toUtf8();
+        UA_String_clear(&config->applicationDescription.applicationUri);
+        config->applicationDescription.applicationUri = UA_STRING_ALLOC(appUriUtf8.constData());
+        for (size_t i = 0; i < config->endpointsSize; ++i) {
+            UA_String_clear(&config->endpoints[i].server.applicationUri);
+            config->endpoints[i].server.applicationUri = UA_STRING_ALLOC(appUriUtf8.constData());
+        }
+
+        if (project.security.acceptAllClientCerts) {
+            // Convenience mode: accept any client certificate so secure sessions
+            // succeed without a manual trust exchange.
+            UA_CertificateVerification_AcceptAll(&config->secureChannelPKI);
+            UA_CertificateVerification_AcceptAll(&config->sessionPKI);
+        } else {
+            // Strict mode: enforce a real trust list from the server PKI. Unknown
+            // client certificates are rejected and saved to the rejected store.
+            ensurePkiLayout(pkiDir);
+            const QStringList certFilters{QStringLiteral("*.der"), QStringLiteral("*.crt")};
+            const QStringList crlFilters{QStringLiteral("*.crl"), QStringLiteral("*.der")};
+            std::vector<UA_ByteString> trusted =
+                loadCertificateList(pkiDir + QStringLiteral("/trusted/certs"), certFilters);
+            std::vector<UA_ByteString> issuers =
+                loadCertificateList(pkiDir + QStringLiteral("/issuers/certs"), certFilters);
+            std::vector<UA_ByteString> crls =
+                loadCertificateList(pkiDir + QStringLiteral("/trusted/crl"), crlFilters);
+            for (UA_ByteString &crl : loadCertificateList(pkiDir + QStringLiteral("/issuers/crl"),
+                                                          crlFilters))
+                crls.push_back(crl);
+
+            const UA_StatusCode channelStatus =
+                applyTrustList(&config->secureChannelPKI, pkiDir, trusted, issuers, crls);
+            const UA_StatusCode sessionStatus =
+                applyTrustList(&config->sessionPKI, pkiDir, trusted, issuers, crls);
+
+            for (UA_ByteString &cert : trusted)
+                UA_ByteString_clear(&cert);
+            for (UA_ByteString &cert : issuers)
+                UA_ByteString_clear(&cert);
+            for (UA_ByteString &crl : crls)
+                UA_ByteString_clear(&crl);
+
+            if (channelStatus != UA_STATUSCODE_GOOD || sessionStatus != UA_STATUSCODE_GOOD) {
+                error = QStringLiteral("Failed to build the certificate trust list: %1")
+                            .arg(QString::fromUtf8(UA_StatusCode_name(
+                                channelStatus != UA_STATUSCODE_GOOD ? channelStatus
+                                                                    : sessionStatus)));
+                return channelStatus != UA_STATUSCODE_GOOD ? channelStatus : sessionStatus;
+            }
+        }
 
         if (!project.security.allowNone)
             pruneNoneEndpoints(config);
