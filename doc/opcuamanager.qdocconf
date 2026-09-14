@@ -25,6 +25,12 @@ depends += \
 warninglimit = 0
 reportmissingalttextforimages = true
 
+# Point the Qt-branded breadcrumb ("Qt 6.11.1" / "Qt 6.11.1 Reference
+# Documentation") at the official online Qt reference so it opens in the same
+# embedded WebView. Always the English 6.11 documentation; never a localized URL.
+# Our own landing stays the "OpcUaManager Guide" crumb (navigation.landingpage).
+navigation.homepage = "https://doc.qt.io/qt-6.11/index.html"
+
 # Override the Qt module template footer so the shipped pages do not assert Qt's
 # copyright or the GNU Free Documentation License on this project's own
 # documentation. This is included after qt-module-defaults, so it wins.

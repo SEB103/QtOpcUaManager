@@ -120,6 +120,9 @@ file(WRITE "${OPCUAMANAGER_API_CONFIG}"
     "include(${OPCUAMANAGER_QDOC_BASE_CONFIG_QDOC})\n"
     "project = OpcUaManager\n"
     "version = ${PROJECT_VERSION}\n"
+    # The small right-aligned nav tag: our own product, linking to our local home
+    # (the genuine Qt crumb is navigation.homepage, set to the online Qt docs).
+    "buildversion = \"OpcUaManager ${PROJECT_VERSION}\"\n"
     # Relative base so the manual sets (site/<lang>) cross-link to this API set
     # (site/opcuamanager) locally and offline, overriding the online Qt url that
     # qt-module-defaults sets globally.
@@ -173,12 +176,14 @@ foreach(OPCUAMANAGER_LANG IN LISTS OPCUAMANAGER_MANUAL_LANGUAGES)
         "include(${OPCUAMANAGER_QDOC_BASE_CONFIG_QDOC})\n"
         "project = OpcUaManagerManual\n"
         "version = ${PROJECT_VERSION}\n"
+        "buildversion = \"OpcUaManager ${PROJECT_VERSION}\"\n"
         "naturallanguage = ${OPCUAMANAGER_LANG}\n"
         "sourcedirs = ${OPCUAMANAGER_DIR_MANUAL_LANG}\n"
         "imagedirs = ${OPCUAMANAGER_DIR_DOC_IMAGES}\n"
         "macro.appversion = \"${PROJECT_VERSION}\"\n"
         "depends += opcuamanager\n"
-        "navigation.homepage = \"${_guide_title}\"\n"
+        # navigation.homepage is set by the shared base to the online Qt reference
+        # (the "Qt 6.11.1" crumb); our own landing is the landingpage crumb.
         "navigation.landingpage = \"${_guide_title}\"\n"
         "qhp.projects = OpcUaManagerManual\n"
         "qhp.OpcUaManagerManual.file = OpcUaManagerManual.qhp\n"
