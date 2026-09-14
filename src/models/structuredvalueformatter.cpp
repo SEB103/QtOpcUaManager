@@ -8,6 +8,7 @@
 
 /*!
  * \class StructuredValueFormatter
+ * \inmodule OpcUaManager
  * \brief Serializes a decoded OPC UA value tree into JSON or XML text.
  */
 

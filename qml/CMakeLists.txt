@@ -14,6 +14,7 @@ qt_add_qml_module(MainQml
         LauncherScreen.qml
         ServerStudioScreen.qml
         AboutDialog.qml
+        HelpViewerWindow.qml
 )
 
 target_link_libraries(MainQml

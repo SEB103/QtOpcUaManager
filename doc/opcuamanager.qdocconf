@@ -1,27 +1,17 @@
-project = OpcUaManager
-description = OPC UA client and address-space browser
-version = 0.1.0
+# Shared QDoc base configuration for the OpcUaManager documentation.
+#
+# This file holds only the settings common to every generated documentation
+# set. The project name, version, source/header directories, landing page,
+# QHP block and cross-set index directories are written per set by
+# cmake/OpcUaManagerDocs.cmake, which includes this file.
 
-outputdir = html
 outputformats = HTML
-
-HTML.headerstyles += \
-    "  <link rel=\"stylesheet\" type=\"text/css\" href=\"style/offline-dark.css\" />\n"
-
 sourceencoding = UTF-8
+naturallanguage = en
 
-headerdirs += \
-    ../app \
-    ../src
-
-sourcedirs += \
-    . \
-    ../qml
-
-includepaths += \
-    ../app \
-    ../src
-
+# Link the generated API/manual against the installed Qt documentation so that
+# Qt types referenced from the code resolve. The Qt index directory is passed on
+# the qdoc command line by the CMake docs targets when it is available.
 depends += \
     qtcore \
     qtgui \
@@ -30,25 +20,15 @@ depends += \
     qtquickcontrols \
     qtopcua
 
-qhp.OpcUaManager.subprojects = manual classes qmltypes
-
-qhp.OpcUaManager.subprojects.classes.title = C++ Classes
-qhp.OpcUaManager.subprojects.classes.indexTitle = OpcUaManager C++ Classes
-qhp.OpcUaManager.subprojects.classes.selectors = class function namespace fake:headerfile
-qhp.OpcUaManager.subprojects.classes.sortPages = true
-
-qhp.OpcUaManager.subprojects.qmltypes.title = QML Types
-qhp.OpcUaManager.subprojects.qmltypes.indexTitle = OpcUaManager QML Types
-qhp.OpcUaManager.subprojects.qmltypes.selectors = qmltype
-qhp.OpcUaManager.subprojects.qmltypes.sortPages = true
-
-qhp.OpcUaManager.subprojects.manual.title = OpcUaManager
-qhp.OpcUaManager.subprojects.manual.indexTitle = OpcUaManager Documentation
-qhp.OpcUaManager.subprojects.manual.type = manual
-
-navigation.landingpage = "OpcUaManager Documentation"
-navigation.cppclassespage = "OpcUaManager C++ Classes"
-navigation.qmltypespage = "OpcUaManager QML Types"
-
+# Do not fail the build on documentation warnings (0 disables the limit); the
+# reference is generated from a large, evolving code base.
 warninglimit = 0
 reportmissingalttextforimages = true
+
+# Override the Qt module template footer so the shipped pages do not assert Qt's
+# copyright or the GNU Free Documentation License on this project's own
+# documentation. This is included after qt-module-defaults, so it wins.
+HTML.footer = \
+    "  <div class=\"footer\">\n" \
+    "    <p class=\"copy\">OpcUaManager documentation. Distributed with the application under its own license (GPL-3.0-or-later).</p>\n" \
+    "  </div>\n"

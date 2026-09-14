@@ -6,6 +6,7 @@
 
 /*!
  * \class StructuredValueHighlighter
+ * \inmodule OpcUaManager
  * \brief Colors the JSON or XML text of the structured Value panel.
  */
 

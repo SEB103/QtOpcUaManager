@@ -1,0 +1,75 @@
+/*!
+    \page opcua-server.html
+    \title OPC UA Server
+    \previouspage OPC UA Client
+    \nextpage Arbeiten mit einem Server
+
+    Server Studio ermöglicht es, einen OPC-UA-Server zu entwerfen, lokal auszuführen,
+    abzusichern und Werte zu simulieren — ohne zu programmieren. Der entworfene Server läuft
+    als \e separater Prozess (die eigenständige \b OpcUaServerRuntime, die open62541
+    einbettet), gesteuert von der Oberfläche über \l ServerStudio und \l ServerRuntimeController
+    (siehe \l {Architektur}).
+
+    \section1 Server-Projekte
+
+    Ein Server-Projekt (\c .uaserver) ist eine JSON-Datei mit allem, was die Laufzeit
+    benötigt: die benutzerdefinierten Namensräume, die Adressraum-Knoten, etwaige
+    benutzerdefinierte Enumerations-Datentypen, die Endpunktkonfiguration und die
+    Sicherheitseinstellungen (\l{ServerProject}{ServerProject::ProjectData}). Projekte werden
+    in Server Studio angelegt, geöffnet, gespeichert und geschlossen.
+
+    \section1 Adressraum entwerfen
+
+    Im Studio bauen Sie einen Knotenbaum auf (\l ServerNodeModel):
+
+    \list
+        \li \b Objekte zur Gliederung des Adressraums;
+        \li \b Variablen mit Datentyp und Anfangswert;
+        \li benutzerdefinierte \b{Enumerations}-Datentypen, auf die Variablen verweisen;
+        \li benutzerdefinierte \b Namensräume, denen Ihre Knoten gehören.
+    \endlist
+
+    Ein Adressraum kann auch übernommen statt von Hand gezeichnet werden:
+
+    \list
+        \li \b{NodeSet2 importieren/exportieren} — das Modell als Standard-OPC-UA-NodeSet2-XML
+            austauschen (\l{ServerProject}{ServerProject::NodeSet}).
+        \li \b{Von einem durchsuchten Server klonen} — den Adressraum eines Servers, mit dem Sie
+            im Client verbunden sind, in ein neues Server-Projekt übernehmen.
+    \endlist
+
+    Das Projekt wird vor dem Bauen oder Starten von einem Validator geprüft
+    (\l{ServerProject}{ServerProject::Validator}).
+
+    \section1 Endpunkt und Sicherheit
+
+    Die Endpunktkonfiguration legt Port und Anwendungsnamen fest. Die Sicherheitskonfiguration
+    wählt die Sicherheitsrichtlinie und die akzeptierten Identitäten:
+
+    \list
+        \li \b{Keine Sicherheit} für schnelle lokale Tests;
+        \li \b{Basic256Sha256} mit Signierung und Verschlüsselung unter Verwendung eines
+            selbstsignierten Server-Zertifikats, das im eigenen PKI-Speicher des Servers
+            erstellt wird;
+        \li \b anonymer Zugriff und/oder \b{Benutzername/Passwort}-Benutzer.
+    \endlist
+
+    Mit diesen Einstellungen lässt sich ein Client ohne externen Server gegen realistische
+    Sicherheit prüfen.
+
+    \section1 Server ausführen
+
+    Beim Starten des Servers wird der Laufzeitprozess gestartet; das Studio wartet, bis er
+    seinen Endpunkt meldet, und zeigt ihn dann als laufend an. Live-Diagnose — Anzahl der
+    Sitzungen, sichere Kanäle und Betriebszeit — wird über einen lokalen Seitenkanal an das
+    Studio übertragen (\l DiagnosticsServer). Sie können die Laufzeit stoppen, neu starten
+    oder erzwungen beenden; der Controller meldet Abstürze und erlaubt eine erneute Verbindung.
+
+    \section1 Werte simulieren
+
+    Variablen kann eine Simulation zugewiesen werden, sodass sich ihre Werte im laufenden
+    Server über die Zeit ändern — Zähler, Umschalter, Zufall, Sinus oder Rampe
+    (\l SimulationEngine). Die Laufzeit schreibt die simulierten Werte in den Server, sodass
+    verbundene Clients echte Datenänderungs-Benachrichtigungen erhalten, was zum Testen von
+    Trends und Abonnements nützlich ist.
+*/

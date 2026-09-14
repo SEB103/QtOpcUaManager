@@ -142,6 +142,38 @@ if ((Test-Path $licensesDir) -and (Get-ChildItem $licensesDir -File)) {
     $errors.Add('FAIL : licenses/ directory missing or empty')
 }
 
+# 5b. Offline documentation site and the Qt WebView runtime that renders it in
+#     the in-app Help window.
+$docIndex = @('doc/site/index.html', 'doc/site/en/index.html') |
+    Where-Object { Test-Path (Join-Path $DeploymentDir $_) } | Select-Object -First 1
+if ($docIndex) {
+    $checks.Add("OK   : offline documentation site ($docIndex)")
+} else {
+    $errors.Add('FAIL : offline documentation site missing (doc/site/index.html)')
+}
+
+$webViewDll = Get-ChildItem -Path $DeploymentDir -Recurse -File -Filter 'Qt6WebView.dll' -ErrorAction SilentlyContinue
+if ($webViewDll) {
+    $checks.Add('OK   : Qt WebView runtime (Qt6WebView.dll)')
+} else {
+    $errors.Add('FAIL : Qt WebView runtime (Qt6WebView.dll) missing')
+}
+
+$webViewQml = Get-ChildItem -Path $DeploymentDir -Recurse -Directory -Filter 'QtWebView' -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path (Join-Path $_.FullName 'qmldir') } | Select-Object -First 1
+if ($webViewQml) {
+    $checks.Add('OK   : QtWebView QML module (qml/QtWebView)')
+} else {
+    $errors.Add('FAIL : QtWebView QML module missing (qml/QtWebView)')
+}
+
+$webView2Loader = Get-ChildItem -Path $DeploymentDir -Recurse -File -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue
+if ($webView2Loader) {
+    $checks.Add('OK   : Microsoft WebView2 loader (WebView2Loader.dll)')
+} else {
+    $checks.Add('WARN : WebView2Loader.dll not found; the Help window needs the Edge WebView2 runtime')
+}
+
 # 6. No development artifacts leaking into the deployment.
 $devArtifacts = Get-ChildItem -Path $DeploymentDir -Recurse -File |
     Where-Object { $_.Extension -in '.obj', '.ilk', '.pdb', '.exp', '.lib' -or

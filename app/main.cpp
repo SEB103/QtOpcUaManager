@@ -6,6 +6,7 @@
 #include <QQmlApplicationEngine>
 #include <QString>
 #include <QtQml/QQmlExtensionPlugin>
+#include <QtWebView/QtWebView>
 
 #include "appcore.h"
 #include "appengine.h"
@@ -26,6 +27,10 @@ int main(int argc, char *argv[])
 
     AppCore::setMessagePattern();
     AppCore app(argc, argv);
+
+    // Initialize QtWebView before the QML engine loads any WebView; the offline
+    // Help window (HelpViewerWindow.qml) renders the bundled documentation with it.
+    QtWebView::initialize();
 
     // Identity comes from the centralized product metadata. The organization,
     // domain and application name are the STABLE identifier (not the display

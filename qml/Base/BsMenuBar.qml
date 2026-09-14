@@ -127,6 +127,13 @@ MenuBar {
     signal aboutRequested()
 
     /*!
+        \qmlsignal BsMenuBar::helpRequested()
+        Emitted when the user opens the offline documentation from the Help menu.
+        The corresponding handler is \c onHelpRequested.
+    */
+    signal helpRequested()
+
+    /*!
         \qmlsignal BsMenuBar::cloneToServerStudioRequested()
         Emitted to clone the browsed client address space into a Server Studio
         project. The host calls \c cppServerStudio.cloneFromClient().
@@ -328,6 +335,13 @@ MenuBar {
 
     Menu {
         title: qsTr("Help")
+
+        MenuItem {
+            text: qsTr("&Documentation")
+            onTriggered: appMenuBar.helpRequested()
+        }
+
+        MenuSeparator {}
 
         MenuItem {
             text: qsTr("&About OpcUaManager…")

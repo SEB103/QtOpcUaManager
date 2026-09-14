@@ -10,8 +10,12 @@
 
 #include "productinfo.h"
 
+#include "core/apppaths.h"
+
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
+#include <QStringList>
 #include <QSysInfo>
 #include <QtGlobal>
 
@@ -199,4 +203,43 @@ QString AppInfo::readText(const QString &path) const
         return {};
 
     return QString::fromUtf8(file.readAll());
+}
+
+/*!
+ * \brief Returns a file URL to the offline documentation for \a language.
+ *
+ * The documentation site ships next to the executable under \c doc/site (see the
+ * install rules and the release pipeline). The lookup prefers the requested
+ * language folder, then English, then the top-level language chooser, so the Help
+ * entry still works when a translation is missing. Only the language part of the
+ * locale code is used, so \c "de_DE" and \c "de" both resolve to \c doc/site/de.
+ *
+ * \param language UI locale code such as \c "de_DE".
+ * \return A local file URL, or an empty URL when no documentation is installed.
+ */
+QUrl AppInfo::helpIndexUrl(const QString &language) const
+{
+    const QString base = AppPaths::instance().seedDir() + QStringLiteral("/doc/site");
+    const QString code = language.left(2).toLower();
+
+    const QStringList candidates {
+        base + QStringLiteral("/") + code + QStringLiteral("/index.html"),
+        base + QStringLiteral("/en/index.html"),
+        base + QStringLiteral("/index.html"),
+    };
+
+    for (const QString &candidate : candidates) {
+        if (QFileInfo::exists(candidate))
+            return QUrl::fromLocalFile(candidate);
+    }
+
+    return {};
+}
+
+/*!
+ * \brief Returns whether any offline documentation is installed next to the application.
+ */
+bool AppInfo::helpAvailable() const
+{
+    return helpIndexUrl(QStringLiteral("en")).isValid();
 }

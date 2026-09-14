@@ -91,9 +91,9 @@ stages must already have produced their output):
 
 | Stage | What it does |
 |-------|--------------|
-| `Build` | Configure + build Release. |
-| `Deploy` | `cmake --install` -> `release/<name>-<version>/` (the app folder with all Qt runtime). |
-| `Verify` | Checks the deployment (exe, plugins, OpenSSL, licenses; no debug/dev files). |
+| `Build` | Configure + build Release, then generate the offline documentation site (`docs` target -> `build/release/doc/site`). |
+| `Deploy` | `cmake --install` -> `release/<name>-<version>/` (the app folder with all Qt runtime, and `doc/site/` for in-app Help). |
+| `Verify` | Checks the deployment (exe, plugins, OpenSSL, licenses, the documentation site and the Qt WebView runtime; no debug/dev files). |
 | `PackageInstaller` | Builds `…-Setup.exe`. |
 | `PackagePortable` | Builds `…-win64.zip` (adds the `portable.ini` marker). |
 | `GenerateRepository` | Builds `repository/`. |
@@ -225,6 +225,16 @@ is mutually exclusive with `--accept-messages`:
 ```bat
 "C:\Temp\opcua\OpcUaManagerMaintenanceTool.exe" --set-temp-repository "file:///E:/AI/OpcUaManager/project/release/repository" --accept-licenses --default-answer --confirm-command update
 ```
+
+**Offline documentation (Help).** The `Build` stage generates a self-contained
+QDoc site (`build/release/doc/site`: a per-language user + developer guide plus the
+C++/QML API reference) and the install ships it to `doc/site` next to the exe. The
+in-app **Help → Documentation** entry opens it locally through Qt WebView, which on
+Windows renders with the Microsoft Edge WebView2 control; `windeployqt` deploys
+`Qt6WebView.dll`, the `QtWebView` QML module and `WebView2Loader.dll`, and `Verify`
+checks all three. The WebView2 runtime itself is a Microsoft system component (see
+`THIRD_PARTY_NOTICES.md`). Any code change requires re-running `release.ps1` (the
+`Build` stage regenerates the docs so the shipped Help matches the shipped app).
 
 **Future rename / server (not decided yet).** The design keeps the internal
 identity separate from the display name, so *if* the product is ever renamed

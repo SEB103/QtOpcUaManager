@@ -14,8 +14,9 @@ their SPDX identifiers as file names.
 
 The application is built against Qt 6.11 and links the following Qt modules
 dynamically (shared libraries): Qt Core, Qt GUI, Qt Network, Qt OPC UA, Qt QML,
-Qt Quick, Qt Quick Controls, Qt Quick Dialogs, Qt SQL, and Qt SVG. Qt Linguist
-Tools is used at build time only and is not distributed.
+Qt Quick, Qt Quick Controls, Qt Quick Dialogs, Qt SQL, Qt SVG, and Qt WebView
+(used by the offline documentation viewer). Qt Linguist Tools is used at build
+time only and is not distributed.
 
 - **License (as used here):** GNU Lesser General Public License, version 3
   (`LICENSES/LGPL-3.0-only.txt`), which incorporates the GNU General Public
@@ -61,6 +62,22 @@ Windows). On Windows these are copied next to the executable by the optional
 Retain the license and notices supplied with the OpenSSL binaries you actually
 distribute.
 
+## Microsoft Edge WebView2 (Windows)
+
+The offline documentation viewer uses Qt WebView, which on Windows renders through
+the Microsoft Edge WebView2 control. The deployment therefore includes the WebView2
+loader library (`WebView2Loader.dll`) copied next to the executable by
+`windeployqt`. The WebView2 runtime itself is a system component supplied and
+updated by Microsoft (the "Evergreen" runtime) and is not bundled by OpcUaManager.
+
+- **License:** the `WebView2Loader.dll` redistributable is governed by the Microsoft
+  Edge WebView2 SDK license terms (Microsoft Software License Terms). It is not
+  covered by the OpcUaManager or Qt licenses.
+- **Source / terms:** <https://developer.microsoft.com/microsoft-edge/webview2/>.
+
+If a deployment does not use the documentation viewer, `WebView2Loader.dll` may be
+omitted; the application still runs without the in-app Help window.
+
 ## Google Material Symbols (icons)
 
 The SVG icons under `resources/images/svg/` are based on Google Material Symbols
@@ -76,5 +93,6 @@ The SVG path data was not modified; only the file names were normalized. See
 ## Before distributing binaries
 
 Verify that the license texts and notices for every component you actually ship
-(Qt, open62541, OpenSSL, and the icon set) are included with the distribution and
-that the LGPLv3 relinking obligation for Qt is satisfied.
+(Qt, open62541, OpenSSL, the Microsoft Edge WebView2 loader, and the icon set) are
+included with the distribution and that the LGPLv3 relinking obligation for Qt is
+satisfied.

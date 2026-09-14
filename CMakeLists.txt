@@ -36,6 +36,7 @@ find_package(Qt6 6.11 REQUIRED COMPONENTS
     QuickDialogs2
     Sql
     Svg
+    WebView
 )
 
 # Fix the Qt6::OpcUa target so that Windows Debug builds use
@@ -112,6 +113,7 @@ target_link_libraries(appOpcUaManager
         Qt6::QuickDialogs2
         Qt6::Sql
         Qt6::Svg
+        Qt6::WebView
 )
 
 # Ensure statically linked QML plugins are retained and imported correctly.
@@ -236,4 +238,15 @@ install(FILES
 install(
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/"
     DESTINATION "${CMAKE_INSTALL_BINDIR}/licenses"
+)
+
+# Ship the offline documentation site next to the executable so Help / Справка can
+# open it locally (AppInfo::helpIndexUrl resolves <exe>/doc/site/<lang>/index.html).
+# The site is produced by the `docs` target; the release pipeline builds it before
+# installing. OPTIONAL so an ordinary build that has not generated docs still
+# installs cleanly.
+install(
+    DIRECTORY "${CMAKE_BINARY_DIR}/doc/site/"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/doc/site"
+    OPTIONAL
 )

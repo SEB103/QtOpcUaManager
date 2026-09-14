@@ -1,0 +1,103 @@
+/*!
+    \page architecture.html
+    \title Architecture
+    \previouspage Configuration
+    \nextpage Project Structure
+
+    This chapter gives a new developer a fast mental model of the program: the major
+    modules, how the UI reaches the backend, the threading and process boundaries, and
+    how data and commands flow. Each named class links to its page in the
+    \l {OpcUaManager API Reference}.
+
+    \section1 Build targets
+
+    The application is built from three static libraries, two executables, and two QML
+    modules (see \l {Project Structure}):
+
+    \list
+        \li \b{OpcUaCore} — the OPC UA client core, item models, persistence, and the
+            client project layer. Links Qt Core, Network, OpcUa, and Sql.
+        \li \b{ServerProjectCore} — the server-project domain model (\c .uaserver),
+            serializer, validator, and NodeSet2 I/O. Links \e{Qt Core only} so the
+            headless runtime can reuse it without the client stack.
+        \li \b{OpcUaQmlApi} — the QML-facing facades. Depends on OpcUaCore and
+            ServerProjectCore.
+        \li \b{appOpcUaManager} — the GUI executable (\c app/).
+        \li \b{OpcUaServerRuntime} — the headless open62541 server executable (\c runtime/).
+        \li QML modules \b{OpcUaManager} (screens) and \b{Base} (reusable controls).
+    \endlist
+
+    \section1 The QML-to-C++ boundary
+
+    The C++ backend is exposed to QML through \e{context properties}, not through
+    registered QML types. The application engine sets these on the root context:
+
+    \list
+        \li \c cppManagerOpcUa → \l OpcUaManager (client operations and models)
+        \li \c cppServerStudio → \l ServerStudio (server design and runtime control)
+        \li \c cppProjectManager → the client-project facade
+        \li \c cppAppEngine → \l AppEngine (application services)
+        \li \c cppAppInfo → \l AppInfo, \c cppLocale → \l LocaleController,
+            \c cppLicenseModel → \l LicenseModel
+    \endlist
+
+    Because context properties need no import, the reusable \l {Base QML Types}{Base}
+    components stay free of any C++ import; only the application layer binds them to the
+    facades. There are deliberately no \c{Cpp.*} QML modules in this code base.
+
+    \section1 OPC UA client: GUI thread versus worker thread
+
+    The client is split across two threads to keep the UI responsive:
+
+    \list
+        \li \l OpcUaManager runs on the GUI thread. It owns the models
+            (\l OpcUaModel, \l DataAccessModel, \l AttributesModel, \l TrendModel)
+            and is the single object QML talks to.
+        \li \l OpcUaService runs on a dedicated worker thread created by \l AppEngine.
+            It owns the \c QOpcUaClient and performs discovery, connect/disconnect,
+            browsing, reads, writes, and subscriptions.
+    \endlist
+
+    The two communicate through queued signals, so the network- and PKI-facing work
+    never blocks rendering. Decoding of structured (CODESYS-style) values is handled by
+    a helper that browses the instance subtree.
+
+    \section1 OPC UA server: two processes
+
+    The designed server runs as a \e separate process, not inside the GUI:
+
+    \list
+        \li \l ServerStudio (GUI) owns the in-memory server project and the editing
+            models, and drives the runtime.
+        \li \l ServerRuntimeController owns a \c QProcess running \b OpcUaServerRuntime.
+            The runtime embeds open62541, builds the address space from the project,
+            applies security, and simulates values.
+        \li The two communicate over a simple contract: the runtime prints a \c READY
+            line with its endpoint on stdout and accepts \c STOP on stdin. A separate
+            \c QLocalSocket diagnostics side-channel streams live session/uptime JSON.
+    \endlist
+
+    \e{Open in Client} connects the built-in client to the running local server by
+    handing its discovery URL to \l OpcUaManager.
+
+    \section1 Data and command flow (client read)
+
+    \list 1
+        \li QML calls a method on \c cppManagerOpcUa (\l OpcUaManager).
+        \li \l OpcUaManager forwards the request to \l OpcUaService via a queued signal.
+        \li \l OpcUaService performs the OPC UA call on the worker thread.
+        \li The result returns as a queued signal; \l OpcUaManager updates the relevant
+            model (\l OpcUaModel / \l DataAccessModel), which QML is bound to.
+    \endlist
+
+    \section1 Configuration and storage
+
+    \list
+        \li \l AppPaths decides installed-versus-portable locations and seeds writable
+            storage on first run.
+        \li Settings live in an INI store; client projects (\c .uaproj) and server
+            projects (\c .uaserver) are JSON, written atomically by their serializers.
+        \li Monitored nodes are persisted in a SQLite database (\l NodeDatabase).
+        \li \l LocaleController installs and live-switches the UI language.
+    \endlist
+*/

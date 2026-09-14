@@ -1,0 +1,52 @@
+/*!
+    \page working-with-server.html
+    \title Arbeiten mit einem Server
+    \previouspage OPC UA Server
+    \nextpage Konfiguration
+
+    Dieses Kapitel beschreibt die üblichen durchgängigen Abläufe, die die Client- und die
+    Server-Hälfte der Anwendung kombinieren.
+
+    \section1 Einen Server lokal entwerfen, ausführen und testen
+
+    \list 1
+        \li Entwerfen Sie in Server Studio einen Adressraum und legen Sie Endpunkt und
+            Sicherheit fest (siehe \l {OPC UA Server}).
+        \li Starten Sie den Server. Der Laufzeitprozess startet und meldet seinen Endpunkt.
+        \li Nutzen Sie \e{Open in Client}, um den integrierten Client mit dem laufenden Server
+            zu verbinden; der Client verbindet sich anonym mit dem lokalen Endpunkt.
+        \li Durchsuchen Sie den Server, lesen und schreiben Sie Variablen und abonnieren Sie
+            Werte (siehe \l {OPC UA Client}).
+    \endlist
+
+    Da der Server in einem eigenen Prozess läuft, können Sie ihn stoppen, neu starten oder
+    beenden, während der Client geöffnet bleibt — ein realistischer Weg, das
+    Wiederverbindungsverhalten des Clients zu testen.
+
+    \section1 Sicherheit und Identitäten testen
+
+    Konfigurieren Sie den Server mit Signierung und Verschlüsselung sowie mit
+    Benutzername/Passwort-Benutzern und verbinden Sie den Client mit passender
+    Sicherheitsrichtlinie und Identität. Das prüft den Zertifikatsaustausch (über den
+    PKI-Speicher beider Seiten) und die Zugriffssteuerung durchgängig.
+
+    \section1 Live-Daten simulieren
+
+    Weisen Sie Variablen Simulationen zu (Zähler, Sinus, Rampe usw.), sodass der Server
+    wechselnde Werte ausgibt. Abonnieren Sie diese Variablen im Client und beobachten Sie,
+    wie sich die Ansicht \e{Data Access} und das Trend-Panel aus echten
+    Datenänderungs-Benachrichtigungen aktualisieren.
+
+    \section1 Einen vorhandenen Server klonen
+
+    Verbinden Sie den Client mit einem Server eines Drittanbieters, durchsuchen Sie den
+    interessierenden Teil des Adressraums und klonen Sie ihn in ein neues Server-Projekt.
+    Sie erhalten dann eine bearbeitbare \c .uaserver-Nachbildung, die Sie lokal ausführen,
+    absichern und simulieren können.
+
+    \section1 Adressräume austauschen
+
+    Verwenden Sie NodeSet2-Import/-Export, um einen Adressraum zwischen diesem Werkzeug und
+    anderer OPC-UA-Software zu verschieben oder eine versionierte Kopie eines entworfenen
+    Modells zu behalten.
+*/

@@ -1,0 +1,57 @@
+/*!
+    \page getting-started.html
+    \title Erste Schritte
+    \previouspage Einführung und Überblick
+    \nextpage OPC UA Client
+
+    Dieses Kapitel führt vom Start der Anwendung bis zu dem Punkt, an dem Sie einen Server
+    durchsuchen oder einen entwerfen können.
+
+    \section1 Anwendung starten
+
+    Starten Sie die installierte Anwendung (oder die ausführbare Datei der portablen
+    Version). Beim Start öffnet das Programm den \e Launcher, aus dem Sie:
+
+    \list
+        \li ein neues Client-Projekt anlegen oder ein zuletzt verwendetes öffnen;
+        \li ein vorhandenes Client-Projekt (\c .uaproj) von der Festplatte öffnen;
+        \li \e{Server Studio} öffnen, um einen lokalen OPC-UA-Server zu entwerfen oder auszuführen.
+    \endlist
+
+    Für einen schnellen Blick ist ein Projekt optional: Sie können sich mit einem Server
+    verbinden, ohne ein Projekt zu speichern. Ein Projekt ist nützlich, wenn Sie eine
+    Verbindung und eine Menge überwachter Knoten für das nächste Mal behalten möchten.
+    Siehe \l {Konfiguration} dazu, was ein Projekt speichert und wo.
+
+    \section1 Ihre erste Client-Verbindung
+
+    \list 1
+        \li Legen Sie im Launcher ein Client-Projekt an oder öffnen Sie eines (oder fahren
+            Sie ohne Projekt fort).
+        \li Geben Sie im Verbindungsformular die Discovery-URL des Servers ein, zum Beispiel
+            \c {opc.tcp://127.0.0.1:4840}.
+        \li Wählen Sie die Sicherheitsrichtlinie und die Identität (anonym oder
+            Benutzername/Passwort), die der Server erwartet, und verbinden Sie sich.
+        \li Nach erfolgreicher Verbindung erscheint der Adressraum des Servers im Baum.
+            Weiter in \l {OPC UA Client}.
+    \endlist
+
+    \section1 Ihr erster lokaler Server
+
+    \list 1
+        \li Öffnen Sie im Launcher \e{Server Studio}.
+        \li Legen Sie ein Server-Projekt (\c .uaserver) an und fügen Sie dem Adressraum
+            einen Namensraum, Objekte und Variablen hinzu.
+        \li Starten Sie den Server; das Studio startet die eigenständige Laufzeit als
+            separaten Prozess und meldet deren Endpunkt.
+        \li Nutzen Sie \e{Open in Client}, um den integrierten Client mit Ihrem laufenden
+            Server zu verbinden. Weiter in \l {OPC UA Server} und \l {Arbeiten mit einem Server}.
+    \endlist
+
+    \section1 Sprache der Oberfläche wählen
+
+    Die Anwendung liefert die Oberflächen in Englisch, Deutsch, Russisch und Ukrainisch.
+    Die Sprache kann zur Laufzeit umgeschaltet werden und wird zwischen Sitzungen gemerkt
+    (siehe \l {Konfiguration}). Diese Dokumentation ist in denselben Sprachen verfügbar;
+    die API-Referenz ist in Englisch.
+*/

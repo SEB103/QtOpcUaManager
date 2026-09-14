@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 
 /**
  * Read-only application, build, and environment metadata exposed to QML.
@@ -96,6 +97,18 @@ public:
      * \return The file contents, or an empty string when the file cannot be read.
      */
     Q_INVOKABLE QString readText(const QString &path) const;
+
+    /**
+     * Returns a file:// URL to the offline documentation for a UI language.
+     * Resolves next to the executable (<app>/doc/site), preferring the requested
+     * language, then English, then the language chooser.
+     * \param language UI locale code such as "de_DE"; only the language part is used.
+     * \return A local file URL, or an empty/invalid URL when no documentation is installed.
+     */
+    Q_INVOKABLE QUrl helpIndexUrl(const QString &language) const;
+
+    /** Returns whether any offline documentation is installed next to the application. */
+    Q_INVOKABLE bool helpAvailable() const;
 };
 
 #endif // APPINFO_H

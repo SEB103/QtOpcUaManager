@@ -27,9 +27,11 @@ function(opcuamanager_install_windows_runtime)
         return()
     endif()
 
-    # Resolve the plugin directory of the active Qt kit so the backend comes
-    # from this exact Qt installation.
+    # Resolve the plugin, QML and binary directories of the active Qt kit so the
+    # runtime files come from this exact Qt installation.
     set(_qt_plugin_dir "")
+    set(_qt_qml_dir "")
+    set(_qt_bin_dir "")
     if(TARGET Qt6::qmake)
         get_target_property(_qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
         if(_qt_qmake_executable)
@@ -41,6 +43,24 @@ function(opcuamanager_install_windows_runtime)
             )
             if(NOT _qt_plugin_query_result EQUAL 0)
                 set(_qt_plugin_dir "")
+            endif()
+            execute_process(
+                COMMAND "${_qt_qmake_executable}" -query QT_INSTALL_QML
+                OUTPUT_VARIABLE _qt_qml_dir
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE _qt_qml_query_result
+            )
+            if(NOT _qt_qml_query_result EQUAL 0)
+                set(_qt_qml_dir "")
+            endif()
+            execute_process(
+                COMMAND "${_qt_qmake_executable}" -query QT_INSTALL_BINS
+                OUTPUT_VARIABLE _qt_bin_dir
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE _qt_bins_query_result
+            )
+            if(NOT _qt_bins_query_result EQUAL 0)
+                set(_qt_bin_dir "")
             endif()
         endif()
     endif()
@@ -99,6 +119,46 @@ function(opcuamanager_install_windows_runtime)
             file(MAKE_DIRECTORY \"\${_dest}/plugins/opcua\")
             file(COPY_FILE \"\${_backend_src}\" \"\${_dest}/plugins/opcua/\${_backend_name}\" ONLY_IF_DIFFERENT)
             message(STATUS \"Ensured OPC UA backend plugin: plugins/opcua/\${_backend_name}\")
+        endif()
+
+        # 3. Qt WebView runtime for the offline documentation viewer. windeployqt
+        #    ships Qt6WebView.dll but not the QML module, its Quick frontend, or
+        #    the Windows (WebView2) backend plugin, because the application QML is
+        #    compiled into resources and its 'import QtWebView' is not scanned.
+        set(_debug_suffix \"\")
+        if(\"\${CMAKE_INSTALL_CONFIG_NAME}\" STREQUAL \"Debug\")
+            set(_debug_suffix \"d\")
+        endif()
+
+        # 3a. Quick frontend library next to the executable.
+        set(_wv_quick_src \"${_qt_bin_dir}/Qt6WebViewQuick\${_debug_suffix}.dll\")
+        if(EXISTS \"\${_wv_quick_src}\")
+            file(COPY_FILE \"\${_wv_quick_src}\" \"\${_dest}/Qt6WebViewQuick\${_debug_suffix}.dll\" ONLY_IF_DIFFERENT)
+            message(STATUS \"Installed Qt WebView Quick library: Qt6WebViewQuick\${_debug_suffix}.dll\")
+        endif()
+
+        # 3b. QML module (qmldir + type info + the QML plugin).
+        set(_wv_qml_src \"${_qt_qml_dir}/QtWebView\")
+        if(EXISTS \"\${_wv_qml_src}/qmldir\")
+            file(MAKE_DIRECTORY \"\${_dest}/qml/QtWebView\")
+            file(COPY_FILE \"\${_wv_qml_src}/qmldir\" \"\${_dest}/qml/QtWebView/qmldir\" ONLY_IF_DIFFERENT)
+            if(EXISTS \"\${_wv_qml_src}/plugins.qmltypes\")
+                file(COPY_FILE \"\${_wv_qml_src}/plugins.qmltypes\" \"\${_dest}/qml/QtWebView/plugins.qmltypes\" ONLY_IF_DIFFERENT)
+            endif()
+            set(_wv_qml_plugin \"\${_wv_qml_src}/qtwebviewquickplugin\${_debug_suffix}.dll\")
+            if(EXISTS \"\${_wv_qml_plugin}\")
+                file(COPY_FILE \"\${_wv_qml_plugin}\" \"\${_dest}/qml/QtWebView/qtwebviewquickplugin\${_debug_suffix}.dll\" ONLY_IF_DIFFERENT)
+            endif()
+            message(STATUS \"Installed Qt WebView QML module: qml/QtWebView\")
+        endif()
+
+        # 3c. Windows (WebView2) backend plugin. WebView2Loader.dll is provided by
+        #     the system Edge WebView2 runtime and is not shipped by the kit.
+        set(_wv_backend \"${_qt_plugin_dir}/webview/qtwebview_webview2\${_debug_suffix}.dll\")
+        if(EXISTS \"\${_wv_backend}\")
+            file(MAKE_DIRECTORY \"\${_dest}/plugins/webview\")
+            file(COPY_FILE \"\${_wv_backend}\" \"\${_dest}/plugins/webview/qtwebview_webview2\${_debug_suffix}.dll\" ONLY_IF_DIFFERENT)
+            message(STATUS \"Installed Qt WebView backend plugin: plugins/webview/qtwebview_webview2\${_debug_suffix}.dll\")
         endif()
     ")
 endfunction()

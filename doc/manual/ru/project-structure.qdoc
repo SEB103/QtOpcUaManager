@@ -1,0 +1,69 @@
+/*!
+    \page project-structure.html
+    \title Структура проекта
+    \previouspage Архитектура
+    \nextpage Устранение неполадок
+
+    Эта глава — карта от вопроса \e{«Где реализовано X?»} к дереву исходников. Это намеренно не
+    исчерпывающий список файлов; она указывает на каталог и несколько ключевых файлов каждой
+    области, каждый со ссылкой в \l {OpcUaManager API Reference}.
+
+    \section1 Верхний уровень
+
+    \table
+    \header \li Каталог \li Назначение
+    \row \li \c app/ \li Исполняемый файл GUI: запуск, обёртка QML-движка, сервисы приложения.
+    \row \li \c src/ \li Переиспользуемые C++-библиотеки (ядро клиента, модели, персистентность, проекты, фасады).
+    \row \li \c runtime/ \li Автономный исполняемый файл OPC UA-сервера на open62541.
+    \row \li \c qml/ \li QML-модуль приложения (экраны/диалоги) и переиспользуемый модуль \c qml/Base.
+    \row \li \c resources/ \li Поставляемые изображения/SVG и конфигурация стиля QML.
+    \row \li \c doc/ \li Эта документация (страницы руководства QDoc, темы API, конфигурация).
+    \row \li \c packaging/, \c installer/ \li Конвейер релиза, инсталлятор и метаданные продукта.
+    \endtable
+
+    \section1 Где находится каждая функция
+
+    \table
+    \header \li Чтобы работать над… \li Смотрите в… \li Ключевые типы
+    \row \li Подключение клиента / обнаружение / подписки
+         \li \c src/core/opcuaservice.* \li \l OpcUaService
+    \row \li Объект клиента, с которым говорит QML
+         \li \c src/qmlapi/opcuamanager.* \li \l OpcUaManager
+    \row \li Дерево адресного пространства (просмотр)
+         \li \c src/models/opcuamodel.*, \c treeitem.* \li \l OpcUaModel, \l TreeItem
+    \row \li Атрибуты узлов / значения / тренды
+         \li \c src/models/ \li \l AttributesModel, \l DataAccessModel, \l TrendModel
+    \row \li Декодирование структурированных (CODESYS) значений
+         \li \c src/core/structurednodereader.* \li \c StructuredNodeReader
+    \row \li Проектирование сервера + управление средой исполнения
+         \li \c src/qmlapi/serverstudio.*, \c serverruntimecontroller.* \li \l ServerStudio, \l ServerRuntimeController
+    \row \li Модель / файл / валидация серверного проекта / NodeSet2
+         \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
+    \row \li Сам автономный сервер
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+    \row \li Клиентский проект (\c .uaproj)
+         \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
+    \row \li Персистентность отслеживаемых узлов
+         \li \c src/persistence/nodedatabase.* \li \l NodeDatabase
+    \row \li Установленные/портативные пути
+         \li \c src/core/apppaths.* \li \l AppPaths
+    \row \li Запуск приложения / сервисы
+         \li \c app/ \li \l AppCore, \l AppEngine, \l AppInfo, \l LocaleController
+    \row \li Оболочка UI и экраны
+         \li \c qml/Main.qml, \c qml/*Screen*.qml \li \l {OpcUaManager QML Types}
+    \row \li Переиспользуемые элементы управления UI
+         \li \c qml/Base/ \li \l {Base QML Types}
+    \endtable
+
+    \section1 Библиотеки и их границы
+
+    \list
+        \li \b OpcUaCore (\c src/core, \c src/models, \c src/persistence, \c src/project)
+            — клиентский стек; связывает Qt Core/Network/OpcUa/Sql.
+        \li \b ServerProjectCore (\c src/serverproject) — \e{только Qt Core}, поэтому используется
+            совместно GUI и автономной средой исполнения.
+        \li \b OpcUaQmlApi (\c src/qmlapi) — QML-фасады; зависит от обоих ядер.
+    \endlist
+
+    Обоснование этих границ, потоков и процессов см. в \l {Архитектура}.
+*/

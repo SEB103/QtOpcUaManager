@@ -1,0 +1,34 @@
+/*!
+    \page about.html
+    \title Über und Versionsinformationen
+    \previouspage Fehlerbehebung
+
+    \section1 Anwendungsversion
+
+    Die Anwendungsversion wird im Dialog \e{Help > About} angezeigt, zusammen mit Build- und
+    Toolchain-Informationen und den Lizenzhinweisen. Die Version stammt aus einer einzigen
+    Quelle (den Produktmetadaten), die auch den Installer und die Metadaten der ausführbaren
+    Windows-Datei steuert (\l AppInfo).
+
+    \section1 Dokumentationsversion
+
+    Diese Dokumentation wird zusammen mit der Anwendung aus demselben Quellbaum und derselben
+    Version generiert, sodass die aus dem Programm geöffnete Hilfe zum ausgeführten Programm passt.
+    Die Version unten wird zur Build-Zeit eingesetzt.
+
+    \list
+        \li Dokumentationsversion: \b {\appversion}
+    \endlist
+
+    \section1 Lizenzierung
+
+    Die Anwendung wird unter ihrer angegebenen Lizenz vertrieben und bündelt
+    Drittanbieter-Komponenten unter deren eigenen Lizenzen. Die vollständigen Texte und Hinweise
+    finden sich im Dialog \e{Help > About} und in den neben dem Programm mitgelieferten
+    Lizenzdateien.
+
+    \section1 Rückmeldung
+
+    Geben Sie beim Melden eines Problems bitte die obige Anwendungsversion an und, wo relevant,
+    den in der \l {Fehlerbehebung} beschriebenen Protokollauszug.
+*/

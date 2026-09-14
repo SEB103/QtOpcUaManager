@@ -246,6 +246,20 @@ ApplicationWindow {
             aboutDialog.open()
         }
 
+        function onHelpRequested() {
+            const lang = cppLocale ? cppLocale.currentLanguage : "en"
+            const url = cppAppInfo.helpIndexUrl(lang)
+            if (!url || url.toString() === "") {
+                console.warn("Help documentation was not found next to the application.")
+                return
+            }
+            // Create the WebView-backed window lazily on first use.
+            if (!mainWindow.helpViewer)
+                mainWindow.helpViewer = helpViewerComponent.createObject(mainWindow)
+            if (mainWindow.helpViewer)
+                mainWindow.helpViewer.openAt(url)
+        }
+
         function onLogPanelToggleRequested() {
             mainWindow.logPanelVisible = !mainWindow.logPanelVisible
         }
@@ -666,6 +680,18 @@ ApplicationWindow {
         id: aboutDialog
 
         darkTheme: mainWindow.darkTheme
+    }
+
+    // The offline documentation window is created on demand (see onHelpRequested)
+    // so the WebView backend is only started when the user opens Help.
+    property var helpViewer: null
+
+    Component {
+        id: helpViewerComponent
+
+        HelpViewerWindow {
+            darkTheme: mainWindow.darkTheme
+        }
     }
 
 }

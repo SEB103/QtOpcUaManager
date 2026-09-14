@@ -1,0 +1,61 @@
+/*!
+    \page troubleshooting.html
+    \title Fehlerbehebung
+    \previouspage Projektstruktur
+    \nextpage Über und Versionsinformationen
+
+    Dieses Kapitel listet die häufigsten Probleme und wie man sie diagnostiziert. Erste
+    Anlaufstelle bei jedem Problem sind das \b{Log-Panel} und die \b{Protokolldatei der
+    Anwendung}, deren Ordner sich aus der Oberfläche öffnen lässt.
+
+    \section1 Keine Verbindung zu einem Server
+
+    \list
+        \li \b{Falsche URL oder nicht erreichbarer Host.} Prüfen Sie die Endpunkt-URL
+            (\c {opc.tcp://host:port}) und ob der Server läuft und erreichbar ist.
+        \li \b{Sicherheitsrichtlinie passt nicht.} Die vom Client gewählte Sicherheitsrichtlinie
+            muss eine sein, die der Server anbietet. Probieren Sie zuerst \e None, um ein
+            Sicherheitsproblem einzugrenzen.
+        \li \b{Zertifikat nicht vertrauenswürdig.} Bei Signierung/Verschlüsselung müssen sich
+            beide Seiten gegenseitig vertrauen. Prüfen Sie den PKI-Speicher (siehe \l {Konfiguration}).
+        \li \b{Identität abgelehnt.} Anonymer Zugriff ist womöglich deaktiviert, oder
+            Benutzername/Passwort ist falsch.
+    \endlist
+
+    \section1 Werte aktualisieren sich nicht
+
+    \list
+        \li Prüfen Sie, ob die Variable tatsächlich \e abonniert ist (nicht nur einmal gelesen).
+        \li Prüfen Sie die Zugriffsebene der Variable — manche Knoten sind schreibgeschützt.
+        \li Prüfen Sie bei einem entworfenen Server, ob die Variable eine \e Simulation hat, wenn
+            Sie erwarten, dass sie sich von selbst ändert (siehe \l {OPC UA Server}).
+    \endlist
+
+    \section1 Der lokale Server startet nicht
+
+    \list
+        \li \b{Laufzeit nicht gefunden.} Die eigenständige ausführbare Datei \b OpcUaServerRuntime
+            muss neben der Anwendung liegen; die übliche Ursache ist eine fehlerhafte Bereitstellung.
+        \li \b{Port bereits belegt.} Ein anderer Server hält womöglich den konfigurierten Port;
+            ändern Sie den Endpunkt-Port.
+        \li \b{Ungültiges Projekt.} Der Validator meldet Probleme (zum Beispiel einen Knoten, der
+            auf einen Namensraum verweist, den das Projekt nicht deklariert), bevor der Server startet.
+        \li \b{Absturz beim Start.} Der Controller meldet einen Absturz, und die Ausgabe der
+            Laufzeit wird im Protokoll erfasst; neu starten oder beenden und erneut versuchen.
+    \endlist
+
+    \section1 Konfigurations- oder Datenprobleme
+
+    \list
+        \li \b{Einstellungen bleiben nicht erhalten.} Prüfen Sie, ob die Anwendung installiert oder
+            portabel läuft und ob der beschreibbare Datenort zugänglich ist (siehe \l {Konfiguration}).
+        \li \b{Beschädigte Projektdatei.} Projekte werden atomar geschrieben, aber eine extern
+            bearbeitete \c .uaproj- / \c .uaserver-Datei kann fehlschlagen; der Lader meldet einen
+            typisierten Fehler.
+    \endlist
+
+    \section1 Diagnose sammeln
+
+    Geben Sie beim Melden eines Problems die Anwendungsversion an (siehe
+    \l {Über und Versionsinformationen}) sowie den relevanten Abschnitt der Protokolldatei.
+*/

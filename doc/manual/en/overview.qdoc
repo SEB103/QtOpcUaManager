@@ -1,0 +1,51 @@
+/*!
+    \page overview.html
+    \title Introduction and Overview
+    \previouspage OpcUaManager Guide
+    \nextpage Getting Started
+
+    OpcUaManager is a Qt 6 desktop tool for working with \l {https://opcfoundation.org}{OPC UA}
+    servers. It is aimed at commissioning, testing, and diagnostics — for example
+    watching variables exposed by a PLC (such as a CODESYS runtime), checking that an
+    address space looks as expected, or standing up a small OPC UA server to test a
+    client against.
+
+    \section1 What the program does
+
+    The application has two halves that share one window:
+
+    \list
+        \li \b{OPC UA Client.} Connect to an OPC UA server, browse its address space,
+            inspect node attributes, read and write variable values, subscribe to live
+            updates, and plot selected variables as trends. See \l {OPC UA Client}.
+        \li \b{OPC UA Server (Server Studio).} Design an address space, configure an
+            endpoint and security, run a local OPC UA server as a separate process,
+            and simulate variable values. See \l {OPC UA Server}.
+    \endlist
+
+    A \e project ties a session together. A client project (\c .uaproj) stores the
+    connection and the monitored nodes; a server project (\c .uaserver) stores the
+    designed address space and the server configuration. See \l {Getting Started} and
+    \l {Configuration}.
+
+    \section1 Who it is for
+
+    \list
+        \li \b{Users} — commissioning and test engineers who need to see and exercise
+            an OPC UA server without writing code.
+        \li \b{Developers} — engineers extending the program itself; the
+            \l {Architecture} and \l {Project Structure} chapters and the
+            \l {OpcUaManager API Reference} explain the internals.
+    \endlist
+
+    \section1 Key concepts
+
+    \list
+        \li \b{Address space, nodes, variables.} An OPC UA server exposes a tree of
+            \e nodes; \e variable nodes carry values you can read, write, or subscribe to.
+        \li \b{Endpoint and security.} A server is reached through an endpoint URL
+            (\c opc.tcp://host:port) with a security policy and a user identity.
+        \li \b{Subscriptions.} Instead of polling, the client subscribes and the server
+            pushes value changes.
+    \endlist
+*/

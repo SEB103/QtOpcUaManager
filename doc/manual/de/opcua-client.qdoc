@@ -1,0 +1,65 @@
+/*!
+    \page opcua-client.html
+    \title OPC UA Client
+    \previouspage Erste Schritte
+    \nextpage OPC UA Server
+
+    Die Client-Hälfte der Anwendung verbindet sich mit einem OPC-UA-Server, durchsucht
+    dessen Adressraum und liest, schreibt, abonniert und zeichnet Variablenwerte auf.
+    Intern spricht die Oberfläche mit der Fassade \l OpcUaManager, die die Netzwerkarbeit
+    an den Worker-Thread \l OpcUaService delegiert (siehe \l {Architektur}).
+
+    \section1 Mit einem Server verbinden
+
+    Eine Verbindung wird beschrieben durch:
+
+    \list
+        \li eine \b{Discovery-/Endpunkt-URL}, zum Beispiel \c {opc.tcp://127.0.0.1:4840};
+        \li eine \b{Sicherheitsrichtlinie} (zum Beispiel \e None oder \e Basic256Sha256 mit
+            Signierung und Verschlüsselung);
+        \li eine \b{Identität}: anonym oder Benutzername und Passwort.
+    \endlist
+
+    Geben Sie diese im Verbindungsformular ein und verbinden Sie sich. Der Client führt
+    Discovery und Endpunktauswahl durch und öffnet dann eine Sitzung. Zertifikatsbasierte
+    Sicherheit nutzt den PKI-Speicher der Anwendung (siehe \l {Konfiguration}). Während und
+    nach dem Verbinden wird der Zustand im Statusbereich angezeigt und im Log-Panel protokolliert.
+
+    \section1 Adressraum durchsuchen
+
+    Nach dem Verbinden wird der Adressraum des Servers als Baum aus \e Knoten angezeigt, der
+    beim Aufklappen der Zweige nachgeladen wird (gestützt auf \l OpcUaModel). Die Auswahl
+    eines Knotens zeigt seine \e Attribute — Knoten-ID, Knotenklasse, Datentyp, Zugriffsebene,
+    Wert usw. (\l AttributesModel).
+
+    Variablenknoten mit strukturierten Werten (zum Beispiel CODESYS-Strukturen ohne
+    vollständige Typdefinition) werden durch Durchsuchen ihres Instanz-Teilbaums dekodiert,
+    sodass Sie die einzelnen Felder statt eines undurchsichtigen Blocks sehen.
+
+    \section1 Lesen, Schreiben und Abonnieren
+
+    \list
+        \li \b Lesen — den aktuellen Wert eines Variablenknotens anfordern.
+        \li \b Schreiben — einen neuen Wert an eine schreibbare Variable senden (abhängig von
+            ihrer Zugriffsebene).
+        \li \b Abonnieren — Interesse an einer Variable anmelden, sodass der Server
+            Wertänderungen sendet. Abonnierte Variablen erscheinen in der Ansicht
+            \e{Data Access} (\l DataAccessModel), die Live-Wert, Status und Zeitstempel zeigt
+            und sortiert und gefiltert werden kann (\l DataViewFilterModel).
+    \endlist
+
+    Überwachte Variablen können gespeichert werden, sodass sie bei der nächsten Verbindung
+    wiederhergestellt werden (siehe \l {Konfiguration}).
+
+    \section1 Trends
+
+    Ausgewählte Variablen können im Trend-Panel über die Zeit dargestellt werden. Der Trend
+    hält eine begrenzte Historie von Abtastwerten und berechnet die Plot-Geometrie
+    (\l TrendModel); er kann angehalten und fortgesetzt werden.
+
+    \section1 Protokollierung
+
+    Client-Aktivität — Verbindungszustand, Fehler und wichtige Vorgänge — wird ins Log-Panel
+    und in die Protokolldatei der Anwendung geschrieben. Der Ordner der Protokolldatei kann
+    aus der Oberfläche geöffnet werden; das ist der Ausgangspunkt für die \l {Fehlerbehebung}.
+*/

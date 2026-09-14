@@ -1,0 +1,33 @@
+/*!
+    \page about.html
+    \title About and Version Information
+    \previouspage Troubleshooting
+
+    \section1 Application version
+
+    The application version is shown in the \e{Help > About} dialog, together with build
+    and toolchain information and the license notices. The version comes from a single
+    source of truth (the product metadata), which also drives the installer and the
+    Windows executable metadata (\l AppInfo).
+
+    \section1 Documentation version
+
+    This documentation is generated together with the application from the same source
+    tree and version, so the help you open from the program matches the program you are
+    running. The version below is substituted at build time.
+
+    \list
+        \li Documentation version: \b {\appversion}
+    \endlist
+
+    \section1 Licensing
+
+    The application is distributed under its stated license, and it bundles third-party
+    components under their own licenses. The full texts and notices are available in the
+    \e{Help > About} dialog and in the license files shipped next to the program.
+
+    \section1 Feedback
+
+    When reporting an issue, please include the application version above and, where
+    relevant, the log excerpt described in \l {Troubleshooting}.
+*/

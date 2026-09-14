@@ -1,0 +1,63 @@
+/*!
+    \page configuration.html
+    \title Configuration
+    \previouspage Working with a Server
+    \nextpage Architecture
+
+    This chapter describes what the application stores, where it stores it, and the
+    settings that affect its behavior. The location policy is implemented once in
+    \l AppPaths (see \l {Architecture}).
+
+    \section1 Installed versus portable
+
+    The application runs in one of two modes, decided once at startup:
+
+    \list
+        \li \b Installed — binaries live in the read-only install directory, while user
+            data (settings, logs, cache, PKI, and the writable database) lives in the
+            per-user Windows locations.
+        \li \b Portable — when a \c portable.ini marker sits next to the executable, all
+            user data lives under the application directory, so the whole installation
+            can be moved together with its data.
+    \endlist
+
+    Read-only material bundled next to the executable (the seed database and the PKI
+    skeleton) is copied into writable storage on first run, so the program works even
+    when its install directory is not writable.
+
+    \section1 Application settings
+
+    General settings are kept in an INI store. These include the last connection, the
+    pinned focus node, the recent-projects list, and the selected UI language.
+
+    \section1 Client projects (\c .uaproj)
+
+    A client project stores the connection configuration and the set of monitored nodes
+    so a session can be restored later (\l ProjectData). Projects are JSON files written
+    atomically. Recent projects are remembered in the application settings rather than in
+    the project file.
+
+    \section1 Server projects (\c .uaserver)
+
+    A server project stores the full server definition — namespaces, nodes, enumeration
+    types, endpoint, and security (\l{ServerProject}{ServerProject::ProjectData}). It is
+    a JSON file written atomically by its serializer.
+
+    \section1 Monitored-node database
+
+    Monitored variables are persisted in a SQLite database (\l NodeDatabase), seeded from
+    a bundled default on first run and never overwritten on later upgrades, so your data
+    survives updates.
+
+    \section1 Security material (PKI)
+
+    Certificate-based client security and server security each use a PKI store under the
+    writable data directory. For a designed server, a self-signed certificate is created
+    in the server's own store when you enable secure endpoints.
+
+    \section1 Language
+
+    The UI language (English, German, Russian, Ukrainian) is applied at startup and can
+    be switched at runtime; the choice is saved in the application settings
+    (\l LocaleController).
+*/

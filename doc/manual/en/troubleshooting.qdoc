@@ -1,0 +1,61 @@
+/*!
+    \page troubleshooting.html
+    \title Troubleshooting
+    \previouspage Project Structure
+    \nextpage About and Version Information
+
+    This chapter lists the most common problems and how to diagnose them. The first stop
+    for any issue is the \b{log panel} and the \b{application log file}, whose folder can
+    be opened from the UI.
+
+    \section1 Cannot connect to a server
+
+    \list
+        \li \b{Wrong URL or unreachable host.} Confirm the endpoint URL
+            (\c {opc.tcp://host:port}) and that the server is running and reachable.
+        \li \b{Security policy mismatch.} The client's selected security policy must be
+            one the server offers. Try \e None first to isolate a security problem.
+        \li \b{Certificate not trusted.} With signing/encryption, the two sides must
+            trust each other's certificates. Check the PKI store (see \l {Configuration}).
+        \li \b{Identity rejected.} Anonymous access may be disabled, or the
+            username/password may be wrong.
+    \endlist
+
+    \section1 Values do not update
+
+    \list
+        \li Confirm the variable is actually \e subscribed (not just read once).
+        \li Check the variable's access level — some nodes are read-only.
+        \li For a designed server, confirm the variable has a \e simulation if you expect
+            it to change on its own (see \l {OPC UA Server}).
+    \endlist
+
+    \section1 The local server does not start
+
+    \list
+        \li \b{Runtime not found.} The headless \b OpcUaServerRuntime executable must sit
+            next to the application; a broken deployment is the usual cause.
+        \li \b{Port already in use.} Another server may hold the configured port; change
+            the endpoint port.
+        \li \b{Invalid project.} The validator reports problems (for example a node that
+            references a namespace the project does not declare) before the server starts.
+        \li \b{Crash on start.} The controller reports a crash and the runtime's output is
+            captured in the log; restart or kill and retry.
+    \endlist
+
+    \section1 Configuration or data problems
+
+    \list
+        \li \b{Settings not persisting.} Confirm whether the app is running installed or
+            portable and that the writable data location is accessible (see
+            \l {Configuration}).
+        \li \b{Corrupt project file.} Projects are written atomically, but an
+            externally edited \c .uaproj / \c .uaserver may fail to load; the loader
+            reports a typed error.
+    \endlist
+
+    \section1 Collecting diagnostics
+
+    When reporting a problem, include the application version (see
+    \l {About and Version Information}) and the relevant section of the log file.
+*/

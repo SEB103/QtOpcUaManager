@@ -1,0 +1,66 @@
+/*!
+    \page configuration.html
+    \title Konfiguration
+    \previouspage Arbeiten mit einem Server
+    \nextpage Architektur
+
+    Dieses Kapitel beschreibt, was die Anwendung speichert, wo sie es speichert und welche
+    Einstellungen ihr Verhalten beeinflussen. Die Ortsrichtlinie ist einmalig in \l AppPaths
+    umgesetzt (siehe \l {Architektur}).
+
+    \section1 Installiert versus portabel
+
+    Die Anwendung läuft in einem von zwei Modi, der einmalig beim Start bestimmt wird:
+
+    \list
+        \li \b Installiert — die Binärdateien liegen im schreibgeschützten Installationsordner,
+            während die Benutzerdaten (Einstellungen, Protokolle, Cache, PKI und die
+            beschreibbare Datenbank) in den benutzerspezifischen Windows-Speicherorten liegen.
+        \li \b Portabel — liegt eine Markierungsdatei \c portable.ini neben der ausführbaren
+            Datei, liegen alle Benutzerdaten unterhalb des Anwendungsordners, sodass die gesamte
+            Installation samt Daten verschoben werden kann.
+    \endlist
+
+    Schreibgeschütztes Material, das neben der ausführbaren Datei mitgeliefert wird (die
+    Seed-Datenbank und das PKI-Grundgerüst), wird beim ersten Start in den beschreibbaren
+    Speicher kopiert, sodass das Programm auch dann funktioniert, wenn sein
+    Installationsverzeichnis nicht beschreibbar ist.
+
+    \section1 Anwendungseinstellungen
+
+    Allgemeine Einstellungen werden in einem INI-Speicher gehalten. Dazu gehören die letzte
+    Verbindung, der angeheftete Fokus-Knoten, die Liste der zuletzt verwendeten Projekte und
+    die gewählte Oberflächensprache.
+
+    \section1 Client-Projekte (\c .uaproj)
+
+    Ein Client-Projekt speichert die Verbindungskonfiguration und die Menge der überwachten
+    Knoten, sodass eine Sitzung später wiederhergestellt werden kann (\l ProjectData). Projekte
+    sind JSON-Dateien, die atomar geschrieben werden. Zuletzt verwendete Projekte werden in den
+    Anwendungseinstellungen gemerkt, nicht in der Projektdatei.
+
+    \section1 Server-Projekte (\c .uaserver)
+
+    Ein Server-Projekt speichert die vollständige Server-Definition — Namensräume, Knoten,
+    Enumerationstypen, Endpunkt und Sicherheit (\l{ServerProject}{ServerProject::ProjectData}).
+    Es ist eine JSON-Datei, die von seinem Serializer atomar geschrieben wird.
+
+    \section1 Datenbank der überwachten Knoten
+
+    Überwachte Variablen werden in einer SQLite-Datenbank gespeichert (\l NodeDatabase), die
+    beim ersten Start aus einer mitgelieferten Vorlage befüllt und bei späteren Aktualisierungen
+    nie überschrieben wird, sodass Ihre Daten Updates überstehen.
+
+    \section1 Sicherheitsmaterial (PKI)
+
+    Zertifikatsbasierte Client-Sicherheit und Server-Sicherheit nutzen jeweils einen
+    PKI-Speicher im beschreibbaren Datenverzeichnis. Für einen entworfenen Server wird beim
+    Aktivieren sicherer Endpunkte ein selbstsigniertes Zertifikat im eigenen Speicher des Servers
+    erstellt.
+
+    \section1 Sprache
+
+    Die Oberflächensprache (Englisch, Deutsch, Russisch, Ukrainisch) wird beim Start angewendet
+    und kann zur Laufzeit umgeschaltet werden; die Wahl wird in den Anwendungseinstellungen
+    gespeichert (\l LocaleController).
+*/

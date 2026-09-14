@@ -1,0 +1,360 @@
+/*!
+    \module OpcUaManager
+    \title OpcUaManager C++ Classes
+    \brief The C++ application, QML facades, item models, OPC UA service, server
+           project model, and persistence APIs.
+
+    These classes make up the OpcUaManager desktop application. The class-level
+    topics live here; the detailed member documentation is authored as QDoc
+    \c{/*! ... */} comments in the corresponding \c .cpp files. The compact
+    Doxygen \c{/** ... */} comments in the headers are intentionally not a QDoc
+    source (see the project documentation rules).
+
+    For the narrative that ties these classes together, see the \e Architecture
+    and \e{Project Structure} chapters of the manual (the guide is the entry point
+    of this documentation site).
+*/
+
+// ---------------------------------------------------------------------------
+// Application layer (app/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \class AppCore
+    \inmodule OpcUaManager
+    \brief QGuiApplication subclass that owns the settings store and logging setup.
+*/
+
+/*!
+    \class AppEngine
+    \inmodule OpcUaManager
+    \brief QQmlApplicationEngine subclass that wires QML to the OPC UA runtime and
+           owns the cross-thread OpcUaService worker.
+*/
+
+/*!
+    \class AppInfo
+    \inmodule OpcUaManager
+    \brief Read-only product metadata (version, homepage, license paths) exposed
+           to QML as \c cppAppInfo.
+*/
+
+/*!
+    \class LicenseModel
+    \inmodule OpcUaManager
+    \brief List model of bundled third-party license entries shown in the About
+           dialog.
+*/
+
+/*!
+    \class LocaleController
+    \inmodule OpcUaManager
+    \brief Installs and live-switches the UI language, exposed to QML as
+           \c cppLocale.
+*/
+
+// ---------------------------------------------------------------------------
+// Core OPC UA client (src/core/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \class OpcUaService
+    \inmodule OpcUaManager
+    \brief Worker-thread backend that owns the QOpcUaClient and performs discovery,
+           connection, browsing, reads, writes, and subscriptions.
+
+    \sa OpcUaManager
+*/
+
+/*!
+    \class AppPaths
+    \inmodule OpcUaManager
+    \brief Central policy for installed-versus-portable file locations and
+           first-run seeding.
+*/
+
+/*!
+    \struct OpcUaNodeData
+    \inmodule OpcUaManager
+    \brief Value snapshot of one OPC UA node transferred from the worker service.
+*/
+
+/*!
+    \struct OpcUaValueUpdate
+    \inmodule OpcUaManager
+    \brief A single value/status/timestamp update delivered by a subscription.
+*/
+
+/*!
+    \struct OpcUaAttributeData
+    \inmodule OpcUaManager
+    \brief Decoded OPC UA node attributes used by the attributes view.
+*/
+
+/*!
+    \struct OpcUaValueTreeNode
+    \inmodule OpcUaManager
+    \brief One node of a decoded structured value tree.
+*/
+
+// ---------------------------------------------------------------------------
+// Item models (src/models/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \class OpcUaModel
+    \inmodule OpcUaManager
+    \brief GUI-thread tree model holding an OPC UA address-space snapshot with
+           lazy child fetching.
+*/
+
+/*!
+    \class TreeItem
+    \inmodule OpcUaManager
+    \brief Internal tree node used by OpcUaModel.
+*/
+
+/*!
+    \class DataAccessModel
+    \inmodule OpcUaManager
+    \brief Table model of monitored nodes and their live values for the Data
+           Access view.
+*/
+
+/*!
+    \class DataViewFilterModel
+    \inmodule OpcUaManager
+    \brief Sort/filter proxy over DataAccessModel; maps view rows back to source
+           rows.
+*/
+
+/*!
+    \class AttributesModel
+    \inmodule OpcUaManager
+    \brief List model of the attributes of the selected OPC UA node.
+*/
+
+/*!
+    \class TrendModel
+    \inmodule OpcUaManager
+    \brief Bounded sample history and plot geometry for the trend panel.
+*/
+
+/*!
+    \class LogModel
+    \inmodule OpcUaManager
+    \brief List model of application log entries shown in the log panel.
+*/
+
+/*!
+    \class LogFilterModel
+    \inmodule OpcUaManager
+    \brief Severity/text filter proxy over LogModel.
+*/
+
+// ---------------------------------------------------------------------------
+// Persistence (src/persistence/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \class NodeDatabase
+    \inmodule OpcUaManager
+    \brief SQLite store of monitored-node records.
+*/
+
+/*!
+    \struct MonitoredNodeRecord
+    \inmodule OpcUaManager
+    \brief One persisted monitored-node row.
+*/
+
+// ---------------------------------------------------------------------------
+// Client project layer (src/project/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \struct ProjectData
+    \inmodule OpcUaManager
+    \brief In-memory representation of a client project (\c .uaproj).
+*/
+
+/*!
+    \struct ProjectConnectionConfig
+    \inmodule OpcUaManager
+    \brief Connection settings stored inside a client project.
+*/
+
+/*!
+    \struct ProjectFocusNode
+    \inmodule OpcUaManager
+    \brief The pinned focus node persisted with a client project.
+*/
+
+/*!
+    \struct ProjectSettings
+    \inmodule OpcUaManager
+    \brief Miscellaneous per-project settings.
+*/
+
+// ---------------------------------------------------------------------------
+// QML-facing facades (src/qmlapi/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \class OpcUaManager
+    \inmodule OpcUaManager
+    \brief GUI-thread facade exposed to QML as \c cppManagerOpcUa for all OPC UA
+           client operations and models.
+*/
+
+/*!
+    \class ServerStudio
+    \inmodule OpcUaManager
+    \brief Facade exposed to QML as \c cppServerStudio that owns the local server
+           project and drives the OPC UA server runtime process.
+*/
+
+/*!
+    \class ServerRuntimeController
+    \inmodule OpcUaManager
+    \brief Owns the OpcUaServerRuntime QProcess and its lifecycle, and consumes the
+           diagnostics side-channel.
+*/
+
+/*!
+    \class ServerNodeModel
+    \inmodule OpcUaManager
+    \brief Design-time tree model of the server project address space.
+*/
+
+// ---------------------------------------------------------------------------
+// Server project model (src/serverproject/, namespace ServerProject)
+// ---------------------------------------------------------------------------
+
+/*!
+    \namespace ServerProject
+    \inmodule OpcUaManager
+    \brief Qt-Core-only domain model for OPC UA server projects (\c .uaserver),
+           shared by the GUI and the headless runtime.
+*/
+
+/*!
+    \class ServerProject::Serializer
+    \inmodule OpcUaManager
+    \brief Reads and writes ServerProject::ProjectData to and from \c .uaserver JSON.
+*/
+
+/*!
+    \class ServerProject::Validator
+    \inmodule OpcUaManager
+    \brief Validates a server project before it is built or started.
+*/
+
+/*!
+    \class ServerProject::NodeSet
+    \inmodule OpcUaManager
+    \brief Model-level OPC UA NodeSet2 XML import and export.
+*/
+
+/*!
+    \struct ServerProject::ProjectData
+    \inmodule OpcUaManager
+    \brief Complete definition of an OPC UA server project: namespaces, nodes,
+           enums, endpoint, and security.
+*/
+
+/*!
+    \struct ServerProject::Node
+    \inmodule OpcUaManager
+    \brief One node (object, variable, method, or type) in a server project.
+*/
+
+/*!
+    \struct ServerProject::Namespace
+    \inmodule OpcUaManager
+    \brief A custom namespace declared by a server project.
+*/
+
+/*!
+    \struct ServerProject::EnumType
+    \inmodule OpcUaManager
+    \brief A custom enumeration data type defined by a server project.
+*/
+
+/*!
+    \struct ServerProject::EnumEntry
+    \inmodule OpcUaManager
+    \brief One name/value pair of a ServerProject::EnumType.
+*/
+
+/*!
+    \struct ServerProject::SimulationDefinition
+    \inmodule OpcUaManager
+    \brief Value-simulation settings attached to a variable node.
+*/
+
+/*!
+    \struct ServerProject::Configuration
+    \inmodule OpcUaManager
+    \brief Server-level configuration (application name, endpoint).
+*/
+
+/*!
+    \struct ServerProject::EndpointConfiguration
+    \inmodule OpcUaManager
+    \brief Endpoint/port settings of a server project.
+*/
+
+/*!
+    \struct ServerProject::SecurityConfiguration
+    \inmodule OpcUaManager
+    \brief Security-policy and user-access settings of a server project.
+*/
+
+/*!
+    \struct ServerProject::UserCredential
+    \inmodule OpcUaManager
+    \brief One username/password entry for server access control.
+*/
+
+// ---------------------------------------------------------------------------
+// Headless server runtime (runtime/)
+// ---------------------------------------------------------------------------
+
+/*!
+    \namespace ProjectBuilder
+    \inmodule OpcUaManager
+    \brief Builds the open62541 address space of the headless runtime from a
+           ServerProject::ProjectData.
+*/
+
+/*!
+    \namespace SecuritySetup
+    \inmodule OpcUaManager
+    \brief Configures endpoints, the server certificate/PKI, and access control for
+           the headless runtime.
+*/
+
+/*!
+    \class SimulationEngine
+    \inmodule OpcUaManager
+    \brief Timer-driven value simulation (counter, toggle, random, sine, ramp) that
+           writes to running server variables.
+*/
+
+/*!
+    \class DiagnosticsServer
+    \inmodule OpcUaManager
+    \brief Publishes runtime diagnostics (sessions, secure channels, uptime) to the
+           GUI over a QLocalServer side-channel.
+*/
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+/*!
+    \namespace OpcUaStatusHint
+    \inmodule OpcUaManager
+    \brief Human-readable hints and descriptions for OPC UA status codes.
+*/

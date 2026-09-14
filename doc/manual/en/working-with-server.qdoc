@@ -1,0 +1,48 @@
+/*!
+    \page working-with-server.html
+    \title Working with a Server
+    \previouspage OPC UA Server
+    \nextpage Configuration
+
+    This chapter describes the common end-to-end scenarios that combine the client and
+    the server halves of the application.
+
+    \section1 Design, run, and test a server locally
+
+    \list 1
+        \li In Server Studio, design an address space and set an endpoint and security
+            (see \l {OPC UA Server}).
+        \li Start the server. The runtime process starts and reports its endpoint.
+        \li Use \e{Open in Client} to connect the built-in client to the running server;
+            the client connects to the local endpoint anonymously.
+        \li Browse the server, read and write variables, and subscribe to values
+            (see \l {OPC UA Client}).
+    \endlist
+
+    Because the server runs in its own process, you can stop, restart, or kill it while
+    the client stays open — a realistic way to test client reconnect behavior.
+
+    \section1 Test security and identities
+
+    Configure the server with signing and encryption and with username/password users,
+    then connect the client using the matching security policy and identity. This
+    exercises certificate exchange (using each side's PKI store) and access control end
+    to end.
+
+    \section1 Simulate live data
+
+    Attach simulations to variables (counter, sine, ramp, and so on) so the server emits
+    changing values. Subscribe to those variables in the client and watch the
+    \e{Data Access} view and trend panel update from real data-change notifications.
+
+    \section1 Clone an existing server
+
+    Connect the client to a third-party server, browse the part of the address space you
+    care about, and clone it into a new server project. You then have an editable
+    \c .uaserver reproduction you can run locally, secure, and simulate.
+
+    \section1 Exchange address spaces
+
+    Use NodeSet2 import/export to move an address space between this tool and other OPC
+    UA tooling, or to keep a versioned copy of a designed model.
+*/

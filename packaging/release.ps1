@@ -145,6 +145,10 @@ function Invoke-Build {
     if ($LASTEXITCODE -ne 0) { Fail-Stage 'Build' 'CMake configure failed.' }
     & $CMake --build $BuildDir
     if ($LASTEXITCODE -ne 0) { Fail-Stage 'Build' 'CMake build failed.' }
+    # Generate the offline documentation site (build/release/doc/site) so the
+    # install step ships it next to the executable for Help / Справка.
+    & $CMake --build $BuildDir --target docs
+    if ($LASTEXITCODE -ne 0) { Fail-Stage 'Build' 'Documentation (docs target) build failed.' }
     Complete-Stage 'Build'
 }
 

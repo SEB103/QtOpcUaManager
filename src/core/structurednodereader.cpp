@@ -12,6 +12,7 @@
 
 /*!
  * \class StructuredNodeReader
+ * \inmodule OpcUaManager
  * \brief Assembles a structured OPC UA value by browsing the instance subtree.
  */
 

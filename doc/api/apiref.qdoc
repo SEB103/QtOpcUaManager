@@ -1,0 +1,24 @@
+/*!
+    \page index.html
+    \title OpcUaManager API Reference
+
+    This is the generated API reference for the OpcUaManager application: the C++
+    classes and the QML types. It is written in English and generated from the
+    source code (QDoc \c{/*! ... */} comments in the \c .cpp and \c .qml files).
+
+    \section1 Reference
+
+    \list
+        \li \l {OpcUaManager C++ Classes} — application, facades, models, OPC UA
+            service, server project model, and persistence.
+        \li \l {OpcUaManager QML Types} — application screens and dialogs.
+        \li \l {Base QML Types} — reusable visual controls.
+    \endlist
+
+    \section1 User and developer guide
+
+    The narrative documentation — user guide, architecture, and project structure —
+    is in the manual, which is the entry point of this documentation site. Use the
+    \e Guide or \e Home navigation of the documentation viewer to return to it; the
+    \e Architecture and \e{Project Structure} chapters explain where each class fits.
+*/

@@ -1,0 +1,54 @@
+/*!
+    \page overview.html
+    \title Einführung und Überblick
+    \previouspage OpcUaManager-Handbuch
+    \nextpage Erste Schritte
+
+    OpcUaManager ist ein Qt-6-Desktop-Werkzeug für die Arbeit mit
+    \l {https://opcfoundation.org}{OPC UA}-Servern. Es richtet sich an Inbetriebnahme,
+    Test und Diagnose — zum Beispiel das Beobachten von Variablen einer SPS (etwa einer
+    CODESYS-Laufzeit), das Prüfen eines Adressraums oder das Bereitstellen eines kleinen
+    OPC-UA-Servers, gegen den ein Client getestet wird.
+
+    \section1 Was das Programm tut
+
+    Die Anwendung besteht aus zwei Hälften in einem Fenster:
+
+    \list
+        \li \b{OPC UA Client.} Mit einem OPC-UA-Server verbinden, seinen Adressraum
+            durchsuchen, Knotenattribute ansehen, Variablenwerte lesen und schreiben,
+            Live-Aktualisierungen abonnieren und ausgewählte Variablen als Trend darstellen.
+            Siehe \l {OPC UA Client}.
+        \li \b{OPC UA Server (Server Studio).} Einen Adressraum entwerfen, einen Endpunkt
+            und Sicherheit konfigurieren, einen lokalen OPC-UA-Server als eigenen Prozess
+            ausführen und Variablenwerte simulieren. Siehe \l {OPC UA Server}.
+    \endlist
+
+    Ein \e Projekt fasst eine Sitzung zusammen. Ein Client-Projekt (\c .uaproj) speichert
+    die Verbindung und die überwachten Knoten; ein Server-Projekt (\c .uaserver) speichert
+    den entworfenen Adressraum und die Server-Konfiguration. Siehe \l {Erste Schritte} und
+    \l {Konfiguration}.
+
+    \section1 Für wen es gedacht ist
+
+    \list
+        \li \b{Anwender} — Inbetriebnahme- und Testingenieure, die einen OPC-UA-Server sehen
+            und bedienen möchten, ohne zu programmieren.
+        \li \b{Entwickler} — Ingenieure, die das Programm selbst erweitern; die Kapitel
+            \l {Architektur} und \l {Projektstruktur} sowie die
+            \l {OpcUaManager API Reference} erklären die interne Umsetzung.
+    \endlist
+
+    \section1 Grundbegriffe
+
+    \list
+        \li \b{Adressraum, Knoten, Variablen.} Ein OPC-UA-Server stellt einen Baum aus
+            \e Knoten bereit; \e Variablenknoten tragen Werte, die gelesen, geschrieben
+            oder abonniert werden können.
+        \li \b{Endpunkt und Sicherheit.} Ein Server wird über eine Endpunkt-URL
+            (\c opc.tcp://host:port) mit einer Sicherheitsrichtlinie und einer
+            Benutzeridentität erreicht.
+        \li \b{Abonnements.} Statt zu pollen abonniert der Client, und der Server sendet
+            Wertänderungen aktiv.
+    \endlist
+*/

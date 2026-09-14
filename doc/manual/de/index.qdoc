@@ -1,0 +1,42 @@
+/*!
+    \page index.html
+    \title OpcUaManager-Handbuch
+    \nextpage Einführung und Überblick
+
+    OpcUaManager ist eine Qt-Desktop-Anwendung zum Durchsuchen, Testen und Simulieren
+    von OPC-UA-Servern. Sie verbindet einen OPC-UA-\e Client (Verbindung zu einem Server,
+    Durchsuchen seines Adressraums, Lesen/Schreiben/Abonnieren von Variablen, Trend-Darstellung)
+    mit einem integrierten OPC-UA-\e Server-Studio (Adressraum entwerfen, lokalen Server
+    ausführen, Werte simulieren, Sicherheit testen).
+
+    Dieses Handbuch ist zugleich Benutzerhandbuch und Entwicklerreferenz. Die ersten
+    Kapitel erklären die Bedienung des Programms; die späteren Kapitel erklären den Aufbau
+    und wo jede Funktion im Quellcode liegt, mit Verweisen in die generierte
+    \l {OpcUaManager API Reference}.
+
+    \section1 Benutzerhandbuch
+
+    \list
+        \li \l {Einführung und Überblick} — was das Programm ist und wofür es dient.
+        \li \l {Erste Schritte} — Anwendung starten, Projekt anlegen, verbinden.
+        \li \l {OPC UA Client} — verbinden, durchsuchen, lesen, schreiben, abonnieren, Trend.
+        \li \l {OPC UA Server} — Server entwerfen, konfigurieren, ausführen, absichern, simulieren.
+        \li \l {Arbeiten mit einem Server} — durchgängige Abläufe im Programm.
+        \li \l {Konfiguration} — Einstellungen für Anwendung, Client und Server.
+        \li \l {Fehlerbehebung} — Verbindungs-, Start- und Konfigurationsprobleme.
+    \endlist
+
+    \section1 Entwicklerhandbuch
+
+    \list
+        \li \l {Architektur} — Module, Threads, Prozesse und Datenfluss.
+        \li \l {Projektstruktur} — Verzeichnisse und wichtige Quelldateien.
+        \li \l {OpcUaManager API Reference} — generierte C++- und QML-Referenz.
+    \endlist
+
+    \section1 Über
+
+    \list
+        \li \l {Über und Versionsinformationen} — Anwendungs- und Dokumentationsversion.
+    \endlist
+*/

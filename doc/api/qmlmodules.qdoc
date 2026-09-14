@@ -1,0 +1,19 @@
+/*!
+    \qmlmodule OpcUaManager
+    \title OpcUaManager QML Types
+    \brief The application-level QML screens and dialogs.
+
+    These are the top-level QML entry points assembled by the application shell.
+    Reusable visual controls live in the \l {Base QML Types}{Base} module.
+*/
+
+/*!
+    \qmlmodule Base
+    \title Base QML Types
+    \brief Reusable visual controls for the OPC UA manager UI.
+
+    The Base module contains the presentation-only building blocks (address-space
+    browser, connection form, menu and status bars, log and trend panels). Base
+    components never import C++ modules directly; the application layer binds them
+    to the C++ facades through context properties.
+*/

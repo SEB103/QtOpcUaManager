@@ -1,0 +1,65 @@
+/*!
+    \page opcua-client.html
+    \title OPC UA Client
+    \previouspage Getting Started
+    \nextpage OPC UA Server
+
+    The client half of the application connects to an OPC UA server, browses its address
+    space, and reads, writes, subscribes to, and plots variable values. Under the hood
+    the UI talks to the \l OpcUaManager facade, which delegates the network work to the
+    worker-thread \l OpcUaService (see \l {Architecture}).
+
+    \section1 Connecting to a server
+
+    A connection is described by:
+
+    \list
+        \li a \b{discovery/endpoint URL}, for example \c {opc.tcp://127.0.0.1:4840};
+        \li a \b{security policy} (for example \e None or \e Basic256Sha256 with signing
+            and encryption);
+        \li an \b{identity}: anonymous, or a username and password.
+    \endlist
+
+    Enter these in the connection form and connect. The client performs discovery and
+    endpoint selection, then opens a session. Certificate-based security uses the
+    application's PKI store (see \l {Configuration}). While connecting and after
+    connecting, the state is shown in the status area and logged in the log panel.
+
+    \section1 Browsing the address space
+
+    Once connected, the server's address space is shown as a tree of \e nodes, fetched
+    lazily as you expand branches (backed by \l OpcUaModel). Selecting a node shows its
+    \e attributes — node id, node class, data type, access level, value, and so on
+    (\l AttributesModel).
+
+    Variable nodes whose values are structured (for example CODESYS structures that do
+    not publish a full type definition) are decoded by browsing their instance subtree,
+    so you see the individual fields rather than an opaque blob.
+
+    \section1 Reading, writing, and subscribing
+
+    \list
+        \li \b Read — request the current value of a variable node.
+        \li \b Write — send a new value to a writable variable (subject to its access
+            level).
+        \li \b Subscribe — register interest in a variable so the server pushes value
+            changes. Subscribed variables appear in the \e{Data Access} view
+            (\l DataAccessModel), which shows live value, status, and timestamp, and can
+            be sorted and filtered (\l DataViewFilterModel).
+    \endlist
+
+    Monitored variables can be persisted so they are restored on the next connection
+    (see \l {Configuration}).
+
+    \section1 Trends
+
+    Selected variables can be plotted over time in the trend panel. The trend keeps a
+    bounded history of samples and computes the plot geometry (\l TrendModel); it can be
+    paused and resumed.
+
+    \section1 Logging
+
+    Client activity — connection state, errors, and notable operations — is written to
+    the log panel and to the application log file. The log file's folder can be opened
+    from the UI, which is the starting point for \l {Troubleshooting}.
+*/

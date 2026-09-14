@@ -1,0 +1,71 @@
+/*!
+    \page opcua-server.html
+    \title OPC UA Server
+    \previouspage OPC UA Client
+    \nextpage Working with a Server
+
+    Server Studio lets you design an OPC UA server, run it locally, secure it, and
+    simulate values — without writing code. The designed server runs as a \e separate
+    process (the headless \b OpcUaServerRuntime, which embeds open62541), controlled by
+    the GUI through \l ServerStudio and \l ServerRuntimeController (see \l {Architecture}).
+
+    \section1 Server projects
+
+    A server project (\c .uaserver) is a JSON file holding everything the runtime needs:
+    the custom namespaces, the address-space nodes, any custom enumeration data types,
+    the endpoint configuration, and the security settings (\l{ServerProject}{ServerProject::ProjectData}).
+    Projects are created, opened, saved, and closed from Server Studio.
+
+    \section1 Designing the address space
+
+    In the studio you build a tree of nodes (\l ServerNodeModel):
+
+    \list
+        \li \b Objects to organize the address space;
+        \li \b Variables with a data type and an initial value;
+        \li custom \b{enumeration} data types, referenced by variables;
+        \li custom \b namespaces that own your nodes.
+    \endlist
+
+    An address space can also be brought in rather than drawn by hand:
+
+    \list
+        \li \b{Import/export NodeSet2} — exchange the model as standard OPC UA
+            NodeSet2 XML (\l{ServerProject}{ServerProject::NodeSet}).
+        \li \b{Clone from a browsed server} — capture the address space of a server you
+            are connected to in the client into a new server project.
+    \endlist
+
+    The project is checked by a validator before it is built or started
+    (\l{ServerProject}{ServerProject::Validator}).
+
+    \section1 Endpoint and security
+
+    The endpoint configuration sets the port and application name. The security
+    configuration selects the security policy and the accepted identities:
+
+    \list
+        \li \b{No security} for quick local testing;
+        \li \b{Basic256Sha256} with signing and encryption, using a self-signed server
+            certificate created in the server's own PKI store;
+        \li \b anonymous access and/or \b{username/password} users.
+    \endlist
+
+    These settings let you exercise a client against realistic security without an
+    external server.
+
+    \section1 Running the server
+
+    Starting the server launches the runtime process; the studio waits for it to report
+    its endpoint and then shows it as running. Live diagnostics — session count, secure
+    channels, and uptime — stream back to the studio over a local side-channel
+    (\l DiagnosticsServer). You can stop, restart, or forcibly kill the runtime; the
+    controller reports crashes and lets you reconnect.
+
+    \section1 Simulating values
+
+    Variables can be given a simulation so their values change over time while the server
+    runs — counter, toggle, random, sine, or ramp (\l SimulationEngine). The runtime
+    writes the simulated values into the server, so connected clients see real
+    data-change notifications, which is useful for testing trends and subscriptions.
+*/

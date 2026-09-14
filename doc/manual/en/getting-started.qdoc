@@ -1,0 +1,56 @@
+/*!
+    \page getting-started.html
+    \title Getting Started
+    \previouspage Introduction and Overview
+    \nextpage OPC UA Client
+
+    This chapter walks through starting the application and reaching the point where
+    you can browse a server or design one.
+
+    \section1 Starting the application
+
+    Launch the installed application (or the portable build's executable). On start the
+    program opens the \e launcher, from which you can:
+
+    \list
+        \li create a new client project or open a recent one;
+        \li open an existing client project (\c .uaproj) from disk;
+        \li open \e{Server Studio} to design or run a local OPC UA server.
+    \endlist
+
+    A \e project is optional for a quick look: you can connect to a server without
+    saving a project. A project becomes useful when you want to keep a connection and a
+    set of monitored nodes for next time. See \l {Configuration} for what a project
+    stores and where.
+
+    \section1 Your first client connection
+
+    \list 1
+        \li From the launcher, create or open a client project (or continue without one).
+        \li In the connection form, enter the server's discovery URL, for example
+            \c {opc.tcp://127.0.0.1:4840}.
+        \li Choose the security policy and the identity (anonymous, or username/password)
+            the server expects, then connect.
+        \li When the connection succeeds, the server's address space appears in the
+            browse tree. Continue in \l {OPC UA Client}.
+    \endlist
+
+    \section1 Your first local server
+
+    \list 1
+        \li From the launcher, open \e{Server Studio}.
+        \li Create a server project (\c .uaserver) and add a namespace, objects, and
+            variables to the address space.
+        \li Start the server; the studio launches the headless runtime as a separate
+            process and reports its endpoint.
+        \li Use \e{Open in Client} to connect the built-in client to your running server.
+            Continue in \l {OPC UA Server} and \l {Working with a Server}.
+    \endlist
+
+    \section1 Choosing the UI language
+
+    The application ships with English, German, Russian, and Ukrainian user interfaces.
+    The language can be switched at runtime and is remembered between sessions
+    (see \l {Configuration}). This documentation is available in the same languages;
+    the API reference is English.
+*/
