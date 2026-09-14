@@ -33,7 +33,13 @@ class LocaleController : public QObject
     /** Locale code of the active UI language, for example \c "de_DE". */
     Q_PROPERTY(QString currentLanguage READ currentLanguage NOTIFY currentLanguageChanged)
 
-    /** Selectable languages as {code, name} rows for a ComboBox model. */
+    /** Flag image resource (qrc) of the active UI language. */
+    Q_PROPERTY(QString currentFlag READ currentFlag NOTIFY currentLanguageChanged)
+
+    /** Endonym of the active UI language, for example \c "Deutsch". */
+    Q_PROPERTY(QString currentLanguageName READ currentLanguageName NOTIFY currentLanguageChanged)
+
+    /** Selectable languages as {code, name, flag} rows for a ComboBox model. */
     Q_PROPERTY(QVariantList availableLanguages READ availableLanguages CONSTANT)
 
 public:
@@ -46,7 +52,13 @@ public:
     /** Returns the locale code of the active UI language. */
     QString currentLanguage() const;
 
-    /** Returns the selectable languages as {code, name} rows for QML. */
+    /** Returns the flag image resource (qrc) of the active UI language. */
+    QString currentFlag() const;
+
+    /** Returns the endonym of the active UI language. */
+    QString currentLanguageName() const;
+
+    /** Returns the selectable languages as {code, name, flag} rows for QML. */
     QVariantList availableLanguages() const;
 
     /**
@@ -77,6 +89,8 @@ private:
         QString code;
         /** Endonym shown in the selector, for example \c "Deutsch". */
         QString nativeName;
+        /** Flag image resource (qrc), for example \c "qrc:/images/flags/de.svg". */
+        QString flag;
     };
 
     /** Loads and installs the application and Qt-base translators for \a code. */

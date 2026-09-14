@@ -135,7 +135,31 @@ RowLayout {
         onClicked: root.saveProjectRequested()
     }
 
-    // Trailing spacing so the last button is not flush against the window edge.
+    ToolSeparator {
+        Layout.alignment: Qt.AlignVCenter
+    }
+
+    // Active UI-language flag. Display only; the language is changed from the menu
+    // (Settings) or the launcher selector.
+    Image {
+        id: localeFlag
+
+        Layout.alignment: Qt.AlignVCenter
+        Layout.preferredWidth: 26
+        Layout.rightMargin: 2
+        source: cppLocale.currentFlag
+        sourceSize.height: 18
+        fillMode: Image.PreserveAspectFit
+
+        HoverHandler {
+            id: localeFlagHover
+        }
+
+        ToolTip.visible: localeFlagHover.hovered
+        ToolTip.text: qsTr("Interface language: %1").arg(cppLocale.currentLanguageName)
+    }
+
+    // Trailing spacing so the last item is not flush against the window edge.
     Item {
         Layout.preferredWidth: 6
     }

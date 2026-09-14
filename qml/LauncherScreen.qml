@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import Base as Base
 
 /*!
     \qmltype LauncherScreen
@@ -90,14 +91,8 @@ Pane {
                     opacity: 0.7
                 }
 
-                ComboBox {
+                Base.BsLanguageSelector {
                     id: launcherLanguageCombo
-                    model: cppLocale.availableLanguages
-                    textRole: "name"
-                    valueRole: "code"
-                    currentIndex: indexOfValue(cppLocale.currentLanguage)
-                    onActivated: cppLocale.setLanguage(currentValue)
-                    Accessible.name: qsTr("Interface language")
                 }
             }
 

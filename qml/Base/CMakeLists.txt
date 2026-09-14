@@ -7,6 +7,7 @@ qt_add_qml_module(Base
     QML_FILES
         BsAddressSpaceTree.qml
         BsAddressSpaceTreePane.qml
+        BsLanguageSelector.qml
         BsLogPanel.qml
         BsMenuBar.qml
         BsNodeAttributes.qml

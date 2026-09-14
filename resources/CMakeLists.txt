@@ -48,6 +48,15 @@ qt_add_resources(appOpcUaManager "application_resources"
         images/svg/text_fields.svg
         images/svg/schedule.svg
         images/svg/category_cyan.svg
+
+        # Country flags for the UI-language selector and the active-locale
+        # indicator (4:3 SVGs; public-domain flag artwork). File names are the
+        # ISO country part of each supported locale: en_GB->gb, de_DE->de,
+        # ru_RU->ru, uk_UA->ua.
+        images/flags/gb.svg
+        images/flags/de.svg
+        images/flags/ru.svg
+        images/flags/ua.svg
 )
 
 # License and notice documents shown by the Help > About dialog. The canonical

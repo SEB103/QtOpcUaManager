@@ -36,10 +36,10 @@ LocaleController::LocaleController(QSettings *settings, QObject *parent)
     , m_qtTranslator(new QTranslator(this))
 {
     m_languages = {
-        {QStringLiteral("en_GB"), QStringLiteral("English")},
-        {QStringLiteral("de_DE"), QStringLiteral("Deutsch")},
-        {QStringLiteral("ru_RU"), QStringLiteral("Русский")},
-        {QStringLiteral("uk_UA"), QStringLiteral("Українська")},
+        {QStringLiteral("en_GB"), QStringLiteral("English"), QStringLiteral("qrc:/images/flags/gb.svg")},
+        {QStringLiteral("de_DE"), QStringLiteral("Deutsch"), QStringLiteral("qrc:/images/flags/de.svg")},
+        {QStringLiteral("ru_RU"), QStringLiteral("Русский"), QStringLiteral("qrc:/images/flags/ru.svg")},
+        {QStringLiteral("uk_UA"), QStringLiteral("Українська"), QStringLiteral("qrc:/images/flags/ua.svg")},
     };
 }
 
@@ -54,10 +54,31 @@ QString LocaleController::currentLanguage() const
 }
 
 /*!
+ * \brief Returns the flag image resource (qrc) of the active UI language.
+ * \return The flag path, or an empty string when the current code is unknown.
+ */
+QString LocaleController::currentFlag() const
+{
+    const int index = indexOfCode(m_currentCode);
+    return index >= 0 ? m_languages.at(index).flag : QString();
+}
+
+/*!
+ * \brief Returns the endonym of the active UI language.
+ * \return The native name, or an empty string when the current code is unknown.
+ */
+QString LocaleController::currentLanguageName() const
+{
+    const int index = indexOfCode(m_currentCode);
+    return index >= 0 ? m_languages.at(index).nativeName : QString();
+}
+
+/*!
  * \brief Returns the selectable languages as {code, name} rows for QML.
  *
  * Each row is a QVariantMap with a \c code key (the locale code passed to
- * setLanguage()) and a \c name key (the endonym shown in the selector).
+ * setLanguage()), a \c name key (the endonym shown in the selector) and a
+ * \c flag key (the qrc path of the country flag image).
  */
 QVariantList LocaleController::availableLanguages() const
 {
@@ -67,6 +88,7 @@ QVariantList LocaleController::availableLanguages() const
         QVariantMap row;
         row.insert(QStringLiteral("code"), entry.code);
         row.insert(QStringLiteral("name"), entry.nativeName);
+        row.insert(QStringLiteral("flag"), entry.flag);
         rows.append(row);
     }
     return rows;
