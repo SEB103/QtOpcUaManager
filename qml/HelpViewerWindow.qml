@@ -92,8 +92,12 @@ ApplicationWindow {
                 icon.color: enabled ? toolBar.iconEnabled : toolBar.iconDisabled
                 ToolTip.text: qsTr("Back")
                 ToolTip.visible: hovered
-                enabled: webView.canGoBack
-                onClicked: webView.goBack()
+                // Never call goBack while a page is loading: the WebView2 backend
+                // asserts ("not in the correct state") if its history state is not
+                // ready. The onClicked re-check guards against a state change
+                // between hover and click.
+                enabled: webView.canGoBack && !webView.loading
+                onClicked: if (webView.canGoBack && !webView.loading) webView.goBack()
             }
             ToolButton {
                 display: AbstractButton.IconOnly
@@ -103,21 +107,21 @@ ApplicationWindow {
                 icon.color: enabled ? toolBar.iconEnabled : toolBar.iconDisabled
                 ToolTip.text: qsTr("Forward")
                 ToolTip.visible: hovered
-                enabled: webView.canGoForward
-                onClicked: webView.goForward()
+                enabled: webView.canGoForward && !webView.loading
+                onClicked: if (webView.canGoForward && !webView.loading) webView.goForward()
             }
 
             ToolSeparator {}
 
             ToolButton {
                 text: qsTr("Home")
-                enabled: helpWindow.startUrl != ""
-                onClicked: webView.url = helpWindow.startUrl
+                enabled: helpWindow.startUrl != "" && !webView.loading
+                onClicked: if (helpWindow.startUrl != "") webView.url = helpWindow.startUrl
             }
             ToolButton {
                 text: qsTr("Reload")
                 enabled: helpWindow.loadedOnce && !webView.loading
-                onClicked: webView.reload()
+                onClicked: if (helpWindow.loadedOnce && !webView.loading) webView.reload()
             }
 
             Item { Layout.fillWidth: true }

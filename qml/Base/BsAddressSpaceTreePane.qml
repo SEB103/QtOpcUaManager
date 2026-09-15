@@ -256,19 +256,19 @@ Rectangle {
     }
 
     Shortcut {
-        sequence: StandardKey.Find
+        sequences: [ StandardKey.Find ]
         enabled: root.searchEnabled
         onActivated: root.openSearch()
     }
 
     Shortcut {
-        sequence: StandardKey.FindNext
+        sequences: [ StandardKey.FindNext ]
         enabled: root.searchEnabled && root.searchVisible
         onActivated: root.goToMatch(root.searchPosition + 1)
     }
 
     Shortcut {
-        sequence: StandardKey.FindPrevious
+        sequences: [ StandardKey.FindPrevious ]
         enabled: root.searchEnabled && root.searchVisible
         onActivated: root.goToMatch(root.searchPosition - 1)
     }
@@ -276,7 +276,7 @@ Rectangle {
     // Copies the shared selected node id. Disabled while the search field has
     // focus so Ctrl+C keeps its normal meaning inside the text input.
     Shortcut {
-        sequence: StandardKey.Copy
+        sequences: [ StandardKey.Copy ]
         enabled: root.searchEnabled && !searchField.activeFocus
         onActivated: {
             const nodeId = cppManagerOpcUa.selectedNodeId

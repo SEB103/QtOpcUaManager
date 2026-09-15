@@ -355,7 +355,7 @@ Rectangle {
         valueEditor.editNodeId = model.nodeIdAt(row)
         valueEditor.editDataType = model.dataTypeAt(row)
         valueEditor.editDisplayName = model.displayNameAt(row)
-        valueEditor.reset(model.valueAt(row))
+        valueEditor.loadValue(model.valueAt(row))
         valueEditor.open()
         return true
     }
@@ -1015,7 +1015,7 @@ Rectangle {
         }
 
         /*! Loads \a currentValue into whichever control the data type calls for. */
-        function reset(currentValue) {
+        function loadValue(currentValue) {
             const text = String(currentValue)
             valueField.text = text
             boolField.checked = text.toLowerCase() === "true" || text === "1"
