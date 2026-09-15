@@ -48,9 +48,10 @@ try {
     $logo.Save((Join-Path $OutDir 'logo.png'), [System.Drawing.Imaging.ImageFormat]::Png)
     $logo.Dispose()
 
-    # --- Flat banner (wide, taller): green gradient + white product name. The
+    # --- Flat banner (wide, taller): teal gradient + white product name. The
     #     gradient runs left (lighter) to right (markedly deeper) so the header
-    #     logo on the right stands out. Height matches the logo (128). ---
+    #     logo on the right stands out, matching the application's Teal accent.
+    #     Height matches the logo (128). ---
     $bw = 720; $bh = 128
     $banner = New-Object System.Drawing.Bitmap($bw, $bh)
     $bg = [System.Drawing.Graphics]::FromImage($banner)
@@ -58,8 +59,8 @@ try {
         $bg.SmoothingMode = 'AntiAlias'
         $bg.TextRenderingHint = 'ClearTypeGridFit'
         $rect = New-Object System.Drawing.Rectangle(0, 0, $bw, $bh)
-        $c1 = [System.Drawing.Color]::FromArgb(0x4C, 0xC2, 0x55)  # brighter brand green (left)
-        $c2 = [System.Drawing.Color]::FromArgb(0x11, 0x63, 0x26)  # much deeper green (right)
+        $c1 = [System.Drawing.Color]::FromArgb(0x26, 0xA6, 0x9A)  # brighter brand teal (left)
+        $c2 = [System.Drawing.Color]::FromArgb(0x00, 0x4D, 0x40)  # much deeper teal (right)
         $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $c1, $c2, [System.Drawing.Drawing2D.LinearGradientMode]::Horizontal)
         try { $bg.FillRectangle($brush, $rect) } finally { $brush.Dispose() }
 

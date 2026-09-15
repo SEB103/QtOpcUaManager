@@ -8,6 +8,8 @@
 #include <QString>
 #include <QUrl>
 
+class HelpServer;
+
 /**
  * Read-only application, build, and environment metadata exposed to QML.
  *
@@ -99,16 +101,36 @@ public:
     Q_INVOKABLE QString readText(const QString &path) const;
 
     /**
-     * Returns a file:// URL to the offline documentation for a UI language.
-     * Resolves next to the executable (<app>/doc/site), preferring the requested
-     * language, then English, then the language chooser.
+     * Returns a loopback http:// URL to the offline documentation for a UI language.
+     * The bundled documentation site (<app>/doc/site) is served over a local
+     * HTTP server because the WebView2 backend does not load file:// URLs; the
+     * requested language is preferred, then English, then the language chooser.
+     * Starts the server lazily on first use.
      * \param language UI locale code such as "de_DE"; only the language part is used.
-     * \return A local file URL, or an empty/invalid URL when no documentation is installed.
+     * \param darkTheme When true, the documentation is served with the dark stylesheet so it matches the application theme.
+     * \return An http://127.0.0.1 URL, or an empty/invalid URL when no documentation is installed.
      */
-    Q_INVOKABLE QUrl helpIndexUrl(const QString &language) const;
+    Q_INVOKABLE QUrl helpIndexUrl(const QString &language, bool darkTheme);
+
+    /**
+     * Updates the documentation colour theme on the running help server so an
+     * already-open viewer can reload into the matching (dark/light) stylesheet.
+     * \param darkTheme Whether the dark documentation stylesheet is served.
+     */
+    Q_INVOKABLE void setHelpDarkTheme(bool darkTheme);
 
     /** Returns whether any offline documentation is installed next to the application. */
     Q_INVOKABLE bool helpAvailable() const;
+
+private:
+    /** Absolute path of the bundled documentation site root (<app>/doc/site). */
+    QString docSiteRoot() const;
+
+    /** Returns the site-relative index path for \a language (language, then English, then root), or empty when none exists. */
+    QString resolveDocRelativePath(const QString &language) const;
+
+    /** Loopback HTTP server for the documentation; created and started on first use. */
+    HelpServer *m_helpServer {nullptr};
 };
 
 #endif // APPINFO_H

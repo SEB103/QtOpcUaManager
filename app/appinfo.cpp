@@ -8,6 +8,7 @@
 
 #include "appinfo.h"
 
+#include "helpserver.h"
 #include "productinfo.h"
 
 #include "core/apppaths.h"
@@ -206,34 +207,86 @@ QString AppInfo::readText(const QString &path) const
 }
 
 /*!
- * \brief Returns a file URL to the offline documentation for \a language.
- *
- * The documentation site ships next to the executable under \c doc/site (see the
- * install rules and the release pipeline). The lookup prefers the requested
- * language folder, then English, then the top-level language chooser, so the Help
- * entry still works when a translation is missing. Only the language part of the
- * locale code is used, so \c "de_DE" and \c "de" both resolve to \c doc/site/de.
- *
- * \param language UI locale code such as \c "de_DE".
- * \return A local file URL, or an empty URL when no documentation is installed.
+ * \internal
+ * \brief Returns the absolute path of the bundled documentation site root.
  */
-QUrl AppInfo::helpIndexUrl(const QString &language) const
+QString AppInfo::docSiteRoot() const
 {
-    const QString base = AppPaths::instance().seedDir() + QStringLiteral("/doc/site");
+    return AppPaths::instance().seedDir() + QStringLiteral("/doc/site");
+}
+
+/*!
+ * \internal
+ * \brief Returns the site-relative index path for \a language.
+ *
+ * Prefers the requested language folder, then English, then the top-level
+ * language chooser, so the Help entry still works when a translation is missing.
+ * Only the language part of the locale code is used, so \c "de_DE" and \c "de"
+ * both resolve to \c de/index.html. Returns an empty string when no documentation
+ * is present.
+ */
+QString AppInfo::resolveDocRelativePath(const QString &language) const
+{
+    const QString base = docSiteRoot();
     const QString code = language.left(2).toLower();
 
     const QStringList candidates {
-        base + QStringLiteral("/") + code + QStringLiteral("/index.html"),
-        base + QStringLiteral("/en/index.html"),
-        base + QStringLiteral("/index.html"),
+        code + QStringLiteral("/index.html"),
+        QStringLiteral("en/index.html"),
+        QStringLiteral("index.html"),
     };
 
-    for (const QString &candidate : candidates) {
-        if (QFileInfo::exists(candidate))
-            return QUrl::fromLocalFile(candidate);
+    for (const QString &relative : candidates) {
+        if (QFileInfo::exists(base + QLatin1Char('/') + relative))
+            return relative;
     }
 
     return {};
+}
+
+/*!
+ * \brief Returns a loopback http:// URL to the offline documentation for \a language.
+ *
+ * The documentation site ships next to the executable under \c doc/site (see the
+ * install rules and the release pipeline). Because the Windows WebView2 backend
+ * refuses to load top-level \c file:// URLs, the site is served over a local
+ * HTTP server (started lazily here) and the viewer loads it over
+ * \c http://127.0.0.1. The same viewer follows the online Qt reference link in
+ * the same view.
+ *
+ * \param language UI locale code such as \c "de_DE".
+ * \param darkTheme When true, the docs are served with the dark stylesheet.
+ * \return An \c http://127.0.0.1 URL, or an empty URL when no documentation is installed.
+ */
+QUrl AppInfo::helpIndexUrl(const QString &language, bool darkTheme)
+{
+    const QString relative = resolveDocRelativePath(language);
+    if (relative.isEmpty())
+        return {};
+
+    if (!m_helpServer)
+        m_helpServer = new HelpServer(this);
+
+    m_helpServer->setDarkTheme(darkTheme);
+
+    if (!m_helpServer->start(docSiteRoot()))
+        return {};
+
+    return QUrl(QStringLiteral("http://127.0.0.1:%1/%2")
+                    .arg(m_helpServer->port())
+                    .arg(relative));
+}
+
+/*!
+ * \brief Updates the documentation colour theme on the running help server.
+ *
+ * A no-op until the server exists (created on the first helpIndexUrl() call). An
+ * open viewer reloads the current page to pick up the new stylesheet.
+ */
+void AppInfo::setHelpDarkTheme(bool darkTheme)
+{
+    if (m_helpServer)
+        m_helpServer->setDarkTheme(darkTheme);
 }
 
 /*!
@@ -241,5 +294,5 @@ QUrl AppInfo::helpIndexUrl(const QString &language) const
  */
 bool AppInfo::helpAvailable() const
 {
-    return helpIndexUrl(QStringLiteral("en")).isValid();
+    return !resolveDocRelativePath(QStringLiteral("en")).isEmpty();
 }

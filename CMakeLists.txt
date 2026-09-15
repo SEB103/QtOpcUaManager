@@ -84,6 +84,8 @@ qt_add_executable(appOpcUaManager
     app/appengine.h
     app/appinfo.cpp
     app/appinfo.h
+    app/helpserver.cpp
+    app/helpserver.h
     app/licensemodel.cpp
     app/licensemodel.h
     app/localecontroller.cpp
@@ -106,6 +108,7 @@ target_link_libraries(appOpcUaManager
         Baseplugin
         Qt6::Core
         Qt6::Gui
+        Qt6::Network
         Qt6::OpcUa
         Qt6::Qml
         Qt6::Quick

@@ -12,6 +12,25 @@ target_link_libraries(tst_opcuamodel
 
 add_test(NAME OpcUaModel.Unit COMMAND tst_opcuamodel)
 
+# HelpServer lives in the application layer (app/); compile it into the test.
+qt_add_executable(tst_helpserver
+    unit/tst_helpserver.cpp
+    "${CMAKE_SOURCE_DIR}/app/helpserver.cpp"
+    "${CMAKE_SOURCE_DIR}/app/helpserver.h"
+)
+
+target_include_directories(tst_helpserver
+    PRIVATE "${CMAKE_SOURCE_DIR}/app"
+)
+
+target_link_libraries(tst_helpserver
+    PRIVATE
+        Qt6::Network
+        Qt6::Test
+)
+
+add_test(NAME HelpServer.Unit COMMAND tst_helpserver)
+
 qt_add_executable(tst_nodedatabase
     unit/tst_nodedatabase.cpp
 )

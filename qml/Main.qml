@@ -248,14 +248,15 @@ ApplicationWindow {
 
         function onHelpRequested() {
             const lang = cppLocale ? cppLocale.currentLanguage : "en"
-            const url = cppAppInfo.helpIndexUrl(lang)
+            const url = cppAppInfo.helpIndexUrl(lang, mainWindow.darkTheme)
             if (!url || url.toString() === "") {
                 console.warn("Help documentation was not found next to the application.")
                 return
             }
-            // Create the WebView-backed window lazily on first use.
+            // Create the WebView-backed window lazily on first use, passing the
+            // real start URL so the web view never navigates to an empty URL.
             if (!mainWindow.helpViewer)
-                mainWindow.helpViewer = helpViewerComponent.createObject(mainWindow)
+                mainWindow.helpViewer = helpViewerComponent.createObject(mainWindow, { startUrl: url })
             if (mainWindow.helpViewer)
                 mainWindow.helpViewer.openAt(url)
         }

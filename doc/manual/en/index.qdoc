@@ -3,6 +3,8 @@
     \title OpcUaManager Guide
     \nextpage Introduction and Overview
 
+    \image opcuamanager-logo.png OpcUaManager
+
     OpcUaManager is a Qt desktop application for browsing, testing, and simulating
     OPC UA servers. It pairs an OPC UA \e client (connect to a server, browse its
     address space, read/write/subscribe to variables, plot trends) with a built-in
