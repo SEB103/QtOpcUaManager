@@ -59,7 +59,7 @@ Dialog {
             // tinted with the OPC UA connection accent color.
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 120
+                Layout.preferredHeight: 148
                 radius: 6
                 color: Qt.alpha(Material.accentColor, root.darkTheme ? 0.18 : 0.12)
 
@@ -69,13 +69,16 @@ Dialog {
                     spacing: 16
 
                     Image {
+                        // Full logo with the "OPC UA" wordmark, rendered large and
+                        // crisp (high sourceSize + mipmap) so the caption stays sharp.
                         source: "qrc:/images/app/OpcUaManagerLogo.png"
-                        sourceSize.width: 88
-                        sourceSize.height: 88
-                        Layout.preferredWidth: 88
-                        Layout.preferredHeight: 88
+                        sourceSize.width: 256
+                        sourceSize.height: 256
+                        Layout.preferredWidth: 116
+                        Layout.preferredHeight: 116
                         fillMode: Image.PreserveAspectFit
                         smooth: true
+                        mipmap: true
                     }
 
                     ColumnLayout {

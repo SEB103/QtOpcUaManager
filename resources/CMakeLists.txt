@@ -16,6 +16,8 @@ qt_add_resources(appOpcUaManager "application_resources"
         images/app/OpcUaManager.ico
         images/app/OpcUaManagerLogo.png
 
+        images/svg/arrow_back.svg
+        images/svg/arrow_forward.svg
         images/svg/dark_mode.svg
         images/svg/help.svg
         images/svg/info.svg

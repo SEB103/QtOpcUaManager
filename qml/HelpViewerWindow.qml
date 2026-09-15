@@ -69,24 +69,46 @@ ApplicationWindow {
     }
 
     header: ToolBar {
+        id: toolBar
+
+        // A dark, neutral Blue Grey bar matching the application's menu chrome
+        // (Material.primary is Blue Grey); the default Material tool bar colour is
+        // too light for the white controls.
+        Material.background: "#37474f"
+        Material.foreground: "white"
+
+        readonly property color iconEnabled: "white"
+        readonly property color iconDisabled: Qt.rgba(1, 1, 1, 0.4)
+
         RowLayout {
             anchors.fill: parent
-            spacing: 4
+            spacing: 2
 
             ToolButton {
-                text: "←"
+                display: AbstractButton.IconOnly
+                icon.source: "qrc:/images/svg/arrow_back.svg"
+                icon.width: 22
+                icon.height: 22
+                icon.color: enabled ? toolBar.iconEnabled : toolBar.iconDisabled
                 ToolTip.text: qsTr("Back")
                 ToolTip.visible: hovered
                 enabled: webView.canGoBack
                 onClicked: webView.goBack()
             }
             ToolButton {
-                text: "→"
+                display: AbstractButton.IconOnly
+                icon.source: "qrc:/images/svg/arrow_forward.svg"
+                icon.width: 22
+                icon.height: 22
+                icon.color: enabled ? toolBar.iconEnabled : toolBar.iconDisabled
                 ToolTip.text: qsTr("Forward")
                 ToolTip.visible: hovered
                 enabled: webView.canGoForward
                 onClicked: webView.goForward()
             }
+
+            ToolSeparator {}
+
             ToolButton {
                 text: qsTr("Home")
                 enabled: helpWindow.startUrl != ""
