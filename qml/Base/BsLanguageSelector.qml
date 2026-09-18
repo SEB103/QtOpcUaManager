@@ -51,25 +51,15 @@ ComboBox {
     contentItem: RowLayout {
         spacing: 8
 
-        // A thin frame gives every flag an identical, crisp rectangle so that
-        // flags with light or low-contrast edges do not look shorter than the
-        // others against the panel background.
-        Rectangle {
+        Image {
+            source: cppLocale.currentFlag
+            sourceSize.width: selector.flagWidth
+            sourceSize.height: selector.flagHeight
+            fillMode: Image.Stretch
             Layout.leftMargin: 10
             Layout.preferredWidth: selector.flagWidth
             Layout.preferredHeight: selector.flagHeight
             Layout.alignment: Qt.AlignVCenter
-            color: "transparent"
-            border.width: 1
-            border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-
-            Image {
-                anchors.fill: parent
-                source: cppLocale.currentFlag
-                sourceSize.width: selector.flagWidth
-                sourceSize.height: selector.flagHeight
-                fillMode: Image.Stretch
-            }
         }
 
         Label {
@@ -94,21 +84,14 @@ ComboBox {
         contentItem: RowLayout {
             spacing: 8
 
-            Rectangle {
+            Image {
+                source: languageItem.modelData.flag
+                sourceSize.width: selector.flagWidth
+                sourceSize.height: selector.flagHeight
+                fillMode: Image.Stretch
                 Layout.preferredWidth: selector.flagWidth
                 Layout.preferredHeight: selector.flagHeight
                 Layout.alignment: Qt.AlignVCenter
-                color: "transparent"
-                border.width: 1
-                border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-
-                Image {
-                    anchors.fill: parent
-                    source: languageItem.modelData.flag
-                    sourceSize.width: selector.flagWidth
-                    sourceSize.height: selector.flagHeight
-                    fillMode: Image.Stretch
-                }
             }
 
             Label {

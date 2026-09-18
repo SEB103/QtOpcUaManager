@@ -92,10 +92,11 @@ The SVG path data was not modified; only the file names were normalized. See
 
 ## Country flags (UI-language selector)
 
-The SVG country flags under `resources/images/flags/` (`gb.svg`, `de.svg`, `fr.svg`,
-`it.svg`, `ru.svg`, `ua.svg`) are used by the UI-language selector and the
-active-locale indicator. The files carry a Creative Commons Public Domain dedication
-in their source markup.
+The SVG country flags under `resources/images/flags/` are used by the UI-language
+selector and the active-locale indicator. `gb.svg`, `de.svg`, `ru.svg` and `ua.svg`
+carry a Creative Commons Public Domain dedication in their source markup. `fr.svg`
+and `it.svg` are plain three-stripe tricolours authored for this project (national
+flag designs are not subject to copyright).
 
 - **License:** Public Domain (national flags are not subject to copyright; the SVG
   artwork is released into the public domain).
