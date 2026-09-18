@@ -1,0 +1,35 @@
+/*!
+    \page about.html
+    \title Informazioni e versione
+    \previouspage Risoluzione dei problemi
+
+    \section1 Versione dell’applicazione
+
+    La versione dell’applicazione è mostrata nella finestra di dialogo \e{Aiuto > Informazioni},
+    insieme alle informazioni di build e della toolchain e alle note di licenza. La versione
+    proviene da un’unica fonte di verità (i metadati del prodotto), che alimenta anche
+    l’installer e i metadati dell’eseguibile Windows (\l AppInfo).
+
+    \section1 Versione della documentazione
+
+    Questa documentazione è generata insieme all’applicazione dallo stesso albero dei
+    sorgenti e dalla stessa versione, così la guida che apri dal programma corrisponde al
+    programma che stai eseguendo. La versione sottostante viene sostituita al momento della
+    build.
+
+    \list
+        \li Versione della documentazione: \b {\appversion}
+    \endlist
+
+    \section1 Licenze
+
+    L’applicazione è distribuita sotto la licenza dichiarata e include componenti di terze
+    parti sotto le rispettive licenze. I testi completi e le note sono disponibili nella
+    finestra di dialogo \e{Aiuto > Informazioni} e nei file di licenza forniti accanto al
+    programma.
+
+    \section1 Feedback
+
+    Quando segnali un problema, includi la versione dell’applicazione sopra indicata e, se
+    pertinente, l’estratto del log descritto in \l {Risoluzione dei problemi}.
+*/

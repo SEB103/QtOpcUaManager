@@ -1,0 +1,53 @@
+/*!
+    \page overview.html
+    \title Introduzione e panoramica
+    \previouspage Guida OpcUaManager
+    \nextpage Per iniziare
+
+    OpcUaManager è uno strumento desktop Qt 6 per lavorare con server
+    \l {https://opcfoundation.org}{OPC UA}. È pensato per la messa in servizio, i test e la
+    diagnostica — ad esempio monitorare le variabili esposte da un PLC (come un runtime
+    CODESYS), verificare che uno spazio degli indirizzi corrisponda alle aspettative o
+    avviare un piccolo server OPC UA per testare un client.
+
+    \section1 Cosa fa il programma
+
+    L’applicazione ha due parti che condividono un’unica finestra:
+
+    \list
+        \li \b{Client OPC UA.} Connettersi a un server OPC UA, esplorarne lo spazio degli
+            indirizzi, ispezionare gli attributi dei nodi, leggere e scrivere valori di
+            variabili, sottoscrivere aggiornamenti in tempo reale e tracciare le variabili
+            selezionate come tendenze. Vedi \l {Client OPC UA}.
+        \li \b{Server OPC UA (Server Studio).} Progettare uno spazio degli indirizzi,
+            configurare un endpoint e la sicurezza, eseguire un server OPC UA locale come
+            processo separato e simulare valori di variabili. Vedi \l {Server OPC UA}.
+    \endlist
+
+    Un \e progetto lega insieme una sessione. Un progetto client (\c .uaproj) memorizza la
+    connessione e i nodi monitorati; un progetto server (\c .uaserver) memorizza lo spazio
+    degli indirizzi progettato e la configurazione del server. Vedi \l {Per iniziare} e
+    \l {Configurazione}.
+
+    \section1 A chi è rivolto
+
+    \list
+        \li \b{Utenti} — tecnici di messa in servizio e di test che devono vedere e usare un
+            server OPC UA senza scrivere codice.
+        \li \b{Sviluppatori} — tecnici che estendono il programma stesso; i capitoli
+            \l {Architettura} e \l {Struttura del progetto} e il
+            \l {OpcUaManager API Reference} ne spiegano gli aspetti interni.
+    \endlist
+
+    \section1 Concetti chiave
+
+    \list
+        \li \b{Spazio degli indirizzi, nodi, variabili.} Un server OPC UA espone un albero
+            di \e nodi; i nodi \e variabile portano valori che si possono leggere, scrivere
+            o sottoscrivere.
+        \li \b{Endpoint e sicurezza.} Un server viene raggiunto tramite un URL di endpoint
+            (\c opc.tcp://host:porta) con una politica di sicurezza e un’identità utente.
+        \li \b{Sottoscrizioni.} Invece di interrogare, il client si sottoscrive e il server
+            invia le modifiche di valore.
+    \endlist
+*/

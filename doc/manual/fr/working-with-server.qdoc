@@ -1,0 +1,53 @@
+/*!
+    \page working-with-server.html
+    \title Utiliser un serveur
+    \previouspage Serveur OPC UA
+    \nextpage Configuration
+
+    Ce chapitre décrit les scénarios de bout en bout courants qui combinent les parties
+    client et serveur de l’application.
+
+    \section1 Concevoir, exécuter et tester un serveur localement
+
+    \list 1
+        \li Dans Server Studio, concevez un espace d’adressage et définissez un point de
+            terminaison et la sécurité (voir \l {Serveur OPC UA}).
+        \li Démarrez le serveur. Le processus runtime démarre et signale son point de
+            terminaison.
+        \li Utilisez \e{Open in Client} pour connecter le client intégré au serveur en
+            cours d’exécution ; le client se connecte anonymement au point de terminaison
+            local.
+        \li Parcourez le serveur, lisez et écrivez des variables et abonnez-vous aux valeurs
+            (voir \l {Client OPC UA}).
+    \endlist
+
+    Comme le serveur s’exécute dans son propre processus, vous pouvez l’arrêter, le
+    redémarrer ou le tuer pendant que le client reste ouvert — une façon réaliste de tester
+    le comportement de reconnexion du client.
+
+    \section1 Tester la sécurité et les identités
+
+    Configurez le serveur avec signature et chiffrement et avec des utilisateurs par nom
+    d’utilisateur/mot de passe, puis connectez le client en utilisant la politique de
+    sécurité et l’identité correspondantes. Cela exerce l’échange de certificats (à l’aide
+    du magasin PKI de chaque côté) et le contrôle d’accès de bout en bout.
+
+    \section1 Simuler des données en direct
+
+    Attachez des simulations à des variables (compteur, sinusoïde, rampe, etc.) afin que le
+    serveur émette des valeurs changeantes. Abonnez-vous à ces variables dans le client et
+    observez la vue \e{Data Access} et le panneau de tendances se mettre à jour à partir de
+    vraies notifications de changement de données.
+
+    \section1 Cloner un serveur existant
+
+    Connectez le client à un serveur tiers, parcourez la partie de l’espace d’adressage qui
+    vous intéresse et clonez-la dans un nouveau projet serveur. Vous disposez alors d’une
+    reproduction \c .uaserver modifiable que vous pouvez exécuter localement, sécuriser et
+    simuler.
+
+    \section1 Échanger des espaces d’adressage
+
+    Utilisez l’import/export NodeSet2 pour déplacer un espace d’adressage entre cet outil et
+    d’autres outils OPC UA, ou pour conserver une copie versionnée d’un modèle conçu.
+*/

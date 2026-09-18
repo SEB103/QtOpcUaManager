@@ -1,0 +1,67 @@
+/*!
+    \page configuration.html
+    \title Configurazione
+    \previouspage Utilizzo di un server
+    \nextpage Architettura
+
+    Questo capitolo descrive cosa memorizza l’applicazione, dove lo memorizza e le
+    impostazioni che ne influenzano il comportamento. La politica di posizione è implementata
+    una sola volta in \l AppPaths (vedi \l {Architettura}).
+
+    \section1 Installato o portable
+
+    L’applicazione viene eseguita in una di due modalità, decisa una volta all’avvio:
+
+    \list
+        \li \b Installato — i binari risiedono nella directory di installazione in sola
+            lettura, mentre i dati utente (impostazioni, log, cache, PKI e il database
+            scrivibile) risiedono nelle posizioni Windows per utente.
+        \li \b Portable — quando un marcatore \c portable.ini si trova accanto
+            all’eseguibile, tutti i dati utente risiedono sotto la directory
+            dell’applicazione, così l’intera installazione può essere spostata insieme ai
+            suoi dati.
+    \endlist
+
+    Il materiale in sola lettura fornito accanto all’eseguibile (il database di partenza e lo
+    scheletro PKI) viene copiato nell’archiviazione scrivibile alla prima esecuzione, così il
+    programma funziona anche quando la sua directory di installazione non è scrivibile.
+
+    \section1 Impostazioni dell’applicazione
+
+    Le impostazioni generali sono conservate in un archivio INI. Includono l’ultima
+    connessione, il nodo di focus fissato, l’elenco dei progetti recenti e la lingua
+    dell’interfaccia selezionata.
+
+    \section1 Progetti client (\c .uaproj)
+
+    Un progetto client memorizza la configurazione di connessione e l’insieme dei nodi
+    monitorati affinché una sessione possa essere ripristinata in seguito (\l ProjectData). I
+    progetti sono file JSON scritti in modo atomico. I progetti recenti sono ricordati nelle
+    impostazioni dell’applicazione anziché nel file del progetto.
+
+    \section1 Progetti server (\c .uaserver)
+
+    Un progetto server memorizza la definizione completa del server — spazi dei nomi, nodi,
+    tipi di enumerazione, endpoint e sicurezza
+    (\l{ServerProject}{ServerProject::ProjectData}). È un file JSON scritto in modo atomico
+    dal suo serializzatore.
+
+    \section1 Database dei nodi monitorati
+
+    Le variabili monitorate sono conservate in un database SQLite (\l NodeDatabase),
+    inizializzato da un valore predefinito fornito alla prima esecuzione e mai sovrascritto
+    negli aggiornamenti successivi, così i tuoi dati sopravvivono agli aggiornamenti.
+
+    \section1 Materiale di sicurezza (PKI)
+
+    La sicurezza client basata su certificati e la sicurezza server usano ciascuna un
+    archivio PKI sotto la directory dei dati scrivibile. Per un server progettato, un
+    certificato autofirmato viene creato nell’archivio proprio del server quando abiliti gli
+    endpoint sicuri.
+
+    \section1 Lingua
+
+    La lingua dell’interfaccia (inglese, tedesco, francese, italiano, russo, ucraino) viene
+    applicata all’avvio e può essere cambiata durante l’esecuzione; la scelta viene salvata
+    nelle impostazioni dell’applicazione (\l LocaleController).
+*/

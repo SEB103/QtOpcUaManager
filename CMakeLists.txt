@@ -50,6 +50,8 @@ qt_standard_project_setup(
     I18N_TRANSLATED_LANGUAGES
         de_DE
         en_GB
+        fr_FR
+        it_IT
         ru_RU
         uk_UA
 )
@@ -154,6 +156,8 @@ qt_add_translations(appOpcUaManager
     TS_FILES
         translations/OpcUaManager_de_DE.ts
         translations/OpcUaManager_en_GB.ts
+        translations/OpcUaManager_fr_FR.ts
+        translations/OpcUaManager_it_IT.ts
         translations/OpcUaManager_ru_RU.ts
         translations/OpcUaManager_uk_UA.ts
     RESOURCE_PREFIX "/translations"

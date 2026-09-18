@@ -49,7 +49,8 @@
 
     \section1 Choosing the UI language
 
-    The application ships with English, German, Russian, and Ukrainian user interfaces.
+    The application ships with English, German, French, Italian, Russian, and Ukrainian
+    user interfaces.
     The language can be switched at runtime and is remembered between sessions
     (see \l {Configuration}). This documentation is available in the same languages;
     the API reference is English.

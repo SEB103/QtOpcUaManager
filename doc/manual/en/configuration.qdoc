@@ -57,7 +57,7 @@
 
     \section1 Language
 
-    The UI language (English, German, Russian, Ukrainian) is applied at startup and can
+    The UI language (English, German, French, Italian, Russian, Ukrainian) is applied at startup and can
     be switched at runtime; the choice is saved in the application settings
     (\l LocaleController).
 */

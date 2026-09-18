@@ -1,0 +1,77 @@
+/*!
+    \page opcua-server.html
+    \title Serveur OPC UA
+    \previouspage Client OPC UA
+    \nextpage Utiliser un serveur
+
+    Server Studio vous permet de concevoir un serveur OPC UA, de l’exécuter localement, de
+    le sécuriser et de simuler des valeurs — sans écrire de code. Le serveur conçu
+    s’exécute en tant que processus \e séparé (le runtime headless \b OpcUaServerRuntime,
+    qui intègre open62541), piloté par l’interface via \l ServerStudio et
+    \l ServerRuntimeController (voir \l {Architecture}).
+
+    \section1 Projets serveur
+
+    Un projet serveur (\c .uaserver) est un fichier JSON contenant tout ce dont le runtime
+    a besoin : les espaces de noms personnalisés, les nœuds de l’espace d’adressage, les
+    éventuels types de données d’énumération personnalisés, la configuration du point de
+    terminaison et les paramètres de sécurité
+    (\l{ServerProject}{ServerProject::ProjectData}). Les projets sont créés, ouverts,
+    enregistrés et fermés depuis Server Studio.
+
+    \section1 Concevoir l’espace d’adressage
+
+    Dans le studio, vous construisez un arbre de nœuds (\l ServerNodeModel) :
+
+    \list
+        \li des \b Objets pour organiser l’espace d’adressage ;
+        \li des \b Variables avec un type de données et une valeur initiale ;
+        \li des types de données d’\b{énumération} personnalisés, référencés par des variables ;
+        \li des \b{espaces de noms} personnalisés qui possèdent vos nœuds.
+    \endlist
+
+    Un espace d’adressage peut aussi être importé plutôt que dessiné à la main :
+
+    \list
+        \li \b{Import/export NodeSet2} — échanger le modèle sous forme de XML NodeSet2
+            OPC UA standard (\l{ServerProject}{ServerProject::NodeSet}).
+        \li \b{Cloner depuis un serveur parcouru} — capturer l’espace d’adressage d’un
+            serveur auquel vous êtes connecté dans le client vers un nouveau projet serveur.
+    \endlist
+
+    Le projet est vérifié par un validateur avant d’être construit ou démarré
+    (\l{ServerProject}{ServerProject::Validator}).
+
+    \section1 Point de terminaison et sécurité
+
+    La configuration du point de terminaison définit le port et le nom de l’application. La
+    configuration de sécurité sélectionne la politique de sécurité et les identités
+    acceptées :
+
+    \list
+        \li \b{Aucune sécurité} pour des tests locaux rapides ;
+        \li \b{Basic256Sha256} avec signature et chiffrement, à l’aide d’un certificat
+            serveur auto-signé créé dans le magasin PKI propre au serveur ;
+        \li accès \b anonyme et/ou utilisateurs par \b{nom d’utilisateur/mot de passe}.
+    \endlist
+
+    Ces réglages vous permettent d’exercer un client face à une sécurité réaliste sans
+    serveur externe.
+
+    \section1 Exécuter le serveur
+
+    Le démarrage du serveur lance le processus runtime ; le studio attend qu’il signale son
+    point de terminaison, puis l’affiche comme en cours d’exécution. Des diagnostics en
+    direct — nombre de sessions, canaux sécurisés et durée de fonctionnement — sont
+    renvoyés en continu au studio via un canal latéral local (\l DiagnosticsServer). Vous
+    pouvez arrêter, redémarrer ou forcer l’arrêt du runtime ; le contrôleur signale les
+    plantages et permet de se reconnecter.
+
+    \section1 Simuler des valeurs
+
+    Les variables peuvent recevoir une simulation afin que leurs valeurs changent au fil du
+    temps pendant l’exécution du serveur — compteur, bascule, aléatoire, sinusoïde ou rampe
+    (\l SimulationEngine). Le runtime écrit les valeurs simulées dans le serveur, de sorte
+    que les clients connectés reçoivent de vraies notifications de changement de données,
+    ce qui est utile pour tester les tendances et les abonnements.
+*/

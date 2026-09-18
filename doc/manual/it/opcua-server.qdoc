@@ -1,0 +1,75 @@
+/*!
+    \page opcua-server.html
+    \title Server OPC UA
+    \previouspage Client OPC UA
+    \nextpage Utilizzo di un server
+
+    Server Studio consente di progettare un server OPC UA, eseguirlo localmente, proteggerlo
+    e simulare valori — senza scrivere codice. Il server progettato viene eseguito come
+    processo \e separato (il runtime headless \b OpcUaServerRuntime, che integra open62541),
+    controllato dall’interfaccia tramite \l ServerStudio e \l ServerRuntimeController (vedi
+    \l {Architettura}).
+
+    \section1 Progetti server
+
+    Un progetto server (\c .uaserver) è un file JSON che contiene tutto ciò di cui il runtime
+    ha bisogno: gli spazi dei nomi personalizzati, i nodi dello spazio degli indirizzi, gli
+    eventuali tipi di dati di enumerazione personalizzati, la configurazione dell’endpoint e
+    le impostazioni di sicurezza (\l{ServerProject}{ServerProject::ProjectData}). I progetti
+    vengono creati, aperti, salvati e chiusi da Server Studio.
+
+    \section1 Progettare lo spazio degli indirizzi
+
+    Nello studio si costruisce un albero di nodi (\l ServerNodeModel):
+
+    \list
+        \li \b Oggetti per organizzare lo spazio degli indirizzi;
+        \li \b Variabili con un tipo di dati e un valore iniziale;
+        \li tipi di dati di \b{enumerazione} personalizzati, referenziati dalle variabili;
+        \li \b{spazi dei nomi} personalizzati che possiedono i tuoi nodi.
+    \endlist
+
+    Uno spazio degli indirizzi può anche essere importato anziché disegnato a mano:
+
+    \list
+        \li \b{Import/export NodeSet2} — scambiare il modello come XML NodeSet2 OPC UA
+            standard (\l{ServerProject}{ServerProject::NodeSet}).
+        \li \b{Clonare da un server esplorato} — catturare lo spazio degli indirizzi di un
+            server a cui sei connesso nel client in un nuovo progetto server.
+    \endlist
+
+    Il progetto viene verificato da un validatore prima di essere costruito o avviato
+    (\l{ServerProject}{ServerProject::Validator}).
+
+    \section1 Endpoint e sicurezza
+
+    La configurazione dell’endpoint imposta la porta e il nome dell’applicazione. La
+    configurazione di sicurezza seleziona la politica di sicurezza e le identità accettate:
+
+    \list
+        \li \b{Nessuna sicurezza} per test locali rapidi;
+        \li \b{Basic256Sha256} con firma e cifratura, usando un certificato server
+            autofirmato creato nell’archivio PKI proprio del server;
+        \li accesso \b anonimo e/o utenti tramite \b{nome utente/password}.
+    \endlist
+
+    Queste impostazioni consentono di mettere alla prova un client con una sicurezza
+    realistica senza un server esterno.
+
+    \section1 Eseguire il server
+
+    L’avvio del server lancia il processo runtime; lo studio attende che segnali il proprio
+    endpoint e poi lo mostra come in esecuzione. Diagnostiche in tempo reale — numero di
+    sessioni, canali sicuri e tempo di attività — vengono trasmesse in streaming allo studio
+    tramite un canale laterale locale (\l DiagnosticsServer). Puoi arrestare, riavviare o
+    terminare forzatamente il runtime; il controller segnala gli arresti anomali e consente
+    di riconnettersi.
+
+    \section1 Simulare valori
+
+    Alle variabili può essere assegnata una simulazione affinché i loro valori cambino nel
+    tempo mentre il server è in esecuzione — contatore, commutazione, casuale, sinusoide o
+    rampa (\l SimulationEngine). Il runtime scrive i valori simulati nel server, così i
+    client connessi ricevono vere notifiche di modifica dei dati, utili per testare tendenze
+    e sottoscrizioni.
+*/

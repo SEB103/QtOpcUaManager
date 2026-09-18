@@ -60,7 +60,7 @@
 
     \section1 Sprache
 
-    Die Oberflächensprache (Englisch, Deutsch, Russisch, Ukrainisch) wird beim Start angewendet
+    Die Oberflächensprache (Englisch, Deutsch, Französisch, Italienisch, Russisch, Ukrainisch) wird beim Start angewendet
     und kann zur Laufzeit umgeschaltet werden; die Wahl wird in den Anwendungseinstellungen
     gespeichert (\l LocaleController).
 */

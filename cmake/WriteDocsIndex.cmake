@@ -14,6 +14,8 @@ string(REPLACE "," ";" LANGS "${LANGS}")
 
 set(_names_en "English")
 set(_names_de "Deutsch")
+set(_names_fr "Français")
+set(_names_it "Italiano")
 set(_names_ru "Русский")
 set(_names_uk "Українська")
 

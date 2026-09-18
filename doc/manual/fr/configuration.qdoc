@@ -1,0 +1,70 @@
+/*!
+    \page configuration.html
+    \title Configuration
+    \previouspage Utiliser un serveur
+    \nextpage Architecture
+
+    Ce chapitre décrit ce que l’application enregistre, où elle l’enregistre et les réglages
+    qui influent sur son comportement. La politique d’emplacement est implémentée une seule
+    fois dans \l AppPaths (voir \l {Architecture}).
+
+    \section1 Installé ou portable
+
+    L’application s’exécute dans l’un de deux modes, décidé une fois au démarrage :
+
+    \list
+        \li \b Installé — les binaires résident dans le répertoire d’installation en lecture
+            seule, tandis que les données utilisateur (réglages, journaux, cache, PKI et la
+            base de données inscriptible) résident dans les emplacements Windows par
+            utilisateur.
+        \li \b Portable — lorsqu’un marqueur \c portable.ini se trouve à côté de
+            l’exécutable, toutes les données utilisateur résident sous le répertoire de
+            l’application, de sorte que l’installation entière peut être déplacée avec ses
+            données.
+    \endlist
+
+    Le matériel en lecture seule fourni à côté de l’exécutable (la base de données de départ
+    et le squelette PKI) est copié dans le stockage inscriptible lors de la première
+    exécution, afin que le programme fonctionne même lorsque son répertoire d’installation
+    n’est pas inscriptible.
+
+    \section1 Réglages de l’application
+
+    Les réglages généraux sont conservés dans un magasin INI. Ils comprennent la dernière
+    connexion, le nœud de focus épinglé, la liste des projets récents et la langue
+    d’interface sélectionnée.
+
+    \section1 Projets client (\c .uaproj)
+
+    Un projet client enregistre la configuration de connexion et l’ensemble des nœuds
+    surveillés afin qu’une session puisse être restaurée ultérieurement (\l ProjectData).
+    Les projets sont des fichiers JSON écrits de façon atomique. Les projets récents sont
+    mémorisés dans les réglages de l’application plutôt que dans le fichier du projet.
+
+    \section1 Projets serveur (\c .uaserver)
+
+    Un projet serveur enregistre la définition complète du serveur — espaces de noms,
+    nœuds, types d’énumération, point de terminaison et sécurité
+    (\l{ServerProject}{ServerProject::ProjectData}). C’est un fichier JSON écrit de façon
+    atomique par son sérialiseur.
+
+    \section1 Base de données des nœuds surveillés
+
+    Les variables surveillées sont conservées dans une base de données SQLite
+    (\l NodeDatabase), initialisée à partir d’une valeur par défaut fournie lors de la
+    première exécution et jamais écrasée lors des mises à niveau ultérieures, de sorte que
+    vos données survivent aux mises à jour.
+
+    \section1 Matériel de sécurité (PKI)
+
+    La sécurité client par certificat et la sécurité serveur utilisent chacune un magasin
+    PKI sous le répertoire de données inscriptible. Pour un serveur conçu, un certificat
+    auto-signé est créé dans le magasin propre au serveur lorsque vous activez les points de
+    terminaison sécurisés.
+
+    \section1 Langue
+
+    La langue de l’interface (anglais, allemand, français, italien, russe, ukrainien) est
+    appliquée au démarrage et peut être changée en cours d’exécution ; le choix est
+    enregistré dans les réglages de l’application (\l LocaleController).
+*/

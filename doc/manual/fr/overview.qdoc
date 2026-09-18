@@ -1,0 +1,55 @@
+/*!
+    \page overview.html
+    \title Introduction et présentation
+    \previouspage Guide OpcUaManager
+    \nextpage Prise en main
+
+    OpcUaManager est un outil de bureau Qt 6 pour travailler avec des serveurs
+    \l {https://opcfoundation.org}{OPC UA}. Il est destiné à la mise en service, aux
+    tests et au diagnostic — par exemple surveiller les variables exposées par un
+    automate (comme un runtime CODESYS), vérifier qu’un espace d’adressage correspond
+    aux attentes, ou monter un petit serveur OPC UA pour tester un client.
+
+    \section1 Ce que fait le programme
+
+    L’application comporte deux moitiés qui partagent une même fenêtre :
+
+    \list
+        \li \b{Client OPC UA.} Se connecter à un serveur OPC UA, parcourir son espace
+            d’adressage, inspecter les attributs des nœuds, lire et écrire des valeurs de
+            variables, s’abonner aux mises à jour en direct et tracer des variables
+            sélectionnées sous forme de tendances. Voir \l {Client OPC UA}.
+        \li \b{Serveur OPC UA (Server Studio).} Concevoir un espace d’adressage,
+            configurer un point de terminaison et la sécurité, exécuter un serveur OPC UA
+            local en tant que processus séparé et simuler des valeurs de variables. Voir
+            \l {Serveur OPC UA}.
+    \endlist
+
+    Un \e projet relie une session. Un projet client (\c .uaproj) enregistre la connexion
+    et les nœuds surveillés ; un projet serveur (\c .uaserver) enregistre l’espace
+    d’adressage conçu et la configuration du serveur. Voir \l {Prise en main} et
+    \l {Configuration}.
+
+    \section1 À qui il s’adresse
+
+    \list
+        \li \b{Utilisateurs} — ingénieurs de mise en service et de test qui ont besoin de
+            voir et d’exercer un serveur OPC UA sans écrire de code.
+        \li \b{Développeurs} — ingénieurs qui étendent le programme lui-même ; les
+            chapitres \l {Architecture} et \l {Structure du projet} ainsi que la
+            \l {OpcUaManager API Reference} en expliquent les rouages internes.
+    \endlist
+
+    \section1 Concepts clés
+
+    \list
+        \li \b{Espace d’adressage, nœuds, variables.} Un serveur OPC UA expose un arbre de
+            \e nœuds ; les nœuds \e variable portent des valeurs que l’on peut lire, écrire
+            ou auxquelles on peut s’abonner.
+        \li \b{Point de terminaison et sécurité.} On atteint un serveur via une URL de
+            point de terminaison (\c opc.tcp://hôte:port) avec une politique de sécurité et
+            une identité utilisateur.
+        \li \b{Abonnements.} Au lieu d’interroger, le client s’abonne et le serveur
+            envoie les changements de valeur.
+    \endlist
+*/

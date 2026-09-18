@@ -38,6 +38,8 @@ LocaleController::LocaleController(QSettings *settings, QObject *parent)
     m_languages = {
         {QStringLiteral("en_GB"), QStringLiteral("English"), QStringLiteral("qrc:/images/flags/gb.svg")},
         {QStringLiteral("de_DE"), QStringLiteral("Deutsch"), QStringLiteral("qrc:/images/flags/de.svg")},
+        {QStringLiteral("fr_FR"), QStringLiteral("Français"), QStringLiteral("qrc:/images/flags/fr.svg")},
+        {QStringLiteral("it_IT"), QStringLiteral("Italiano"), QStringLiteral("qrc:/images/flags/it.svg")},
         {QStringLiteral("ru_RU"), QStringLiteral("Русский"), QStringLiteral("qrc:/images/flags/ru.svg")},
         {QStringLiteral("uk_UA"), QStringLiteral("Українська"), QStringLiteral("qrc:/images/flags/ua.svg")},
     };

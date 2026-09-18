@@ -1,0 +1,71 @@
+/*!
+    \page project-structure.html
+    \title Structure du projet
+    \previouspage Architecture
+    \nextpage Dépannage
+
+    Ce chapitre est une carte reliant \e{« où est implémenté X ? »} à l’arborescence des
+    sources. Ce n’est volontairement pas une liste exhaustive des fichiers ; il pointe vers
+    le répertoire et les quelques fichiers clés de chaque domaine, chacun renvoyant vers la
+    \l {OpcUaManager API Reference}.
+
+    \section1 Organisation de premier niveau
+
+    \table
+    \header \li Répertoire \li Rôle
+    \row \li \c app/ \li Exécutable de l’interface : démarrage, enveloppe du moteur QML, services de l’application.
+    \row \li \c src/ \li Bibliothèques C++ réutilisables (cœur client, modèles, persistance, projets, façades).
+    \row \li \c runtime/ \li Exécutable serveur OPC UA open62541 headless.
+    \row \li \c qml/ \li Module QML de l’application (écrans/dialogues) et le module réutilisable \c qml/Base.
+    \row \li \c resources/ \li Images/SVG fournis et configuration du style QML.
+    \row \li \c doc/ \li Cette documentation (pages de manuel QDoc, sujets d’API, configuration).
+    \row \li \c packaging/, \c installer/ \li Pipeline de publication, installateur et métadonnées produit.
+    \endtable
+
+    \section1 Où se trouve chaque fonctionnalité
+
+    \table
+    \header \li Pour travailler sur… \li Voir dans… \li Types clés
+    \row \li Connexion client / découverte / abonnements
+         \li \c src/core/opcuaservice.* \li \l OpcUaService
+    \row \li L’objet client auquel QML parle
+         \li \c src/qmlapi/opcuamanager.* \li \l OpcUaManager
+    \row \li Arbre (navigation) de l’espace d’adressage
+         \li \c src/models/opcuamodel.*, \c treeitem.* \li \l OpcUaModel, \l TreeItem
+    \row \li Attributs / valeurs / tendances des nœuds
+         \li \c src/models/ \li \l AttributesModel, \l DataAccessModel, \l TrendModel
+    \row \li Décodage des valeurs structurées (CODESYS)
+         \li \c src/core/structurednodereader.* \li \c StructuredNodeReader
+    \row \li Conception du serveur + contrôle du runtime
+         \li \c src/qmlapi/serverstudio.*, \c serverruntimecontroller.* \li \l ServerStudio, \l ServerRuntimeController
+    \row \li Modèle / fichier / validation / NodeSet2 du projet serveur
+         \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
+    \row \li Le serveur headless lui-même
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+    \row \li Projet client (\c .uaproj)
+         \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
+    \row \li Persistance des nœuds surveillés
+         \li \c src/persistence/nodedatabase.* \li \l NodeDatabase
+    \row \li Chemins installé/portable
+         \li \c src/core/apppaths.* \li \l AppPaths
+    \row \li Démarrage de l’app / services
+         \li \c app/ \li \l AppCore, \l AppEngine, \l AppInfo, \l LocaleController
+    \row \li Coquille d’interface et écrans
+         \li \c qml/Main.qml, \c qml/*Screen*.qml \li \l {OpcUaManager QML Types}
+    \row \li Contrôles d’interface réutilisables
+         \li \c qml/Base/ \li \l {Base QML Types}
+    \endtable
+
+    \section1 Bibliothèques et leurs frontières
+
+    \list
+        \li \b OpcUaCore (\c src/core, \c src/models, \c src/persistence, \c src/project)
+            — la pile client ; lie Qt Core/Network/OpcUa/Sql.
+        \li \b ServerProjectCore (\c src/serverproject) — \e{Qt Core uniquement}, afin
+            d’être partagé par l’interface et le runtime headless.
+        \li \b OpcUaQmlApi (\c src/qmlapi) — les façades QML ; dépend des deux cœurs.
+    \endlist
+
+    Pour le raisonnement derrière ces frontières, threads et processus, voir
+    \l {Architecture}.
+*/

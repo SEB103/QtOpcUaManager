@@ -1,0 +1,69 @@
+/*!
+    \page troubleshooting.html
+    \title Dépannage
+    \previouspage Structure du projet
+    \nextpage À propos et informations de version
+
+    Ce chapitre recense les problèmes les plus courants et la manière de les diagnostiquer.
+    Le premier réflexe pour tout problème est le \b{panneau de journal} et le
+    \b{fichier journal de l’application}, dont le dossier peut être ouvert depuis
+    l’interface.
+
+    \section1 Impossible de se connecter à un serveur
+
+    \list
+        \li \b{URL erronée ou hôte injoignable.} Vérifiez l’URL du point de terminaison
+            (\c {opc.tcp://hôte:port}) et que le serveur est en cours d’exécution et
+            joignable.
+        \li \b{Politique de sécurité incompatible.} La politique de sécurité sélectionnée
+            par le client doit être l’une de celles proposées par le serveur. Essayez
+            d’abord \e None pour isoler un problème de sécurité.
+        \li \b{Certificat non approuvé.} Avec signature/chiffrement, les deux parties
+            doivent approuver leurs certificats respectifs. Vérifiez le magasin PKI (voir
+            \l {Configuration}).
+        \li \b{Identité rejetée.} L’accès anonyme est peut-être désactivé, ou le nom
+            d’utilisateur/mot de passe est peut-être incorrect.
+    \endlist
+
+    \section1 Les valeurs ne se mettent pas à jour
+
+    \list
+        \li Vérifiez que la variable est bien \e abonnée (et pas seulement lue une fois).
+        \li Vérifiez le niveau d’accès de la variable — certains nœuds sont en lecture
+            seule.
+        \li Pour un serveur conçu, vérifiez que la variable possède une \e simulation si
+            vous vous attendez à ce qu’elle change d’elle-même (voir \l {Serveur OPC UA}).
+    \endlist
+
+    \section1 Le serveur local ne démarre pas
+
+    \list
+        \li \b{Runtime introuvable.} L’exécutable headless \b OpcUaServerRuntime doit se
+            trouver à côté de l’application ; un déploiement défectueux en est la cause
+            habituelle.
+        \li \b{Port déjà utilisé.} Un autre serveur occupe peut-être le port configuré ;
+            changez le port du point de terminaison.
+        \li \b{Projet non valide.} Le validateur signale les problèmes (par exemple un nœud
+            qui référence un espace de noms que le projet ne déclare pas) avant le démarrage
+            du serveur.
+        \li \b{Plantage au démarrage.} Le contrôleur signale un plantage et la sortie du
+            runtime est capturée dans le journal ; redémarrez ou tuez le processus et
+            réessayez.
+    \endlist
+
+    \section1 Problèmes de configuration ou de données
+
+    \list
+        \li \b{Réglages non conservés.} Vérifiez si l’application s’exécute en mode installé
+            ou portable et que l’emplacement des données inscriptibles est accessible (voir
+            \l {Configuration}).
+        \li \b{Fichier de projet corrompu.} Les projets sont écrits de façon atomique, mais
+            un fichier \c .uaproj / \c .uaserver modifié en externe peut échouer au
+            chargement ; le chargeur signale une erreur typée.
+    \endlist
+
+    \section1 Collecter des diagnostics
+
+    Lorsque vous signalez un problème, incluez la version de l’application (voir
+    \l {À propos et informations de version}) et la section pertinente du fichier journal.
+*/

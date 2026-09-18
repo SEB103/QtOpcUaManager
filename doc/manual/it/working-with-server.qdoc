@@ -1,0 +1,52 @@
+/*!
+    \page working-with-server.html
+    \title Utilizzo di un server
+    \previouspage Server OPC UA
+    \nextpage Configurazione
+
+    Questo capitolo descrive gli scenari end-to-end più comuni che combinano le parti client
+    e server dell’applicazione.
+
+    \section1 Progettare, eseguire e testare un server localmente
+
+    \list 1
+        \li In Server Studio, progetta uno spazio degli indirizzi e imposta un endpoint e la
+            sicurezza (vedi \l {Server OPC UA}).
+        \li Avvia il server. Il processo runtime si avvia e segnala il proprio endpoint.
+        \li Usa \e{Open in Client} per connettere il client integrato al server in
+            esecuzione; il client si connette all’endpoint locale in modo anonimo.
+        \li Esplora il server, leggi e scrivi variabili e sottoscrivi valori (vedi
+            \l {Client OPC UA}).
+    \endlist
+
+    Poiché il server viene eseguito in un proprio processo, puoi arrestarlo, riavviarlo o
+    terminarlo mentre il client resta aperto — un modo realistico per testare il
+    comportamento di riconnessione del client.
+
+    \section1 Testare sicurezza e identità
+
+    Configura il server con firma e cifratura e con utenti tramite nome utente/password,
+    quindi connetti il client usando la politica di sicurezza e l’identità corrispondenti.
+    Questo mette alla prova lo scambio di certificati (usando l’archivio PKI di ciascun lato)
+    e il controllo degli accessi end-to-end.
+
+    \section1 Simulare dati in tempo reale
+
+    Assegna simulazioni alle variabili (contatore, sinusoide, rampa e così via) affinché il
+    server emetta valori variabili. Sottoscrivi queste variabili nel client e osserva la
+    vista \e{Data Access} e il pannello delle tendenze aggiornarsi da vere notifiche di
+    modifica dei dati.
+
+    \section1 Clonare un server esistente
+
+    Connetti il client a un server di terze parti, esplora la parte dello spazio degli
+    indirizzi che ti interessa e clonala in un nuovo progetto server. Ottieni così una
+    riproduzione \c .uaserver modificabile che puoi eseguire localmente, proteggere e
+    simulare.
+
+    \section1 Scambiare spazi degli indirizzi
+
+    Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento
+    e altri strumenti OPC UA, o per conservare una copia con versione di un modello
+    progettato.
+*/

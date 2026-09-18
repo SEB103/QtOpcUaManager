@@ -1,0 +1,66 @@
+/*!
+    \page troubleshooting.html
+    \title Risoluzione dei problemi
+    \previouspage Struttura del progetto
+    \nextpage Informazioni e versione
+
+    Questo capitolo elenca i problemi più comuni e come diagnosticarli. Il primo punto di
+    riferimento per qualsiasi problema è il \b{pannello log} e il \b{file di log
+    dell’applicazione}, la cui cartella può essere aperta dall’interfaccia.
+
+    \section1 Impossibile connettersi a un server
+
+    \list
+        \li \b{URL errato o host irraggiungibile.} Verifica l’URL dell’endpoint
+            (\c {opc.tcp://host:porta}) e che il server sia in esecuzione e raggiungibile.
+        \li \b{Politica di sicurezza incompatibile.} La politica di sicurezza selezionata dal
+            client deve essere una di quelle offerte dal server. Prova prima \e None per
+            isolare un problema di sicurezza.
+        \li \b{Certificato non attendibile.} Con firma/cifratura, le due parti devono
+            considerare attendibili i rispettivi certificati. Controlla l’archivio PKI (vedi
+            \l {Configurazione}).
+        \li \b{Identità rifiutata.} L’accesso anonimo potrebbe essere disabilitato, oppure il
+            nome utente/password potrebbe essere errato.
+    \endlist
+
+    \section1 I valori non si aggiornano
+
+    \list
+        \li Verifica che la variabile sia effettivamente \e sottoscritta (non solo letta una
+            volta).
+        \li Controlla il livello di accesso della variabile — alcuni nodi sono in sola
+            lettura.
+        \li Per un server progettato, verifica che la variabile abbia una \e simulazione se ti
+            aspetti che cambi da sola (vedi \l {Server OPC UA}).
+    \endlist
+
+    \section1 Il server locale non si avvia
+
+    \list
+        \li \b{Runtime non trovato.} L’eseguibile headless \b OpcUaServerRuntime deve trovarsi
+            accanto all’applicazione; la causa abituale è un deployment difettoso.
+        \li \b{Porta già in uso.} Un altro server potrebbe occupare la porta configurata;
+            cambia la porta dell’endpoint.
+        \li \b{Progetto non valido.} Il validatore segnala i problemi (ad esempio un nodo che
+            referenzia uno spazio dei nomi non dichiarato dal progetto) prima dell’avvio del
+            server.
+        \li \b{Arresto anomalo all’avvio.} Il controller segnala un arresto anomalo e l’output
+            del runtime viene catturato nel log; riavvia o termina il processo e riprova.
+    \endlist
+
+    \section1 Problemi di configurazione o dati
+
+    \list
+        \li \b{Impostazioni non conservate.} Verifica se l’app è in esecuzione in modalità
+            installata o portable e che la posizione dei dati scrivibili sia accessibile
+            (vedi \l {Configurazione}).
+        \li \b{File di progetto corrotto.} I progetti sono scritti in modo atomico, ma un file
+            \c .uaproj / \c .uaserver modificato esternamente può non caricarsi; il caricatore
+            segnala un errore tipizzato.
+    \endlist
+
+    \section1 Raccogliere diagnostiche
+
+    Quando segnali un problema, includi la versione dell’applicazione (vedi
+    \l {Informazioni e versione}) e la sezione pertinente del file di log.
+*/

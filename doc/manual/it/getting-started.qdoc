@@ -1,0 +1,56 @@
+/*!
+    \page getting-started.html
+    \title Per iniziare
+    \previouspage Introduzione e panoramica
+    \nextpage Client OPC UA
+
+    Questo capitolo illustra l’avvio dell’applicazione fino al punto in cui è possibile
+    esplorare un server o progettarne uno.
+
+    \section1 Avviare l’applicazione
+
+    Avvia l’applicazione installata (o l’eseguibile della versione portable). All’avvio il
+    programma apre l’\e{avviatore}, dal quale è possibile:
+
+    \list
+        \li creare un nuovo progetto client o aprirne uno recente;
+        \li aprire un progetto client esistente (\c .uaproj) dal disco;
+        \li aprire \e{Server Studio} per progettare o eseguire un server OPC UA locale.
+    \endlist
+
+    Un \e progetto è facoltativo per un’occhiata rapida: puoi connetterti a un server senza
+    salvare un progetto. Un progetto diventa utile quando vuoi conservare una connessione e
+    un insieme di nodi monitorati per la volta successiva. Vedi \l {Configurazione} per
+    sapere cosa memorizza un progetto e dove.
+
+    \section1 La tua prima connessione client
+
+    \list 1
+        \li Dall’avviatore, crea o apri un progetto client (oppure continua senza).
+        \li Nel modulo di connessione, inserisci l’URL di discovery del server, ad esempio
+            \c {opc.tcp://127.0.0.1:4840}.
+        \li Scegli la politica di sicurezza e l’identità (anonima, oppure nome
+            utente/password) attese dal server, quindi connettiti.
+        \li Quando la connessione riesce, lo spazio degli indirizzi del server compare
+            nell’albero di navigazione. Prosegui con \l {Client OPC UA}.
+    \endlist
+
+    \section1 Il tuo primo server locale
+
+    \list 1
+        \li Dall’avviatore, apri \e{Server Studio}.
+        \li Crea un progetto server (\c .uaserver) e aggiungi uno spazio dei nomi, oggetti e
+            variabili allo spazio degli indirizzi.
+        \li Avvia il server; lo studio lancia il runtime headless come processo separato e ne
+            segnala l’endpoint.
+        \li Usa \e{Open in Client} per connettere il client integrato al server in
+            esecuzione. Prosegui con \l {Server OPC UA} e \l {Utilizzo di un server}.
+    \endlist
+
+    \section1 Scegliere la lingua dell’interfaccia
+
+    L’applicazione include interfacce in inglese, tedesco, francese, italiano, russo e
+    ucraino. La lingua può essere cambiata durante l’esecuzione e viene ricordata tra le
+    sessioni (vedi \l {Configurazione}). Questa documentazione è disponibile nelle stesse
+    lingue; il riferimento dell’API è in inglese.
+*/

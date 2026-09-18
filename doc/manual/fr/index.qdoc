@@ -1,0 +1,44 @@
+/*!
+    \page index.html
+    \title Guide OpcUaManager
+    \nextpage Introduction et présentation
+
+    \image opcuamanager-logo.png OpcUaManager
+
+    OpcUaManager est une application de bureau Qt qui permet de parcourir, tester et
+    simuler des serveurs OPC UA. Elle associe un \e client OPC UA (se connecter à un
+    serveur, parcourir son espace d’adressage, lire/écrire/s’abonner à des variables,
+    tracer des tendances) à un \e studio serveur OPC UA intégré (concevoir un espace
+    d’adressage, exécuter un serveur local, simuler des valeurs, tester la sécurité).
+
+    Ce guide est à la fois un manuel utilisateur et une référence pour développeurs. Les
+    premiers chapitres expliquent l’utilisation du programme ; les chapitres suivants
+    décrivent son architecture et l’emplacement de chaque fonctionnalité dans le code
+    source, avec des liens vers la \l {OpcUaManager API Reference} générée.
+
+    \section1 Guide de l’utilisateur
+
+    \list
+        \li \l {Introduction et présentation} — ce qu’est le programme et à quoi il sert.
+        \li \l {Prise en main} — lancer l’application, créer un projet, se connecter.
+        \li \l {Client OPC UA} — se connecter, parcourir, lire, écrire, s’abonner, tracer.
+        \li \l {Serveur OPC UA} — concevoir, configurer, exécuter, sécuriser et simuler un serveur.
+        \li \l {Utiliser un serveur} — scénarios de bout en bout dans le programme.
+        \li \l {Configuration} — réglages de l’application, du client et du serveur.
+        \li \l {Dépannage} — problèmes de connexion, de démarrage et de configuration.
+    \endlist
+
+    \section1 Guide du développeur
+
+    \list
+        \li \l {Architecture} — modules, threads, processus et flux de données.
+        \li \l {Structure du projet} — répertoires et fichiers sources clés.
+        \li \l {OpcUaManager API Reference} — référence C++ et QML générée.
+    \endlist
+
+    \section1 À propos
+
+    \list
+        \li \l {À propos et informations de version} — version de l’application et de la documentation.
+    \endlist
+*/

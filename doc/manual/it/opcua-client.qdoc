@@ -1,0 +1,65 @@
+/*!
+    \page opcua-client.html
+    \title Client OPC UA
+    \previouspage Per iniziare
+    \nextpage Server OPC UA
+
+    La parte client dell’applicazione si connette a un server OPC UA, ne esplora lo spazio
+    degli indirizzi e legge, scrive, sottoscrive e traccia valori di variabili. Internamente
+    l’interfaccia dialoga con la facciata \l OpcUaManager, che delega il lavoro di rete al
+    \l OpcUaService in esecuzione su un thread di lavoro (vedi \l {Architettura}).
+
+    \section1 Connettersi a un server
+
+    Una connessione è descritta da:
+
+    \list
+        \li un \b{URL di discovery/endpoint}, ad esempio \c {opc.tcp://127.0.0.1:4840};
+        \li una \b{politica di sicurezza} (ad esempio \e None o \e Basic256Sha256 con firma
+            e cifratura);
+        \li un’\b{identità}: anonima, oppure un nome utente e una password.
+    \endlist
+
+    Inseriscili nel modulo di connessione e connettiti. Il client esegue la discovery e la
+    selezione dell’endpoint, quindi apre una sessione. La sicurezza basata su certificati usa
+    l’archivio PKI dell’applicazione (vedi \l {Configurazione}). Durante e dopo la
+    connessione, lo stato è mostrato nell’area di stato e registrato nel pannello log.
+
+    \section1 Esplorare lo spazio degli indirizzi
+
+    Una volta connesso, lo spazio degli indirizzi del server è mostrato come un albero di
+    \e nodi, recuperati in modo lazy man mano che espandi i rami (tramite \l OpcUaModel). La
+    selezione di un nodo ne mostra gli \e attributi — id del nodo, classe del nodo, tipo di
+    dati, livello di accesso, valore e così via (\l AttributesModel).
+
+    I nodi variabile i cui valori sono strutturati (ad esempio strutture CODESYS che non
+    pubblicano una definizione di tipo completa) vengono decodificati esplorando il loro
+    sottoalbero di istanza, così da vedere i singoli campi anziché un blocco opaco.
+
+    \section1 Leggere, scrivere e sottoscrivere
+
+    \list
+        \li \b Lettura — richiedere il valore corrente di un nodo variabile.
+        \li \b Scrittura — inviare un nuovo valore a una variabile scrivibile (in base al suo
+            livello di accesso).
+        \li \b Sottoscrizione — registrare l’interesse per una variabile affinché il server
+            invii le modifiche di valore. Le variabili sottoscritte compaiono nella vista
+            \e{Data Access} (\l DataAccessModel), che mostra valore in tempo reale, stato e
+            timestamp e può essere ordinata e filtrata (\l DataViewFilterModel).
+    \endlist
+
+    Le variabili monitorate possono essere conservate per essere ripristinate alla
+    connessione successiva (vedi \l {Configurazione}).
+
+    \section1 Tendenze
+
+    Le variabili selezionate possono essere tracciate nel tempo nel pannello delle tendenze.
+    La tendenza mantiene una cronologia limitata di campioni e calcola la geometria del
+    grafico (\l TrendModel); può essere sospesa e ripresa.
+
+    \section1 Registrazione (log)
+
+    L’attività del client — stato della connessione, errori e operazioni rilevanti — viene
+    scritta nel pannello log e nel file di log dell’applicazione. La cartella del file di log
+    può essere aperta dall’interfaccia, punto di partenza per la \l {Risoluzione dei problemi}.
+*/

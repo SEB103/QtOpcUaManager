@@ -1,0 +1,44 @@
+/*!
+    \page index.html
+    \title Guida OpcUaManager
+    \nextpage Introduzione e panoramica
+
+    \image opcuamanager-logo.png OpcUaManager
+
+    OpcUaManager è un’applicazione desktop Qt per esplorare, testare e simulare server
+    OPC UA. Combina un \e client OPC UA (connettersi a un server, esplorarne lo spazio
+    degli indirizzi, leggere/scrivere/sottoscrivere variabili, tracciare tendenze) con uno
+    \e studio server OPC UA integrato (progettare uno spazio degli indirizzi, eseguire un
+    server locale, simulare valori, testare la sicurezza).
+
+    Questa guida è al tempo stesso un manuale utente e un riferimento per sviluppatori. I
+    primi capitoli spiegano come usare il programma; i capitoli successivi ne descrivono
+    l’architettura e dove risiede ciascuna funzionalità nel codice sorgente, con
+    collegamenti al \l {OpcUaManager API Reference} generato.
+
+    \section1 Guida utente
+
+    \list
+        \li \l {Introduzione e panoramica} — che cos’è il programma e a cosa serve.
+        \li \l {Per iniziare} — avviare l’applicazione, creare un progetto, connettersi.
+        \li \l {Client OPC UA} — connettersi, esplorare, leggere, scrivere, sottoscrivere, tracciare.
+        \li \l {Server OPC UA} — progettare, configurare, eseguire, proteggere e simulare un server.
+        \li \l {Utilizzo di un server} — scenari end-to-end all’interno del programma.
+        \li \l {Configurazione} — impostazioni dell’applicazione, del client e del server.
+        \li \l {Risoluzione dei problemi} — problemi di connessione, avvio e configurazione.
+    \endlist
+
+    \section1 Guida per sviluppatori
+
+    \list
+        \li \l {Architettura} — moduli, thread, processi e flusso dei dati.
+        \li \l {Struttura del progetto} — directory e file sorgente principali.
+        \li \l {OpcUaManager API Reference} — riferimento C++ e QML generato.
+    \endlist
+
+    \section1 Informazioni
+
+    \list
+        \li \l {Informazioni e versione} — versione dell’applicazione e della documentazione.
+    \endlist
+*/

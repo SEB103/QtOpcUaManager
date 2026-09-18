@@ -1,0 +1,70 @@
+/*!
+    \page opcua-client.html
+    \title Client OPC UA
+    \previouspage Prise en main
+    \nextpage Serveur OPC UA
+
+    La partie client de l’application se connecte à un serveur OPC UA, parcourt son espace
+    d’adressage, puis lit, écrit, s’abonne et trace des valeurs de variables. En interne,
+    l’interface dialogue avec la façade \l OpcUaManager, qui délègue le travail réseau au
+    \l OpcUaService s’exécutant sur un thread de travail (voir \l {Architecture}).
+
+    \section1 Se connecter à un serveur
+
+    Une connexion est décrite par :
+
+    \list
+        \li une \b{URL de découverte/point de terminaison}, par exemple
+            \c {opc.tcp://127.0.0.1:4840} ;
+        \li une \b{politique de sécurité} (par exemple \e None ou \e Basic256Sha256 avec
+            signature et chiffrement) ;
+        \li une \b{identité} : anonyme, ou un nom d’utilisateur et un mot de passe.
+    \endlist
+
+    Saisissez-les dans le formulaire de connexion et connectez-vous. Le client effectue la
+    découverte et la sélection du point de terminaison, puis ouvre une session. La sécurité
+    par certificat utilise le magasin PKI de l’application (voir \l {Configuration}).
+    Pendant et après la connexion, l’état est affiché dans la zone d’état et consigné dans
+    le panneau de journal.
+
+    \section1 Parcourir l’espace d’adressage
+
+    Une fois connecté, l’espace d’adressage du serveur est présenté sous forme d’arbre de
+    \e nœuds, chargés à la demande à mesure que vous développez les branches (via
+    \l OpcUaModel). La sélection d’un nœud affiche ses \e attributs — identifiant de nœud,
+    classe de nœud, type de données, niveau d’accès, valeur, etc. (\l AttributesModel).
+
+    Les nœuds variable dont les valeurs sont structurées (par exemple des structures
+    CODESYS qui ne publient pas de définition de type complète) sont décodés en parcourant
+    leur sous-arbre d’instance, de sorte que vous voyez les champs individuels plutôt qu’un
+    bloc opaque.
+
+    \section1 Lire, écrire et s’abonner
+
+    \list
+        \li \b Lecture — demander la valeur actuelle d’un nœud variable.
+        \li \b Écriture — envoyer une nouvelle valeur à une variable accessible en écriture
+            (selon son niveau d’accès).
+        \li \b Abonnement — s’enregistrer pour qu’une variable soit surveillée afin que le
+            serveur envoie les changements de valeur. Les variables abonnées apparaissent
+            dans la vue \e{Data Access} (\l DataAccessModel), qui affiche la valeur en
+            direct, l’état et l’horodatage, et peut être triée et filtrée
+            (\l DataViewFilterModel).
+    \endlist
+
+    Les variables surveillées peuvent être conservées afin d’être restaurées lors de la
+    prochaine connexion (voir \l {Configuration}).
+
+    \section1 Tendances
+
+    Les variables sélectionnées peuvent être tracées dans le temps dans le panneau de
+    tendances. La tendance conserve un historique borné d’échantillons et calcule la
+    géométrie du tracé (\l TrendModel) ; elle peut être suspendue puis reprise.
+
+    \section1 Journalisation
+
+    L’activité du client — état de connexion, erreurs et opérations notables — est écrite
+    dans le panneau de journal et dans le fichier journal de l’application. Le dossier du
+    fichier journal peut être ouvert depuis l’interface, ce qui constitue le point de
+    départ du \l {Dépannage}.
+*/

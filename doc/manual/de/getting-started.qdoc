@@ -50,7 +50,8 @@
 
     \section1 Sprache der Oberfläche wählen
 
-    Die Anwendung liefert die Oberflächen in Englisch, Deutsch, Russisch und Ukrainisch.
+    Die Anwendung liefert die Oberflächen in Englisch, Deutsch, Französisch, Italienisch,
+    Russisch und Ukrainisch.
     Die Sprache kann zur Laufzeit umgeschaltet werden und wird zwischen Sitzungen gemerkt
     (siehe \l {Konfiguration}). Diese Dokumentation ist in denselben Sprachen verfügbar;
     die API-Referenz ist in Englisch.
