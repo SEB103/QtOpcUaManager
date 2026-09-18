@@ -21,6 +21,12 @@ import QtQuick.Layouts
 ComboBox {
     id: selector
 
+    /*! Fixed on-screen size of every flag image, so all locales occupy an
+        identical box regardless of each SVG's internal geometry. The 24x18 box
+        is an exact 4:3 ratio, so the flags fill it without distortion. */
+    readonly property int flagWidth: 24
+    readonly property int flagHeight: 18
+
     model: cppLocale.availableLanguages
     textRole: "name"
     valueRole: "code"
@@ -47,10 +53,12 @@ ComboBox {
 
         Image {
             source: cppLocale.currentFlag
-            sourceSize.height: 16
-            fillMode: Image.PreserveAspectFit
+            sourceSize.width: selector.flagWidth
+            sourceSize.height: selector.flagHeight
+            fillMode: Image.Stretch
             Layout.leftMargin: 10
-            Layout.preferredWidth: 22
+            Layout.preferredWidth: selector.flagWidth
+            Layout.preferredHeight: selector.flagHeight
             Layout.alignment: Qt.AlignVCenter
         }
 
@@ -78,9 +86,11 @@ ComboBox {
 
             Image {
                 source: languageItem.modelData.flag
-                sourceSize.height: 16
-                fillMode: Image.PreserveAspectFit
-                Layout.preferredWidth: 22
+                sourceSize.width: selector.flagWidth
+                sourceSize.height: selector.flagHeight
+                fillMode: Image.Stretch
+                Layout.preferredWidth: selector.flagWidth
+                Layout.preferredHeight: selector.flagHeight
                 Layout.alignment: Qt.AlignVCenter
             }
 

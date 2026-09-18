@@ -145,11 +145,15 @@ RowLayout {
         id: localeFlag
 
         Layout.alignment: Qt.AlignVCenter
-        Layout.preferredWidth: 26
+        Layout.preferredWidth: 24
+        Layout.preferredHeight: 18
         Layout.rightMargin: 2
         source: cppLocale.currentFlag
+        // Fixed 24x18 (exact 4:3) box so every locale's flag has an identical
+        // size, independent of the individual SVG's internal geometry.
+        sourceSize.width: 24
         sourceSize.height: 18
-        fillMode: Image.PreserveAspectFit
+        fillMode: Image.Stretch
 
         HoverHandler {
             id: localeFlagHover
