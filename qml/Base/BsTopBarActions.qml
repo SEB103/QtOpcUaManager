@@ -140,20 +140,27 @@ RowLayout {
     }
 
     // Active UI-language flag. Display only; the language is changed from the menu
-    // (Settings) or the launcher selector.
-    Image {
+    // (Settings) or the launcher selector. A fixed 24x18 (exact 4:3) framed box
+    // gives every locale's flag an identical, crisp rectangle regardless of the
+    // individual SVG's internal geometry or edge colours.
+    Rectangle {
         id: localeFlag
 
         Layout.alignment: Qt.AlignVCenter
         Layout.preferredWidth: 24
         Layout.preferredHeight: 18
         Layout.rightMargin: 2
-        source: cppLocale.currentFlag
-        // Fixed 24x18 (exact 4:3) box so every locale's flag has an identical
-        // size, independent of the individual SVG's internal geometry.
-        sourceSize.width: 24
-        sourceSize.height: 18
-        fillMode: Image.Stretch
+        color: "transparent"
+        border.width: 1
+        border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
+
+        Image {
+            anchors.fill: parent
+            source: cppLocale.currentFlag
+            sourceSize.width: 24
+            sourceSize.height: 18
+            fillMode: Image.Stretch
+        }
 
         HoverHandler {
             id: localeFlagHover
