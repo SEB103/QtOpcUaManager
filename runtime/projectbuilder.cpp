@@ -307,6 +307,14 @@ bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16
                                                const_cast<char *>(descriptionBytes.constData()));
         attr.dataType = isEnumVariable ? enumDataType : UA_TYPES[typeIndex].typeId;
         attr.valueRank = isEnumVariable ? -1 : node.valueRank;
+        // A one-dimensional array must declare ArrayDimensions matching its
+        // ValueRank, or open62541 rejects the node with BadTypeMismatch. A single
+        // zero means "any length". Kept in scope until after the add call below.
+        UA_UInt32 arrayDimensions[1] = {0};
+        if (!isEnumVariable && node.valueRank == 1) {
+            attr.arrayDimensions = arrayDimensions;
+            attr.arrayDimensionsSize = 1;
+        }
         attr.accessLevel = UA_ACCESSLEVELMASK_READ;
         if (node.writable)
             attr.accessLevel |= UA_ACCESSLEVELMASK_WRITE;

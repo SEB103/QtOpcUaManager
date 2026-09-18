@@ -118,10 +118,9 @@ ApplicationWindow {
             action()
     }
 
-    /*! Clones the browsed client address space into Server Studio and shows it. */
+    /*! Opens the clone options prompt (id-fidelity choice) before cloning. */
     function doCloneToServerStudio() {
-        if (cppServerStudio.cloneFromClient())
-            mainWindow.serverStudioActive = true
+        cloneOptionsDialog.open()
     }
 
     // Guard application exit: prompt to save when the active project or the
@@ -507,6 +506,51 @@ ApplicationWindow {
             wrapMode: Text.Wrap
             text: qsTr("The server project \"%1\" has unsaved changes. Save them before continuing?")
                       .arg(cppServerStudio.projectName)
+        }
+    }
+
+    // Clone options: choose whether to keep the server's original node ids and
+    // namespaces, then start the (asynchronous) clone and switch to Server Studio.
+    Dialog {
+        id: cloneOptionsDialog
+
+        x: Math.round((mainWindow.width - width) / 2)
+        y: Math.round((mainWindow.height - height) / 2)
+        width: Math.min(mainWindow.width - 80, 480)
+        title: qsTr("Clone server to Server Studio")
+        modal: true
+        focus: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        closePolicy: Popup.CloseOnEscape
+
+        onAccepted: {
+            if (cppServerStudio.cloneFromClient(preserveIdsCheck.checked))
+                mainWindow.serverStudioActive = true
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: qsTr("The connected server's whole Objects address space will be browsed "
+                           + "and its variable values read into a new server project.")
+            }
+            CheckBox {
+                id: preserveIdsCheck
+                text: qsTr("Preserve original NodeIds and namespaces")
+                checked: true
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: qsTr("When off, nodes are renamed by browse path under a single clone "
+                           + "namespace.")
+            }
         }
     }
 

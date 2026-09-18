@@ -1,6 +1,7 @@
 #include "opcuaservice.h"
 
 #include "apppaths.h"
+#include "clonebrowser.h"
 #include "structurednodereader.h"
 
 #include <QCoreApplication>
@@ -826,6 +827,37 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
         node->deleteLater();
         emit browseChildrenReady(effectiveParentNodeId, requestId, {}, false);
     }
+}
+
+/*!
+ * \brief Recursively browses the subtree under \a rootNodeId for a clone.
+ *
+ * Runs a CloneBrowser in this worker thread and relays its result through
+ * cloneSnapshotReady(). The browser owns its lifetime (it deletes itself once
+ * finished), so no bookkeeping is needed here.
+ */
+void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId)
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(
+            this, [this, rootNodeId, requestId]() { browseForClone(rootNodeId, requestId); },
+            Qt::QueuedConnection);
+        return;
+    }
+
+    if (!m_clientConnected || !m_client) {
+        setLastError(QStringLiteral("Clone requires an active OPC UA connection."));
+        emit cloneSnapshotReady(requestId, {}, {}, false, false);
+        return;
+    }
+
+    auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, this);
+    connect(browser, &CloneBrowser::finished, this,
+            [this](quint64 id, const QList<CloneNode> &nodes, const QStringList &namespaceUris,
+                   bool success, bool truncated) {
+                emit cloneSnapshotReady(id, nodes, namespaceUris, success, truncated);
+            });
+    browser->start();
 }
 
 /*!

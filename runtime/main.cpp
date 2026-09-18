@@ -31,6 +31,7 @@
 
 #include "diagnosticsserver.h"
 #include "projectbuilder.h"
+#include "ruleengine.h"
 #include "securitysetup.h"
 #include "simulationengine.h"
 #include "serverproject/serverprojectdata.h"
@@ -258,6 +259,11 @@ int main(int argc, char *argv[])
     // only fires once the Qt event loop below is running.
     SimulationEngine *simulation = hasProject ? new SimulationEngine(server, project) : nullptr;
 
+    // Evaluate behavior rules on client writes (project mode only). Installs
+    // write value-callbacks on the trigger nodes; delayed actions fire from the
+    // same event loop.
+    RuleEngine *rules = hasProject ? new RuleEngine(server, project) : nullptr;
+
     const UA_StatusCode startupStatus = UA_Server_run_startup(server);
     if (startupStatus != UA_STATUSCODE_GOOD) {
         std::fprintf(stderr, "ERROR failed to start the endpoint on port %u: %s\n",
@@ -300,6 +306,7 @@ int main(int argc, char *argv[])
     app.exec();
 
     iterateTimer.stop();
+    delete rules;
     delete simulation;
     UA_Server_run_shutdown(server);
     UA_Server_delete(server);

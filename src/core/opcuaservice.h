@@ -21,6 +21,7 @@
 #include <QUrl>
 #include <QVariantMap>
 
+#include "clonebrowser.h"
 #include "opcuanodedata.h"
 #include "opcuavaluedata.h"
 #include "opcuavaluetree.h"
@@ -111,6 +112,12 @@ public slots:
     void unsubscribeNode(const QString &nodeId);
     /** Writes \a value to the value attribute of \a nodeId. */
     void writeNodeValue(const QString &nodeId, const QVariant &value);
+    /**
+     * Recursively browses the subtree under \a rootNodeId, reading variable
+     * values, and emits cloneSnapshotReady() for \a requestId. Used to clone a
+     * real server's whole address space into a server project.
+     */
+    void browseForClone(const QString &rootNodeId, quint64 requestId);
 
 signals:
     /** Emitted when available backend plugin names change. */
@@ -149,6 +156,15 @@ signals:
     void monitoredValueChanged(const OpcUaValueUpdate &update);
     /** Emitted when a write to \a nodeId finishes; \a error is set on failure. */
     void writeCompleted(const QString &nodeId, bool success, const QString &error);
+
+    /**
+     * Emitted when a clone browse for \a requestId finishes. \a nodes is the
+     * captured address space, \a namespaceUris the server's NamespaceArray,
+     * \a success whether anything was captured, and \a truncated whether the
+     * node cap stopped the browse early.
+     */
+    void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
+                            const QStringList &namespaceUris, bool success, bool truncated);
 
 private slots:
     /** Applies a FindServers result for \a requestUrl. */

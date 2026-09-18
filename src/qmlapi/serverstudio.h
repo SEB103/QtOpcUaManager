@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVariantMap>
 
+#include "core/clonebrowser.h"
 #include "serverproject/serverprojectdata.h"
 #include "serverruntimecontroller.h"
 
@@ -51,6 +52,9 @@ class ServerStudio : public QObject
     Q_PROPERTY(QStringList simulationKindNames READ simulationKindNames CONSTANT)
     Q_PROPERTY(QStringList enumTypeNames READ enumTypeNames NOTIFY enumsChanged)
     Q_PROPERTY(QVariantList enumTypes READ enumTypes NOTIFY enumsChanged)
+    Q_PROPERTY(QVariantList rules READ rules NOTIFY rulesChanged)
+    Q_PROPERTY(QStringList variableNodeIds READ variableNodeIds NOTIFY nodesChanged)
+    Q_PROPERTY(QStringList ruleValueModeNames READ ruleValueModeNames CONSTANT)
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId WRITE setSelectedNodeId
                    NOTIFY selectedNodeChanged)
     Q_PROPERTY(QVariantMap selectedNode READ selectedNode NOTIFY selectedNodeChanged)
@@ -98,6 +102,9 @@ public:
     QStringList simulationKindNames() const;
     QStringList enumTypeNames() const;
     QVariantList enumTypes() const;
+    QVariantList rules() const;
+    QStringList variableNodeIds() const;
+    QStringList ruleValueModeNames() const;
     QString selectedNodeId() const { return m_selectedNodeId; }
     void setSelectedNodeId(const QString &nodeId);
     QVariantMap selectedNode() const;
@@ -125,11 +132,17 @@ public:
     Q_INVOKABLE bool importNodeSet(const QString &path);
 
     /**
-     * Clones the currently browsed address space of the connected client into a
-     * new server project (structure and data types; values default). The user
-     * browses the areas of interest in the client first.
+     * Starts cloning the connected server's whole Objects address space into a
+     * new server project. The worker recursively browses the server and reads
+     * every variable's value (scalars and arrays). When \a preserveOriginalIds
+     * is true the original namespace URIs and node identifiers are kept;
+     * otherwise nodes are renamed to a single clone namespace by browse path.
+     *
+     * The clone is asynchronous: this returns whether the request was started;
+     * the project is built when the browse completes (a notification reports the
+     * outcome).
      */
-    Q_INVOKABLE bool cloneFromClient();
+    Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds);
 
     // Address-space editing.
     /** Adds a folder under \a parentNodeId (empty = Objects root); returns its id. */
@@ -164,6 +177,29 @@ public:
 
     /** Removes the enum type \a enumName and clears variables that referenced it. */
     Q_INVOKABLE void removeEnumType(const QString &enumName);
+
+    // Behavior rules.
+    /** Adds a rule triggered by writes to \a triggerNodeId; returns its index. */
+    Q_INVOKABLE int addRule(const QString &triggerNodeId);
+
+    /** Removes the rule at \a index. */
+    Q_INVOKABLE void removeRule(int index);
+
+    /** Sets the trigger variable of the rule at \a index. */
+    Q_INVOKABLE void setRuleTrigger(int index, const QString &triggerNodeId);
+
+    /** Adds an action writing \a targetNodeId to the rule at \a ruleIndex. */
+    Q_INVOKABLE void addRuleAction(int ruleIndex, const QString &targetNodeId);
+
+    /** Removes action \a actionIndex from the rule at \a ruleIndex. */
+    Q_INVOKABLE void removeRuleAction(int ruleIndex, int actionIndex);
+
+    /**
+     * Applies \a fields to action \a actionIndex of rule \a ruleIndex. Recognized
+     * keys: targetNodeId, valueMode ("Literal"/"CopyTrigger"), literalValue (a
+     * string parsed to the target's data type) and delayMs.
+     */
+    Q_INVOKABLE void updateRuleAction(int ruleIndex, int actionIndex, const QVariantMap &fields);
 
     // Security editing.
     /** Returns the security configuration as a map for the security panel. */
@@ -219,6 +255,8 @@ signals:
     void selectedNodeChanged();
     void securityChanged();
     void enumsChanged();
+    void rulesChanged();
+    void nodesChanged();
     void notification(int level, const QString &message);
     void openInClientRequested();
 
@@ -243,6 +281,15 @@ private:
 
     /** Writes the current project to a snapshot file for the runtime; empty on error. */
     QString writeRuntimeSnapshot();
+
+    /**
+     * Builds a cloned project from the worker's clone result and adopts it.
+     * \a nodes is the captured address space, \a namespaceUris the server's
+     * NamespaceArray (for the preserve-ids mode), \a truncated whether the node
+     * cap stopped the browse.
+     */
+    void applyCloneSnapshot(const QList<CloneNode> &nodes, const QStringList &namespaceUris,
+                            bool success, bool truncated);
 
     /** Returns the independent server PKI directory used by the runtime. */
     QString serverPkiDir() const;
@@ -276,6 +323,12 @@ private:
 
     /** Node id currently selected in the editor. */
     QString m_selectedNodeId;
+
+    /** Whether the pending clone should preserve original node ids and namespaces. */
+    bool m_clonePreserveIds = false;
+
+    /** Whether a clone browse is currently in flight. */
+    bool m_cloneInProgress = false;
 };
 
 #endif // SERVERSTUDIO_H

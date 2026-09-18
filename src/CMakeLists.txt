@@ -5,6 +5,8 @@ target_sources(OpcUaCore
     PRIVATE
         core/apppaths.cpp
         core/apppaths.h
+        core/clonebrowser.cpp
+        core/clonebrowser.h
         core/diagnosticslevel.h
         core/opcuaaccesslevel.h
         core/opcuanodedata.h

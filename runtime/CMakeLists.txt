@@ -42,6 +42,8 @@ qt_add_executable(OpcUaServerRuntime
     diagnosticsserver.h
     projectbuilder.cpp
     projectbuilder.h
+    ruleengine.cpp
+    ruleengine.h
     securitysetup.cpp
     securitysetup.h
     simulationengine.cpp

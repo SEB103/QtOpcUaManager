@@ -20,6 +20,7 @@
 
 using ServerProject::Node;
 using ServerProject::NodeKind;
+using ServerProject::Rule;
 
 namespace {
 
@@ -121,6 +122,13 @@ ServerStudio::~ServerStudio() = default;
 void ServerStudio::setOpcUaManager(OpcUaManager *manager)
 {
     m_opcUaManager = manager;
+    if (m_opcUaManager) {
+        connect(m_opcUaManager, &OpcUaManager::cloneSnapshotReady, this,
+                [this](quint64 /*requestId*/, const QList<CloneNode> &nodes,
+                       const QStringList &namespaceUris, bool success, bool truncated) {
+                    applyCloneSnapshot(nodes, namespaceUris, success, truncated);
+                });
+    }
 }
 
 // --- Runtime lifecycle accessors -------------------------------------------
@@ -317,6 +325,131 @@ void ServerStudio::removeEnumType(const QString &enumName)
     emit selectedNodeChanged();
 }
 
+// --- Behavior rules ---------------------------------------------------------
+
+QVariantList ServerStudio::rules() const
+{
+    QVariantList list;
+    for (const ServerProject::Rule &rule : m_project.rules) {
+        QVariantMap map;
+        map["triggerNodeId"] = rule.triggerNodeId;
+        QVariantList actions;
+        for (const ServerProject::RuleAction &action : rule.actions) {
+            QVariantMap actionMap;
+            actionMap["targetNodeId"] = action.targetNodeId;
+            actionMap["valueMode"] = ServerProject::ruleValueModeToString(action.valueMode);
+            actionMap["literalValue"] = initialValueToText(action.literalValue);
+            actionMap["delayMs"] = action.delayMs;
+            actions.append(actionMap);
+        }
+        map["actions"] = actions;
+        list.append(map);
+    }
+    return list;
+}
+
+QStringList ServerStudio::variableNodeIds() const
+{
+    QStringList ids;
+    for (const Node &node : m_project.nodes) {
+        if (node.isVariable())
+            ids.append(node.nodeId);
+    }
+    return ids;
+}
+
+QStringList ServerStudio::ruleValueModeNames() const
+{
+    return {QStringLiteral("Literal"), QStringLiteral("CopyTrigger")};
+}
+
+int ServerStudio::addRule(const QString &triggerNodeId)
+{
+    if (!m_hasProject)
+        return -1;
+    ServerProject::Rule rule;
+    rule.triggerNodeId = triggerNodeId;
+    m_project.rules.append(rule);
+    setDirty(true);
+    emit rulesChanged();
+    return int(m_project.rules.size()) - 1;
+}
+
+void ServerStudio::removeRule(int index)
+{
+    if (index < 0 || index >= m_project.rules.size())
+        return;
+    m_project.rules.removeAt(index);
+    setDirty(true);
+    emit rulesChanged();
+}
+
+void ServerStudio::setRuleTrigger(int index, const QString &triggerNodeId)
+{
+    if (index < 0 || index >= m_project.rules.size())
+        return;
+    m_project.rules[index].triggerNodeId = triggerNodeId;
+    setDirty(true);
+    emit rulesChanged();
+}
+
+void ServerStudio::addRuleAction(int ruleIndex, const QString &targetNodeId)
+{
+    if (ruleIndex < 0 || ruleIndex >= m_project.rules.size())
+        return;
+    ServerProject::RuleAction action;
+    action.targetNodeId = targetNodeId;
+    // Seed the literal with the target's typed zero so a Literal write is well
+    // formed even before the user edits it.
+    const Node *target = findNode(targetNodeId);
+    if (target && target->isVariable())
+        action.literalValue = scalarFromText(target->dataType, QString());
+    m_project.rules[ruleIndex].actions.append(action);
+    setDirty(true);
+    emit rulesChanged();
+}
+
+void ServerStudio::removeRuleAction(int ruleIndex, int actionIndex)
+{
+    if (ruleIndex < 0 || ruleIndex >= m_project.rules.size())
+        return;
+    QList<ServerProject::RuleAction> &actions = m_project.rules[ruleIndex].actions;
+    if (actionIndex < 0 || actionIndex >= actions.size())
+        return;
+    actions.removeAt(actionIndex);
+    setDirty(true);
+    emit rulesChanged();
+}
+
+void ServerStudio::updateRuleAction(int ruleIndex, int actionIndex, const QVariantMap &fields)
+{
+    if (ruleIndex < 0 || ruleIndex >= m_project.rules.size())
+        return;
+    QList<ServerProject::RuleAction> &actions = m_project.rules[ruleIndex].actions;
+    if (actionIndex < 0 || actionIndex >= actions.size())
+        return;
+    ServerProject::RuleAction &action = actions[actionIndex];
+
+    if (fields.contains(QStringLiteral("targetNodeId")))
+        action.targetNodeId = fields.value(QStringLiteral("targetNodeId")).toString();
+    if (fields.contains(QStringLiteral("valueMode"))) {
+        action.valueMode = ServerProject::ruleValueModeFromString(
+            fields.value(QStringLiteral("valueMode")).toString());
+    }
+    if (fields.contains(QStringLiteral("delayMs")))
+        action.delayMs = fields.value(QStringLiteral("delayMs")).toDouble();
+    if (fields.contains(QStringLiteral("literalValue"))) {
+        // Parse to the target's type so "false"/"0" become a typed value the
+        // runtime writes correctly (a bare QVariant string would mis-coerce).
+        const Node *target = findNode(action.targetNodeId);
+        const QString type = target ? target->dataType : QStringLiteral("Double");
+        action.literalValue =
+            scalarFromText(type, fields.value(QStringLiteral("literalValue")).toString());
+    }
+    setDirty(true);
+    emit rulesChanged();
+}
+
 void ServerStudio::setSelectedNodeId(const QString &nodeId)
 {
     if (m_selectedNodeId == nodeId)
@@ -391,6 +524,7 @@ void ServerStudio::newProject(const QString &displayName)
     setDirty(true);
     emit projectChanged();
     emit enumsChanged();
+    emit rulesChanged();
     emit securityChanged();
     emit selectedNodeChanged();
 }
@@ -414,6 +548,7 @@ bool ServerStudio::openProject(const QString &path)
     refreshModel();
     emit projectChanged();
     emit enumsChanged();
+    emit rulesChanged();
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
@@ -467,6 +602,7 @@ void ServerStudio::closeProject()
     refreshModel();
     emit projectChanged();
     emit enumsChanged();
+    emit rulesChanged();
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
@@ -508,12 +644,16 @@ bool ServerStudio::importNodeSet(const QString &path)
         m_project.namespaces = result.namespaces;
     m_project.enumTypes = result.enumTypes;
     m_project.nodes = result.nodes;
+    // The imported file replaces the address space, so any prior rules would
+    // dangle; drop them.
+    m_project.rules.clear();
     m_selectedNodeId.clear();
 
     refreshModel();
     setDirty(true);
     emit projectChanged();
     emit enumsChanged();
+    emit rulesChanged();
     emit selectedNodeChanged();
 
     if (result.skippedCount > 0) {
@@ -552,30 +692,76 @@ bool ServerStudio::importNodeSet(const QString &path)
     return true;
 }
 
-bool ServerStudio::cloneFromClient()
+bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
 {
-    if (!m_opcUaManager || !m_opcUaManager->treeModel()) {
+    if (!m_opcUaManager) {
         emit notification(Diagnostics::Error, tr("No OPC UA client is available."));
         return false;
     }
-
-    const QList<OpcUaModel::SnapshotNode> snapshot =
-        m_opcUaManager->treeModel()->snapshotUnder(QStringLiteral("ns=0;i=85"));
-    if (snapshot.isEmpty()) {
-        emit notification(Diagnostics::Warning,
-                          tr("Browse the server's Objects in the client before cloning."));
+    if (m_cloneInProgress) {
+        emit notification(Diagnostics::Warning, tr("A clone is already in progress."));
         return false;
+    }
+
+    m_clonePreserveIds = preserveOriginalIds;
+    m_cloneInProgress = true;
+    emit notification(Diagnostics::Info, tr("Cloning the server address space…"));
+    m_opcUaManager->requestCloneSnapshot();
+    return true;
+}
+
+void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
+                                      const QStringList &namespaceUris, bool success, bool truncated)
+{
+    m_cloneInProgress = false;
+
+    if (!success || nodes.isEmpty()) {
+        emit notification(Diagnostics::Warning,
+                          tr("Nothing was cloned. Connect to a server and try again."));
+        return;
     }
 
     ServerProject::ProjectData project;
     project.displayName = tr("Cloned Server");
-    project.namespaces.append({QStringLiteral("urn:opcuamanager:clone")});
+
+    // In preserve-ids mode, map each original namespace index used by the nodes
+    // to a project namespace slot, keeping the original URI. Otherwise, all nodes
+    // live in a single synthetic clone namespace.
+    QHash<quint16, quint16> nsIndexMap; // original ns index -> project ns index (1..N)
+    if (m_clonePreserveIds) {
+        for (const CloneNode &source : nodes) {
+            const ServerProject::ParsedNodeId parsed = ServerProject::parseNodeId(source.nodeId);
+            if (!parsed.valid || parsed.ns == 0 || nsIndexMap.contains(parsed.ns))
+                continue;
+            const QString uri = parsed.ns < namespaceUris.size()
+                                    ? namespaceUris.at(parsed.ns)
+                                    : QStringLiteral("urn:opcuamanager:clone-ns%1").arg(parsed.ns);
+            project.namespaces.append({uri});
+            nsIndexMap.insert(parsed.ns, static_cast<quint16>(project.namespaces.size()));
+        }
+    } else {
+        project.namespaces.append({QStringLiteral("urn:opcuamanager:clone")});
+    }
+
+    // Remaps an original node id to the project namespace, preserving the
+    // identifier (preserve-ids mode only).
+    const auto remapId = [&nsIndexMap](const QString &originalId) -> QString {
+        const ServerProject::ParsedNodeId parsed = ServerProject::parseNodeId(originalId);
+        if (!parsed.valid)
+            return originalId;
+        const quint16 ns = parsed.ns == 0 ? 0 : nsIndexMap.value(parsed.ns, parsed.ns);
+        return QStringLiteral("ns=%1;%2=%3")
+            .arg(ns)
+            .arg(parsed.numeric ? QLatin1Char('i') : QLatin1Char('s'))
+            .arg(parsed.identifier);
+    };
 
     QHash<QString, QString> idMap;   // original node id -> cloned node id
-    QHash<QString, QString> pathMap; // original node id -> browse-name path
+    QHash<QString, QString> pathMap; // original node id -> browse-name path (slug mode)
     QSet<QString> usedIds;
-    for (const OpcUaModel::SnapshotNode &source : snapshot) {
-        // Only folders/objects and variables are cloneable; skip methods, types.
+
+    for (const CloneNode &source : nodes) {
+        // Only folders/objects and variables are cloneable.
         constexpr int kObject = 1;
         constexpr int kVariable = 2;
         if (source.nodeClass != kObject && source.nodeClass != kVariable)
@@ -583,18 +769,23 @@ bool ServerStudio::cloneFromClient()
 
         const QString segment = slug(source.browseName.isEmpty() ? source.displayName
                                                                  : source.browseName);
-        const QString parentPath =
-            source.parentNodeId.isEmpty() ? QString() : pathMap.value(source.parentNodeId);
-        const QString path = parentPath.isEmpty() ? segment
-                                                  : (parentPath + QLatin1Char('.') + segment);
 
-        QString nodeId = QStringLiteral("ns=1;s=%1").arg(path);
-        int suffix = 2;
-        while (usedIds.contains(nodeId))
-            nodeId = QStringLiteral("ns=1;s=%1_%2").arg(path).arg(suffix++);
-        usedIds.insert(nodeId);
+        QString nodeId;
+        if (m_clonePreserveIds) {
+            nodeId = remapId(source.nodeId);
+        } else {
+            const QString parentPath =
+                source.parentNodeId.isEmpty() ? QString() : pathMap.value(source.parentNodeId);
+            const QString path =
+                parentPath.isEmpty() ? segment : (parentPath + QLatin1Char('.') + segment);
+            nodeId = QStringLiteral("ns=1;s=%1").arg(path);
+            int suffix = 2;
+            while (usedIds.contains(nodeId))
+                nodeId = QStringLiteral("ns=1;s=%1_%2").arg(path).arg(suffix++);
+            usedIds.insert(nodeId);
+            pathMap.insert(source.nodeId, path);
+        }
         idMap.insert(source.nodeId, nodeId);
-        pathMap.insert(source.nodeId, path);
 
         Node node;
         node.nodeId = nodeId;
@@ -606,16 +797,19 @@ bool ServerStudio::cloneFromClient()
             node.kind = NodeKind::Variable;
             node.dataType = dataTypeIdToBuiltin(source.dataTypeId);
             node.valueRank = source.valueRank >= 1 ? 1 : -1;
-            node.writable = false;
-            // Carry the client's current value for monitored scalar variables so
-            // the clone reproduces realistic data; fall back to the type default
-            // when no live value is known. Arrays keep the default for now.
-            QString currentText;
-            if (node.valueRank != 1 && m_opcUaManager->dataModel())
-                currentText = m_opcUaManager->dataModel()->currentValueForNode(source.nodeId);
-            node.initialValue = node.valueRank == 1
-                                    ? QVariant(QVariantList())
-                                    : scalarFromText(node.dataType, currentText);
+            // Writable by default so the cloned server can be edited/exercised.
+            node.writable = true;
+            // Coerce the captured value to the built-in type, keeping it JSON-safe
+            // (an ExtensionObject or custom type falls back to the type default).
+            if (node.valueRank == 1) {
+                QVariantList out;
+                const QVariantList elements = source.value.toList();
+                for (const QVariant &element : elements)
+                    out.append(scalarFromText(node.dataType, element.toString()));
+                node.initialValue = out;
+            } else {
+                node.initialValue = scalarFromText(node.dataType, source.value.toString());
+            }
         } else {
             node.kind = source.isFolder ? NodeKind::Folder : NodeKind::Object;
         }
@@ -630,10 +824,18 @@ bool ServerStudio::cloneFromClient()
     setDirty(true);
     emit projectChanged();
     emit enumsChanged();
+    emit rulesChanged();
+    emit securityChanged();
     emit selectedNodeChanged();
-    emit notification(Diagnostics::Info,
-                      tr("Cloned %1 node(s) from the client.").arg(project.nodes.size()));
-    return true;
+
+    if (truncated) {
+        emit notification(Diagnostics::Warning,
+                          tr("Cloned %1 node(s); the address space was large and was truncated.")
+                              .arg(project.nodes.size()));
+    } else {
+        emit notification(Diagnostics::Info,
+                          tr("Cloned %1 node(s) from the server.").arg(project.nodes.size()));
+    }
 }
 
 // --- Address-space editing --------------------------------------------------
@@ -788,12 +990,32 @@ void ServerStudio::removeNode(const QString &nodeId)
     }
     m_project.nodes = kept;
 
+    // Drop rules that reference a removed node so no rule dangles: prune removed
+    // action targets, then drop any rule whose trigger is gone or that has no
+    // actions left.
+    bool rulesTouched = false;
+    for (int i = m_project.rules.size() - 1; i >= 0; --i) {
+        Rule &rule = m_project.rules[i];
+        const qsizetype before = rule.actions.size();
+        rule.actions.removeIf([&toRemove](const ServerProject::RuleAction &action) {
+            return toRemove.contains(action.targetNodeId);
+        });
+        if (rule.actions.size() != before)
+            rulesTouched = true;
+        if (toRemove.contains(rule.triggerNodeId) || rule.actions.isEmpty()) {
+            m_project.rules.removeAt(i);
+            rulesTouched = true;
+        }
+    }
+
     if (toRemove.contains(m_selectedNodeId))
         m_selectedNodeId.clear();
 
     refreshModel();
     setDirty(true);
     emit selectedNodeChanged();
+    if (rulesTouched)
+        emit rulesChanged();
 }
 
 // --- Security editing -------------------------------------------------------
@@ -1002,6 +1224,7 @@ void ServerStudio::setDirty(bool dirty)
 void ServerStudio::refreshModel()
 {
     m_nodeModel->setNodes(m_project.nodes);
+    emit nodesChanged();
 }
 
 QVariant ServerStudio::parseInitialValue(const QString &dataType, int valueRank, const QString &text)

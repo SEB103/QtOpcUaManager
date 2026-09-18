@@ -34,6 +34,15 @@ private slots:
     /*! Disabling anonymous access with no user accounts is reported. */
     void rejectsNoAuthenticationMethod();
 
+    /*! A rule whose trigger and targets are variables validates cleanly. */
+    void acceptsValidRule();
+
+    /*! A rule triggering on a non-variable node is reported. */
+    void rejectsRuleWithNonVariableTrigger();
+
+    /*! A rule writing a missing target node is reported. */
+    void rejectsRuleWithMissingTarget();
+
 private:
     /*! Returns a minimal valid project with a folder and one scalar variable. */
     static ProjectData makeValidProject();
@@ -115,6 +124,43 @@ void ServerProjectValidatorTest::rejectsNoAuthenticationMethod()
     ProjectData data = makeValidProject();
     data.security.allowAnonymous = false;
     data.security.users.clear();
+    const Validator::Result result = Validator::validate(data);
+    QVERIFY(!result.ok);
+}
+
+void ServerProjectValidatorTest::acceptsValidRule()
+{
+    ProjectData data = makeValidProject();
+    Rule rule;
+    rule.triggerNodeId = QStringLiteral("ns=1;s=Test.Value");
+    rule.actions.append({QStringLiteral("ns=1;s=Test.Value"), RuleValueMode::CopyTrigger,
+                         QVariant(), 0.0});
+    data.rules.append(rule);
+    const Validator::Result result = Validator::validate(data);
+    QVERIFY2(result.ok, qPrintable(result.errors.join(QLatin1String("; "))));
+}
+
+void ServerProjectValidatorTest::rejectsRuleWithNonVariableTrigger()
+{
+    ProjectData data = makeValidProject();
+    Rule rule;
+    // The Test folder is not a variable, so it cannot be a trigger.
+    rule.triggerNodeId = QStringLiteral("ns=1;s=Test");
+    rule.actions.append({QStringLiteral("ns=1;s=Test.Value"), RuleValueMode::CopyTrigger,
+                         QVariant(), 0.0});
+    data.rules.append(rule);
+    const Validator::Result result = Validator::validate(data);
+    QVERIFY(!result.ok);
+}
+
+void ServerProjectValidatorTest::rejectsRuleWithMissingTarget()
+{
+    ProjectData data = makeValidProject();
+    Rule rule;
+    rule.triggerNodeId = QStringLiteral("ns=1;s=Test.Value");
+    rule.actions.append({QStringLiteral("ns=1;s=Missing"), RuleValueMode::Literal,
+                         QVariant(1), 0.0});
+    data.rules.append(rule);
     const Validator::Result result = Validator::validate(data);
     QVERIFY(!result.ok);
 }

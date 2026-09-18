@@ -29,6 +29,7 @@ Validator::Result Validator::validate(const ProjectData &data)
     }
 
     QSet<QString> seenNodeIds;
+    QSet<QString> variableNodeIds;
     for (const Node &node : data.nodes) {
         const QString label = node.nodeId.isEmpty()
                                   ? QStringLiteral("<node with empty id>")
@@ -60,6 +61,7 @@ Validator::Result Validator::validate(const ProjectData &data)
             result.errors.append(QStringLiteral("Node '%1' has an empty browse name.").arg(label));
 
         if (node.kind == NodeKind::Variable) {
+            variableNodeIds.insert(node.nodeId);
             if (!node.enumTypeId.isEmpty()) {
                 if (!enumTypeIds.contains(node.enumTypeId)) {
                     result.errors.append(
@@ -105,6 +107,34 @@ Validator::Result Validator::validate(const ProjectData &data)
                     .arg(node.nodeId.isEmpty() ? QStringLiteral("<node with empty id>")
                                                : node.nodeId,
                          node.parentNodeId));
+        }
+    }
+
+    // Behavior rules: the trigger and every action target must be an existing
+    // variable node (values are only written to variables), and a delay cannot
+    // be negative.
+    for (int i = 0; i < data.rules.size(); ++i) {
+        const Rule &rule = data.rules.at(i);
+        const QString ruleLabel = rule.triggerNodeId.isEmpty()
+                                      ? QStringLiteral("<rule %1>").arg(i + 1)
+                                      : rule.triggerNodeId;
+        if (!variableNodeIds.contains(rule.triggerNodeId)) {
+            result.errors.append(
+                QStringLiteral("Rule '%1' triggers on '%2', which is not a variable node.")
+                    .arg(ruleLabel, rule.triggerNodeId));
+        }
+        if (rule.actions.isEmpty())
+            result.errors.append(QStringLiteral("Rule '%1' has no actions.").arg(ruleLabel));
+        for (const RuleAction &action : rule.actions) {
+            if (!variableNodeIds.contains(action.targetNodeId)) {
+                result.errors.append(
+                    QStringLiteral("Rule '%1' writes '%2', which is not a variable node.")
+                        .arg(ruleLabel, action.targetNodeId));
+            }
+            if (action.delayMs < 0.0) {
+                result.errors.append(
+                    QStringLiteral("Rule '%1' has an action with a negative delay.").arg(ruleLabel));
+            }
         }
     }
 

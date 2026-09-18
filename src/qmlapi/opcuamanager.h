@@ -10,6 +10,7 @@
 #include <QVariantMap>
 #include <memory>
 
+#include "core/clonebrowser.h"
 #include "core/diagnosticslevel.h"
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
@@ -266,6 +267,12 @@ public:
 
     /** Refreshes the owned models' tr()-built text after a UI language switch. */
     void retranslate();
+
+    /**
+     * Requests a recursive clone browse of the connected server's Objects
+     * subtree on the worker service. The result arrives via cloneSnapshotReady().
+     */
+    void requestCloneSnapshot();
 
     /** Returns the owned Data Access View table model exposed to QML. */
     DataAccessModel *dataModel() const;
@@ -643,6 +650,15 @@ signals:
     void unsubscribeNodeRequested(const QString &nodeId);
     /** Requests writing \a value to \a nodeId on the worker service. */
     void writeValueRequested(const QString &nodeId, const QVariant &value);
+    /** Requests a recursive clone browse under \a rootNodeId for \a requestId. */
+    void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId);
+    /**
+     * Relays the worker service's clone result to GUI consumers (Server Studio).
+     * \a nodes is the captured address space, \a namespaceUris the server's
+     * NamespaceArray, \a truncated whether the node cap stopped the browse.
+     */
+    void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
+                            const QStringList &namespaceUris, bool success, bool truncated);
 
 public slots:
     /** Applies available backend plugin names received from the worker service. */

@@ -753,6 +753,181 @@ Pane {
             }
         }
 
+        // Behavior rules: reproduce request/response handshakes the client expects.
+        Frame {
+            visible: cppServerStudio.hasProject
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 6
+
+                Label {
+                    text: qsTr("Behavior rules")
+                    font.bold: true
+                    color: Material.foreground
+                }
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    font.pixelSize: 12
+                    opacity: 0.7
+                    color: Material.foreground
+                    text: qsTr("When a client writes the trigger variable, the actions write their "
+                               + "targets. Use \"CopyTrigger\" to echo the written value (e.g. "
+                               + "PageRequest → PageResponse), and a delay to pulse a value back.")
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    ComboBox {
+                        id: newRuleTrigger
+                        Layout.preferredWidth: 240
+                        model: cppServerStudio.variableNodeIds
+                    }
+                    Button {
+                        text: qsTr("Add rule")
+                        enabled: newRuleTrigger.currentText.length > 0
+                        onClicked: cppServerStudio.addRule(newRuleTrigger.currentText)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                Label {
+                    visible: cppServerStudio.rules.length === 0
+                    text: qsTr("No rules defined.")
+                    color: Material.foreground
+                    opacity: 0.6
+                }
+
+                Repeater {
+                    model: cppServerStudio.rules
+
+                    delegate: Frame {
+                        id: ruleRow
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        padding: 6
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 6
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Label {
+                                    text: qsTr("When written:")
+                                    color: Material.foreground
+                                }
+                                ComboBox {
+                                    Layout.preferredWidth: 240
+                                    model: cppServerStudio.variableNodeIds
+                                    currentIndex: cppServerStudio.variableNodeIds.indexOf(
+                                                      ruleRow.modelData.triggerNodeId)
+                                    onActivated: cppServerStudio.setRuleTrigger(ruleRow.index,
+                                                                                currentText)
+                                }
+                                Item { Layout.fillWidth: true }
+                                Button {
+                                    text: qsTr("Remove rule")
+                                    onClicked: cppServerStudio.removeRule(ruleRow.index)
+                                }
+                            }
+
+                            Repeater {
+                                model: ruleRow.modelData.actions
+
+                                delegate: RowLayout {
+                                    id: actionRow
+                                    required property var modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    Label { text: qsTr("→ set"); color: Material.foreground }
+                                    ComboBox {
+                                        Layout.preferredWidth: 200
+                                        model: cppServerStudio.variableNodeIds
+                                        currentIndex: cppServerStudio.variableNodeIds.indexOf(
+                                                          actionRow.modelData.targetNodeId)
+                                        onActivated: cppServerStudio.updateRuleAction(
+                                            ruleRow.index, actionRow.index,
+                                            { "targetNodeId": currentText })
+                                    }
+                                    ComboBox {
+                                        id: modeCombo
+                                        Layout.preferredWidth: 130
+                                        model: cppServerStudio.ruleValueModeNames
+                                        currentIndex: cppServerStudio.ruleValueModeNames.indexOf(
+                                                          actionRow.modelData.valueMode)
+                                        onActivated: cppServerStudio.updateRuleAction(
+                                            ruleRow.index, actionRow.index,
+                                            { "valueMode": currentText })
+                                    }
+                                    TextField {
+                                        Layout.preferredWidth: 100
+                                        visible: modeCombo.currentText === "Literal"
+                                        text: actionRow.modelData.literalValue !== undefined
+                                              ? actionRow.modelData.literalValue : ""
+                                        placeholderText: qsTr("value")
+                                        onEditingFinished: cppServerStudio.updateRuleAction(
+                                            ruleRow.index, actionRow.index,
+                                            { "literalValue": text })
+                                    }
+                                    Label {
+                                        text: qsTr("after")
+                                        color: Material.foreground
+                                        opacity: 0.8
+                                    }
+                                    TextField {
+                                        Layout.preferredWidth: 70
+                                        text: actionRow.modelData.delayMs !== undefined
+                                              ? actionRow.modelData.delayMs : "0"
+                                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onEditingFinished: cppServerStudio.updateRuleAction(
+                                            ruleRow.index, actionRow.index,
+                                            { "delayMs": parseFloat(text) || 0 })
+                                    }
+                                    Label {
+                                        text: qsTr("ms")
+                                        color: Material.foreground
+                                        opacity: 0.8
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    ToolButton {
+                                        text: "✕"
+                                        flat: true
+                                        onClicked: cppServerStudio.removeRuleAction(ruleRow.index,
+                                                                                    actionRow.index)
+                                    }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                ComboBox {
+                                    id: newActionTarget
+                                    Layout.preferredWidth: 200
+                                    model: cppServerStudio.variableNodeIds
+                                }
+                                Button {
+                                    text: qsTr("Add action")
+                                    enabled: newActionTarget.currentText.length > 0
+                                    onClicked: cppServerStudio.addRuleAction(ruleRow.index,
+                                                                             newActionTarget.currentText)
+                                }
+                                Item { Layout.fillWidth: true }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Runtime control bar.
         Frame {
             visible: cppServerStudio.hasProject

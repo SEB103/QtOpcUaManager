@@ -129,6 +129,30 @@ QStringList simulationKindNames()
 }
 
 /*!
+ * \brief Returns the canonical string for \a mode.
+ */
+QString ruleValueModeToString(RuleValueMode mode)
+{
+    switch (mode) {
+    case RuleValueMode::Literal:
+        return QStringLiteral("Literal");
+    case RuleValueMode::CopyTrigger:
+        return QStringLiteral("CopyTrigger");
+    }
+    return QStringLiteral("Literal");
+}
+
+/*!
+ * \brief Parses \a text into a RuleValueMode, defaulting to Literal.
+ */
+RuleValueMode ruleValueModeFromString(const QString &text)
+{
+    if (text == QLatin1String("CopyTrigger"))
+        return RuleValueMode::CopyTrigger;
+    return RuleValueMode::Literal;
+}
+
+/*!
  * \brief Returns the supported built-in scalar data type names.
  */
 QStringList builtinDataTypeNames()

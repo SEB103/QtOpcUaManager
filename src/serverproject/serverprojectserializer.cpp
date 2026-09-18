@@ -132,6 +132,25 @@ QJsonObject Serializer::toJson(const ProjectData &data)
         nodes.append(nodeToJson(node));
     root["nodes"] = nodes;
 
+    QJsonArray rules;
+    for (const Rule &rule : data.rules) {
+        QJsonObject ruleObj;
+        ruleObj["triggerNodeId"] = rule.triggerNodeId;
+        QJsonArray actions;
+        for (const RuleAction &action : rule.actions) {
+            QJsonObject actionObj;
+            actionObj["targetNodeId"] = action.targetNodeId;
+            actionObj["valueMode"] = ruleValueModeToString(action.valueMode);
+            if (action.valueMode == RuleValueMode::Literal && action.literalValue.isValid())
+                actionObj["literalValue"] = QJsonValue::fromVariant(action.literalValue);
+            actionObj["delayMs"] = action.delayMs;
+            actions.append(actionObj);
+        }
+        ruleObj["actions"] = actions;
+        rules.append(ruleObj);
+    }
+    root["rules"] = rules;
+
     QJsonObject security;
     security["allowAnonymous"] = data.security.allowAnonymous;
     security["allowNone"] = data.security.allowNone;
@@ -202,6 +221,27 @@ bool Serializer::fromJson(const QJsonObject &root, ProjectData &data, QString &e
     const QJsonArray nodes = root.value("nodes").toArray();
     for (const QJsonValue &value : nodes)
         data.nodes.append(nodeFromJson(value.toObject()));
+
+    // Rules are optional; older files simply have none.
+    data.rules.clear();
+    const QJsonArray rules = root.value("rules").toArray();
+    for (const QJsonValue &value : rules) {
+        const QJsonObject ruleObj = value.toObject();
+        Rule rule;
+        rule.triggerNodeId = ruleObj.value("triggerNodeId").toString();
+        const QJsonArray actions = ruleObj.value("actions").toArray();
+        for (const QJsonValue &actionValue : actions) {
+            const QJsonObject actionObj = actionValue.toObject();
+            RuleAction action;
+            action.targetNodeId = actionObj.value("targetNodeId").toString();
+            action.valueMode = ruleValueModeFromString(actionObj.value("valueMode").toString());
+            if (actionObj.contains("literalValue"))
+                action.literalValue = actionObj.value("literalValue").toVariant();
+            action.delayMs = actionObj.value("delayMs").toDouble(0.0);
+            rule.actions.append(action);
+        }
+        data.rules.append(rule);
+    }
 
     // The security object is optional; older files fall back to the defaults
     // (anonymous allowed, None endpoint only).

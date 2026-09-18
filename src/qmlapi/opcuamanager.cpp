@@ -271,6 +271,16 @@ OpcUaModel *OpcUaManager::treeModel() const
 }
 
 /*!
+ * \brief Requests a recursive clone browse of the connected server's Objects.
+ */
+void OpcUaManager::requestCloneSnapshot()
+{
+    // The clone always starts at the standard Objects folder; a single clone is
+    // in flight at a time, so the request id is unused.
+    emit cloneBrowseRequested(QStringLiteral("ns=0;i=85"), 0);
+}
+
+/*!
  * \brief Returns the owned focus-segment tree model exposed to QML.
  */
 OpcUaModel *OpcUaManager::focusModel() const
@@ -1578,6 +1588,8 @@ void OpcUaManager::attachService(OpcUaService *service)
             service, &OpcUaService::disconnectFromServer, Qt::QueuedConnection);
     connect(this, &OpcUaManager::browseChildrenRequested,
             service, &OpcUaService::browseChildren, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::cloneBrowseRequested,
+            service, &OpcUaService::browseForClone, Qt::QueuedConnection);
 
     connect(service, &OpcUaService::availableBackendsChanged,
             this, &OpcUaManager::applyAvailableBackends, Qt::QueuedConnection);
@@ -1601,6 +1613,9 @@ void OpcUaManager::attachService(OpcUaService *service)
             this, &OpcUaManager::applyAuthMode, Qt::QueuedConnection);
     connect(service, &OpcUaService::browseChildrenReady,
             this, &OpcUaManager::applyBrowseChildren, Qt::QueuedConnection);
+    // The clone result is relayed straight to GUI consumers (Server Studio).
+    connect(service, &OpcUaService::cloneSnapshotReady,
+            this, &OpcUaManager::cloneSnapshotReady, Qt::QueuedConnection);
 
     // Both the main tree and the focus segment browse through the service. Each
     // model's request is remapped to a manager-global id so the reply is routed

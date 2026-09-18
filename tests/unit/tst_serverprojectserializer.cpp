@@ -30,6 +30,9 @@ private slots:
     /*! A legacy file without acceptAllClientCerts defaults it to true. */
     void legacyFileDefaultsAcceptAllClientCerts();
 
+    /*! Behavior rules and their actions round-trip with mode, literal and delay. */
+    void roundTripPreservesRules();
+
 private:
     /*! Builds a representative project with a folder, scalar and array variable. */
     static ProjectData makeSampleProject();
@@ -90,6 +93,14 @@ ProjectData ServerProjectSerializerTest::makeSampleProject()
     array.writable = false;
     array.initialValue = QVariantList{1.5, 2.5, 3.5};
     data.nodes.append(array);
+
+    Rule rule;
+    rule.triggerNodeId = QStringLiteral("ns=1;s=Test.IntValue");
+    rule.actions.append({QStringLiteral("ns=1;s=Test.Doubles"), RuleValueMode::CopyTrigger,
+                         QVariant(), 0.0});
+    rule.actions.append({QStringLiteral("ns=1;s=Test.IntValue"), RuleValueMode::Literal,
+                         QVariant(7), 150.0});
+    data.rules.append(rule);
 
     return data;
 }
@@ -202,6 +213,35 @@ void ServerProjectSerializerTest::legacyFileDefaultsAcceptAllClientCerts()
     QVERIFY2(result.ok, qPrintable(result.errorString));
     // The convenience default keeps older projects behaving as before.
     QCOMPARE(result.data.security.acceptAllClientCerts, true);
+}
+
+void ServerProjectSerializerTest::roundTripPreservesRules()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("rules.uaserver"));
+
+    const ProjectData original = makeSampleProject();
+    QVERIFY(Serializer::save(path, original).ok);
+    const Serializer::LoadResult loaded = Serializer::load(path);
+    QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
+
+    QCOMPARE(loaded.data.rules.size(), 1);
+    const Rule &rule = loaded.data.rules.first();
+    QCOMPARE(rule.triggerNodeId, QStringLiteral("ns=1;s=Test.IntValue"));
+    QCOMPARE(rule.actions.size(), 2);
+
+    const RuleAction &copy = rule.actions.at(0);
+    QCOMPARE(copy.targetNodeId, QStringLiteral("ns=1;s=Test.Doubles"));
+    QCOMPARE(copy.valueMode, RuleValueMode::CopyTrigger);
+    QVERIFY(!copy.literalValue.isValid());
+    QCOMPARE(copy.delayMs, 0.0);
+
+    const RuleAction &literal = rule.actions.at(1);
+    QCOMPARE(literal.targetNodeId, QStringLiteral("ns=1;s=Test.IntValue"));
+    QCOMPARE(literal.valueMode, RuleValueMode::Literal);
+    QCOMPARE(literal.literalValue.toInt(), 7);
+    QCOMPARE(literal.delayMs, 150.0);
 }
 
 QTEST_GUILESS_MAIN(ServerProjectSerializerTest)

@@ -277,6 +277,58 @@ struct SecurityConfiguration
     bool acceptAllClientCerts = true;
 };
 
+/** How a rule action computes the value it writes to its target variable. */
+enum class RuleValueMode {
+    Literal,    /**< Write the fixed literalValue. */
+    CopyTrigger /**< Write the value the client just wrote to the trigger. */
+};
+
+/** Returns the canonical string for \a mode ("Literal"/"CopyTrigger"). */
+QString ruleValueModeToString(RuleValueMode mode);
+
+/** Parses \a text into a RuleValueMode, defaulting to Literal. */
+RuleValueMode ruleValueModeFromString(const QString &text);
+
+/**
+ * One action performed when a rule fires: write a value to a target variable.
+ *
+ * The value is either the fixed \c literalValue or, in CopyTrigger mode, the
+ * value the client just wrote to the rule's trigger (so PageRequest=X yields
+ * PageResponse=X). A non-zero \c delayMs defers the write, which models a pulse
+ * such as a momentary button acknowledgement.
+ */
+struct RuleAction
+{
+    /** Node id of the variable this action writes. */
+    QString targetNodeId;
+
+    /** Whether the written value is a literal or copied from the trigger. */
+    RuleValueMode valueMode = RuleValueMode::Literal;
+
+    /** Literal value to write when \c valueMode is Literal. */
+    QVariant literalValue;
+
+    /** Delay in milliseconds before the write; 0 writes immediately. */
+    double delayMs = 0.0;
+};
+
+/**
+ * A behavior rule: when a client writes the trigger variable, run its actions.
+ *
+ * This reproduces the request/response handshakes an HMI expects from a PLC
+ * (for example PageRequest -> PageResponse/CurrentPage), which a static
+ * address-space snapshot cannot. Rules are evaluated by the runtime through
+ * OPC UA write value callbacks; the editor only stores them.
+ */
+struct Rule
+{
+    /** Node id of the variable whose client write fires this rule. */
+    QString triggerNodeId;
+
+    /** Actions performed, in order, when the trigger is written. */
+    QList<RuleAction> actions;
+};
+
 /**
  * Full in-memory representation of one .uaserver project.
  *
@@ -302,6 +354,9 @@ struct ProjectData
 
     /** Address-space nodes belonging to the project. */
     QList<Node> nodes;
+
+    /** Behavior rules evaluated by the runtime on client writes. */
+    QList<Rule> rules;
 
     /** Security and authentication configuration. */
     SecurityConfiguration security;

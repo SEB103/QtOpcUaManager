@@ -327,6 +327,47 @@ add_dependencies(tst_serversimulation OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerSimulation.Integration COMMAND tst_serversimulation)
 
+# Integration test that behavior rules write their targets on client writes.
+qt_add_executable(tst_serverrules
+    integration/tst_serverrules.cpp
+)
+
+target_link_libraries(tst_serverrules
+    PRIVATE
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverrules
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverrules OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerRules.Integration COMMAND tst_serverrules)
+
+# Integration test that the recursive clone browser captures the full subtree.
+qt_add_executable(tst_serverclonebrowse
+    integration/tst_serverclonebrowse.cpp
+)
+
+target_link_libraries(tst_serverclonebrowse
+    PRIVATE
+        OpcUaCore
+        ServerProjectCore
+        Qt6::OpcUa
+        Qt6::Test
+)
+
+target_compile_definitions(tst_serverclonebrowse
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_serverclonebrowse OpcUaServerRuntime appOpcUaManager)
+
+add_test(NAME ServerCloneBrowse.Integration COMMAND tst_serverclonebrowse)
+
 # Integration test for custom enumeration data types.
 qt_add_executable(tst_serverenum
     integration/tst_serverenum.cpp
