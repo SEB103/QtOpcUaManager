@@ -31,4 +31,14 @@
 // Project homepage URL.
 #define PRODUCT_HOMEPAGE "@PRODUCT_HOMEPAGE@"
 
+// In-app update-check gate. When false, a check reports "not yet available"
+// without any network access; flip update.enabled in product.json to turn it on.
+#define PRODUCT_UPDATE_ENABLED @PRODUCT_UPDATE_ENABLED_BOOL@
+
+// GitHub Releases API endpoint queried for the latest published version.
+#define PRODUCT_UPDATE_RELEASES_API "@PRODUCT_UPDATE_RELEASES_API@"
+
+// Human-facing releases page opened when a newer version is available.
+#define PRODUCT_UPDATE_RELEASES_PAGE "@PRODUCT_UPDATE_RELEASES_PAGE@"
+
 #endif // PRODUCTINFO_H

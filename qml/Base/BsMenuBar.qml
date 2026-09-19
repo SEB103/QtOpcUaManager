@@ -121,17 +121,24 @@ MenuBar {
 
     /*!
         \qmlsignal BsMenuBar::aboutRequested()
-        Emitted when the user opens the About dialog from the Help menu. The
+        Emitted when the user opens the About dialog from the Info menu. The
         corresponding handler is \c onAboutRequested.
     */
     signal aboutRequested()
 
     /*!
         \qmlsignal BsMenuBar::helpRequested()
-        Emitted when the user opens the offline documentation from the Help menu.
+        Emitted when the user opens the offline documentation from the Info menu.
         The corresponding handler is \c onHelpRequested.
     */
     signal helpRequested()
+
+    /*!
+        \qmlsignal BsMenuBar::checkForUpdatesRequested()
+        Emitted when the user selects "Check for updates" from the Info menu. The
+        corresponding handler is \c onCheckForUpdatesRequested.
+    */
+    signal checkForUpdatesRequested()
 
     /*!
         \qmlsignal BsMenuBar::cloneToServerStudioRequested()
@@ -328,17 +335,13 @@ MenuBar {
         title: qsTr("Info")
 
         MenuItem {
-            text: qsTr("&Info")
-            enabled: false
-        }
-    }
-
-    Menu {
-        title: qsTr("Help")
-
-        MenuItem {
             text: qsTr("&Documentation")
             onTriggered: appMenuBar.helpRequested()
+        }
+
+        MenuItem {
+            text: qsTr("&Check for updates…")
+            onTriggered: appMenuBar.checkForUpdatesRequested()
         }
 
         MenuSeparator {}

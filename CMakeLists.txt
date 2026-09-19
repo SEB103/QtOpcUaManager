@@ -92,6 +92,8 @@ qt_add_executable(appOpcUaManager
     app/licensemodel.h
     app/localecontroller.cpp
     app/localecontroller.h
+    app/updatecontroller.cpp
+    app/updatecontroller.h
 )
 
 # Application-level style configuration and bundled SVG resources.

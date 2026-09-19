@@ -11,6 +11,7 @@
 #include "appcore.h"
 #include "appengine.h"
 #include "localecontroller.h"
+#include "updatecontroller.h"
 #include "core/apppaths.h"
 #include "productinfo.h"
 
@@ -64,6 +65,10 @@ int main(int argc, char *argv[])
     LocaleController localeController(app.settings());
     localeController.applyInitialLanguage();
 
+    // Update checker exposed to QML as cppUpdate. It persists the automatic-check
+    // preference through the same INI store and outlives the engine.
+    UpdateController updateController(app.settings());
+
     QCommandLineParser parser;
     parser.setApplicationDescription(
         QStringLiteral("Qt OPC UA client for browsing and testing OPC UA servers."));
@@ -86,6 +91,7 @@ int main(int argc, char *argv[])
     // to the first objects the engine creates.
     engine.setLocaleController(&localeController);
     localeController.setEngine(&engine);
+    engine.setUpdateController(&updateController);
 
     QObject::connect(
         &engine,

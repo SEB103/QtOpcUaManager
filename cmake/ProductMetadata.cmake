@@ -42,6 +42,19 @@ _opcua_json_get(PRODUCT_COMPONENT_ID          componentId)
 _opcua_json_get(PRODUCT_MAINTENANCE_TOOL_NAME maintenanceToolName)
 _opcua_json_get(PRODUCT_ARTIFACT_BASE         artifactBase)
 
+# In-app update-check source (GitHub Releases). The feature is gated by
+# update.enabled so the network client can ship fully implemented but stay off
+# until the release server is ready. string(JSON) yields ON/OFF for a JSON
+# boolean; normalize it to a C++ bool literal for the generated header.
+_opcua_json_get(PRODUCT_UPDATE_ENABLED        update enabled)
+_opcua_json_get(PRODUCT_UPDATE_RELEASES_API   update releasesApiUrl)
+_opcua_json_get(PRODUCT_UPDATE_RELEASES_PAGE  update releasesPageUrl)
+if(PRODUCT_UPDATE_ENABLED)
+    set(PRODUCT_UPDATE_ENABLED_BOOL "true")
+else()
+    set(PRODUCT_UPDATE_ENABLED_BOOL "false")
+endif()
+
 # Split the semantic version into numeric parts for the Windows VERSIONINFO
 # resource (major,minor,patch,build). Missing components default to 0.
 if(NOT PRODUCT_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")

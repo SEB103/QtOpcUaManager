@@ -33,6 +33,12 @@ Item {
         }
     }
 
+    SignalSpy {
+        id: checkForUpdatesSpy
+
+        signalName: "checkForUpdatesRequested"
+    }
+
     TestCase {
         id: testCase
 
@@ -47,6 +53,14 @@ Item {
             compare(menuBar.darkTheme, false);
             menuBar.darkTheme = true;
             compare(menuBar.darkTheme, true);
+        }
+
+        /*! Verifies that the consolidated Info menu exposes the update-check signal. */
+        function test_menuBarCheckForUpdatesSignal() {
+            const menuBar = createTemporaryObject(menuBarComponent, root);
+            verify(menuBar !== null);
+            checkForUpdatesSpy.target = menuBar;
+            verify(checkForUpdatesSpy.valid);
         }
 
         /*! Verifies that BsOpcUaConnectionForm can be created with its default state. */

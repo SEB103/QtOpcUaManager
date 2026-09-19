@@ -21,6 +21,7 @@
 #include "appinfo.h"
 #include "licensemodel.h"
 #include "localecontroller.h"
+#include "updatecontroller.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
 #include "qmlapi/servernodemodel.h"
@@ -395,6 +396,21 @@ void AppEngine::setLocaleController(LocaleController* controller)
         if (m_opcUaManager)
             m_opcUaManager->retranslate();
     });
+}
+
+/*!
+ * \brief Publishes the update \a controller to QML as \c cppUpdate.
+ *
+ * QML reads the check state through the controller's boolean convenience
+ * properties, so no QML type registration is needed for the Status enum.
+ */
+void AppEngine::setUpdateController(UpdateController* controller)
+{
+    m_updateController = controller;
+    if (!controller)
+        return;
+
+    rootContext()->setContextProperty("cppUpdate", controller);
 }
 
 void AppEngine::createOpcUaRuntime()

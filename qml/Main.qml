@@ -245,6 +245,11 @@ ApplicationWindow {
             aboutDialog.open()
         }
 
+        function onCheckForUpdatesRequested() {
+            cppUpdate.checkNow()
+            updateDialog.open()
+        }
+
         function onHelpRequested() {
             const lang = cppLocale ? cppLocale.currentLanguage : "en"
             const url = cppAppInfo.helpIndexUrl(lang, mainWindow.darkTheme)
@@ -628,6 +633,18 @@ ApplicationWindow {
                 Layout.preferredHeight: 44
                 onClicked: settingsFolderDialog.open()
             }
+
+            // Automatic startup update check; disabled until the update feature is
+            // enabled in the product configuration.
+            Label { text: qsTr("Updates:"); Layout.preferredWidth: 180 }
+            CheckBox {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                text: qsTr("Check for updates automatically on startup")
+                enabled: cppUpdate.featureEnabled
+                checked: cppUpdate.checkAutomatically
+                onToggled: cppUpdate.checkAutomatically = checked
+            }
         }
     }
 
@@ -719,6 +736,28 @@ ApplicationWindow {
         id: aboutDialog
 
         darkTheme: mainWindow.darkTheme
+    }
+
+    UpdateDialog {
+        id: updateDialog
+
+        darkTheme: mainWindow.darkTheme
+    }
+
+    // An automatic startup check surfaces the dialog only when a newer version is
+    // found, so it never interrupts the user when the application is up to date.
+    Connections {
+        target: cppUpdate
+
+        function onStatusChanged() {
+            if (cppUpdate.updateAvailable)
+                updateDialog.open()
+        }
+    }
+
+    Component.onCompleted: {
+        if (cppUpdate.featureEnabled && cppUpdate.checkAutomatically)
+            cppUpdate.checkNow()
     }
 
     // The offline documentation window is created on demand (see onHelpRequested)

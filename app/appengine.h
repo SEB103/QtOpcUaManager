@@ -14,6 +14,7 @@ class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
 class ServerStudio;
+class UpdateController;
 class QThread;
 
 QT_BEGIN_NAMESPACE
@@ -49,6 +50,9 @@ public:
      * C++-side model text when it reports a live language switch.
      */
     void setLocaleController(LocaleController* controller);
+
+    /** Publishes the update \a controller to QML as \c cppUpdate. */
+    void setUpdateController(UpdateController* controller);
 
     /** Returns the filtered application log exposed to QML. */
     LogFilterModel* logModel() const { return m_logFilterModel; }
@@ -89,6 +93,9 @@ private:
 
     /** UI language selector exposed to QML as \c cppLocale; owned by main(). */
     LocaleController* m_localeController = nullptr;
+
+    /** Update checker exposed to QML as \c cppUpdate; owned by main(). */
+    UpdateController* m_updateController = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;
