@@ -1,0 +1,98 @@
+name: Build Qt OPC UA from source
+description: >-
+  Builds the Qt OPC UA module (qtopcua) with its bundled open62541 backend and
+  installs it into an existing Qt prefix. The public Qt online repository does
+  not ship qtopcua binaries for the open-source Windows kits, so the module is
+  compiled from the official Git tag that matches the installed Qt version. The
+  staged install output is cached; on a cache hit only the copy into the Qt
+  prefix runs.
+
+inputs:
+  qt-root:
+    description: Qt installation prefix (e.g. $QT_ROOT_DIR from install-qt-action).
+    required: true
+  qt-version:
+    description: Installed Qt version; used for the Git tag (v<version>) and the cache key.
+    required: true
+  arch:
+    description: Qt kit architecture label used in the cache key.
+    required: false
+    default: win64_msvc2022_64
+  repository:
+    description: Git repository providing the qtopcua sources.
+    required: false
+    default: https://github.com/qt/qtopcua.git
+
+runs:
+  using: composite
+  steps:
+    - name: Locate OpenSSL
+      shell: pwsh
+      run: |
+        # The open62541 security backend (signing/encryption) needs OpenSSL 3.
+        # Prefer an explicit OPENSSL_ROOT_DIR, then the runner image locations.
+        $candidates = @()
+        if ($env:OPENSSL_ROOT_DIR) { $candidates += $env:OPENSSL_ROOT_DIR }
+        $candidates += 'C:\Program Files\OpenSSL', 'C:\Program Files\OpenSSL-Win64'
+        $root = $candidates | Where-Object { Test-Path (Join-Path $_ 'include\openssl\ssl.h') } | Select-Object -First 1
+        if (-not $root) { throw "OpenSSL 3 development files not found in: $($candidates -join ', ')" }
+        Write-Host "OpenSSL root: $root"
+        "OPENSSL_ROOT_DIR=$root" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+    - name: Restore cached Qt OPC UA install
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/qtopcua-install
+        key: qtopcua-v${{ inputs.qt-version }}-${{ inputs.arch }}-${{ hashFiles('.github/actions/build-qtopcua/action.yml') }}
+
+    - name: Fetch qtopcua sources
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        git clone --depth 1 --branch "v${{ inputs.qt-version }}" "${{ inputs.repository }}" "${{ runner.temp }}/qtopcua-src"
+
+    - name: Configure qtopcua
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        # Same configuration as the local developer kit: Ninja, Release, the
+        # bundled open62541 (INPUT_open62541=qt) with security enabled; tests
+        # and examples are skipped. The install prefix is the Qt prefix so the
+        # generated files reference the final location; the actual install
+        # below is redirected to a staging directory for caching.
+        cmake -S "${{ runner.temp }}/qtopcua-src" -B "${{ runner.temp }}/qtopcua-build" -G Ninja `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_PREFIX_PATH="${{ inputs.qt-root }}" `
+          -DCMAKE_INSTALL_PREFIX="${{ inputs.qt-root }}" `
+          -DINPUT_open62541=qt `
+          -DFEATURE_open62541_security=ON `
+          -DQT_BUILD_TESTS=OFF `
+          -DQT_BUILD_EXAMPLES=OFF
+        if ($LASTEXITCODE -ne 0) { throw "qtopcua configure failed" }
+
+    - name: Build qtopcua
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        cmake --build "${{ runner.temp }}/qtopcua-build" --parallel
+        if ($LASTEXITCODE -ne 0) { throw "qtopcua build failed" }
+
+    - name: Stage qtopcua install
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        cmake --install "${{ runner.temp }}/qtopcua-build" --prefix "${{ runner.temp }}/qtopcua-install"
+        if ($LASTEXITCODE -ne 0) { throw "qtopcua install failed" }
+
+    - name: Install qtopcua into the Qt prefix
+      shell: pwsh
+      run: |
+        $staging = "${{ runner.temp }}/qtopcua-install"
+        $qtRoot = "${{ inputs.qt-root }}"
+        Copy-Item -Path (Join-Path $staging '*') -Destination $qtRoot -Recurse -Force
+        foreach ($required in 'lib/cmake/Qt6OpcUa/Qt6OpcUaConfig.cmake', 'plugins/opcua/open62541_backend.dll') {
+          $path = Join-Path $qtRoot $required
+          if (-not (Test-Path $path)) { throw "qtopcua install incomplete: $path missing" }
+        }
+        Write-Host "Qt OPC UA v${{ inputs.qt-version }} installed into $qtRoot"

@@ -28,6 +28,11 @@ env:
   # directory it lands in below $IQTA_TOOLS.
   IFW_TOOL_VARIANT: 'qt.tools.ifw.410'
   IFW_DIR_VERSION: '4.10'
+  # aqtinstall 3.3.0 (the newest PyPI release) cannot read the per-architecture
+  # repository layout Qt introduced with 6.11; the fix (miurahr/aqtinstall#1000)
+  # is only on master, so install-qt-action is pointed at a pinned commit.
+  # Drop AQTINSTALL_SOURCE once a release newer than 3.3.0 is published.
+  AQTINSTALL_SOURCE: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -94,7 +99,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
-          modules: 'qtopcua'
+          aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           cache: true
 
       - name: Set up MSVC
@@ -104,6 +109,14 @@ jobs:
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
+
+      # qtopcua is not part of the public Qt online repository for the
+      # open-source Windows kits: build it from the matching Git tag.
+      - name: Build Qt OPC UA ${{ env.QT_VERSION }} from source
+        uses: ./.github/actions/build-qtopcua
+        with:
+          qt-root: ${{ env.QT_ROOT_DIR }}
+          qt-version: ${{ env.QT_VERSION }}
 
       - name: Configure
         run: >-
@@ -141,7 +154,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
-          modules: 'qtopcua'
+          aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           tools: 'tools_ifw,${{ env.IFW_TOOL_VARIANT }}'
           cache: true
 
@@ -152,6 +165,14 @@ jobs:
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
+
+      # qtopcua is not part of the public Qt online repository for the
+      # open-source Windows kits: build it from the matching Git tag.
+      - name: Build Qt OPC UA ${{ env.QT_VERSION }} from source
+        uses: ./.github/actions/build-qtopcua
+        with:
+          qt-root: ${{ env.QT_ROOT_DIR }}
+          qt-version: ${{ env.QT_VERSION }}
 
       - name: Verify Qt Installer Framework
         id: ifw
