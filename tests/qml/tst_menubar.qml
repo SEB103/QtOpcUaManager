@@ -67,7 +67,7 @@ Item {
         function test_connectionFormCreation() {
             const connectionForm = createTemporaryObject(connectionFormComponent, root);
             verify(connectionForm !== null);
-            compare(connectionForm.validationError, "");
+            compare(connectionForm.usernameRequired, false);
             verify(connectionForm.implicitWidth > 0);
         }
 

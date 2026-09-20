@@ -17,8 +17,13 @@ Rectangle {
     implicitWidth: 900
     implicitHeight: contentColumn.implicitHeight + 20
 
-    /*! Local validation error shown before sending invalid authentication input. */
-    property string validationError: ""
+    /*!
+        Whether the "enter a username" validation error is shown before sending
+        invalid authentication input. Kept as a flag rather than the built
+        message so the text re-translates live on a UI language change (a stored
+        translated string would not).
+    */
+    property bool usernameRequired: false
 
     /*!
         Applies the currently selected authentication mode to \c cppManagerOpcUa.
@@ -26,14 +31,14 @@ Rectangle {
         forwarded; otherwise stores a validation message and returns \c false.
     */
     function applyAuthentication() {
-        root.validationError = "";
+        root.usernameRequired = false;
         switch (authenticationComboBox.currentIndex) {
         case 0:
             cppManagerOpcUa.setAnonymousAuthentication();
             return true;
         case 1:
             if (usernameField.text.trim().length === 0) {
-                root.validationError = qsTr("Enter a username before requesting endpoints or connecting.");
+                root.usernameRequired = true;
                 return false;
             }
             cppManagerOpcUa.setUsernameAuthentication(usernameField.text, passwordField.text);
@@ -202,7 +207,7 @@ Rectangle {
                 Layout.preferredHeight: 44
                 enabled: !cppManagerOpcUa.busy && !cppManagerOpcUa.connected
                 placeholderText: qsTr("Username")
-                onTextChanged: root.validationError = ""
+                onTextChanged: root.usernameRequired = false
             }
 
             Item {
@@ -297,8 +302,10 @@ Rectangle {
 
         Label {
             Layout.fillWidth: true
-            visible: root.validationError.length > 0 || cppManagerOpcUa.lastError.length > 0
-            text: root.validationError.length > 0 ? root.validationError : cppManagerOpcUa.lastError
+            visible: root.usernameRequired || cppManagerOpcUa.lastError.length > 0
+            text: root.usernameRequired
+                  ? qsTr("Enter a username before requesting endpoints or connecting.")
+                  : cppManagerOpcUa.lastError
             color: Material.color(Material.Red)
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
