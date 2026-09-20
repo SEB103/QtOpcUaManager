@@ -99,6 +99,9 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
+          # Qt WebView (help viewer) is an optional aqt module; Qt OPC UA is
+          # built from source below.
+          modules: 'qtwebview'
           aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           cache: true
 
@@ -154,6 +157,9 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
+          # Qt WebView (help viewer) is an optional aqt module; Qt OPC UA is
+          # built from source below.
+          modules: 'qtwebview'
           aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           tools: 'tools_ifw,${{ env.IFW_TOOL_VARIANT }}'
           cache: true
