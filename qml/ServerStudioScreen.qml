@@ -132,7 +132,7 @@ Pane {
             fields["simMax"] = parseFloat(simMaxField.text) || 0
             fields["simStep"] = parseFloat(simStepField.text) || 0
             fields["simPeriod"] = parseFloat(simPeriodField.text) || 10000
-            fields["enumTypeName"] = enumTypeCombo.currentText === "(none)"
+            fields["enumTypeName"] = enumTypeCombo.currentIndex <= 0
                 ? "" : enumTypeCombo.currentText
         }
         cppServerStudio.updateNode(cppServerStudio.selectedNodeId, fields)
@@ -244,11 +244,15 @@ Pane {
                     spacing: 6
                     Button {
                         text: qsTr("+ Folder")
-                        onClicked: cppServerStudio.addFolder(studio.addParentId, qsTr("Folder"))
+                        // The node name is persisted project data, not UI text, so it
+                        // stays a fixed identifier independent of the UI language.
+                        onClicked: cppServerStudio.addFolder(studio.addParentId, "Folder")
                     }
                     Button {
                         text: qsTr("+ Variable")
-                        onClicked: cppServerStudio.addVariable(studio.addParentId, qsTr("Variable"),
+                        // The node name is persisted project data, not UI text, so it
+                        // stays a fixed identifier independent of the UI language.
+                        onClicked: cppServerStudio.addVariable(studio.addParentId, "Variable",
                                                                "Double", -1, true)
                     }
                     Item { Layout.fillWidth: true }
@@ -357,7 +361,7 @@ Pane {
                             id: dataTypeCombo
                             Layout.fillWidth: true
                             visible: cppServerStudio.selectedNode.isVariable === true
-                            enabled: enumTypeCombo.currentText === "(none)"
+                            enabled: enumTypeCombo.currentIndex <= 0
                             model: cppServerStudio.dataTypeNames
                         }
 
@@ -369,7 +373,7 @@ Pane {
                             id: enumTypeCombo
                             Layout.fillWidth: true
                             visible: cppServerStudio.selectedNode.isVariable === true
-                            model: ["(none)"].concat(cppServerStudio.enumTypeNames)
+                            model: [qsTr("(none)")].concat(cppServerStudio.enumTypeNames)
                         }
 
                         Label {
