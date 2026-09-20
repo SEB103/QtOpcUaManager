@@ -243,3 +243,207 @@ than a new installer. In that case change only `displayName` and `installDirName
 in `product.json`; keep `identifier`, `orgDomain`, `exeName` and `componentId`
 unchanged. A second executable (e.g. an OPC UA server) can later be added as a
 `server/` subfolder and its own component. None of this is required today.
+
+---
+
+## 11. Configure release commands in Qt Creator
+
+Qt Creator can expose the complete release pipeline and each individual stage
+under **Tools -> External**. These entries are IDE shortcuts for
+`packaging/release.ps1`; they do not replace or modify the script.
+
+Open the project-level `CMakeLists.txt` in Qt Creator so that
+`%{ActiveProject:Path}` resolves to the project root (the directory containing
+`packaging/`). Then open **Tools -> External -> Configure...**, select
+**Add -> Add Category**, and name the category `OPC UA Manager Release`.
+
+### Common settings
+
+For every tool listed below, select **Add -> Add Tool** and use these common
+values:
+
+| Field | Value |
+|-------|-------|
+| Executable | `powershell.exe` |
+| Working directory | `%{ActiveProject:Path}` |
+| Output | `Show in General Messages` |
+| Error output | `Show in General Messages` |
+| Base environment | `Active Build Environment of the Active Project` |
+| Environment | No changes |
+| Modifies current document | Disabled |
+| Input | Empty |
+
+Use the active project's build environment because the commands also use
+`%{ActiveProject:Path}`. This keeps the script path and inherited toolchain,
+Qt kit, `PATH`, `INCLUDE`, and `LIB` variables tied to the same project. By
+contrast, `Current Build Environment` follows the project that owns the file
+currently open in the editor and can therefore select a different environment
+in a multi-project session. Both choices normally resolve to the same values
+when only one project is open.
+
+The **Description** field is the command name shown in the
+**Tools -> External -> OPC UA Manager Release** menu. The **Input** field is
+standard input (`stdin`) passed to the process; it is not a comment field.
+`release.ps1` does not read standard input, so leave it empty. Qt Creator does
+not provide a separate long-comment field for an external tool; use the
+descriptive command names below and keep detailed explanations in this README.
+
+After adding or changing a tool, select **Apply**. The command then appears
+under **Tools -> External -> OPC UA Manager Release**.
+
+### Complete release commands
+
+The two complete-release commands run every stage in this order:
+
+```text
+Build -> Deploy -> Verify -> PackageInstaller -> PackagePortable -> GenerateRepository
+```
+
+They are the normal commands for producing a distributable release. The theme
+changes only the Qt Installer Framework wizard; it does not change the
+application theme.
+
+#### 01 Full Release - Light
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage All -Theme light
+```
+
+Builds Release binaries and offline documentation, creates and verifies the
+canonical deployment, and produces the light-themed offline installer, portable
+ZIP, and update repository.
+
+#### 02 Full Release - Dark
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage All -Theme dark
+```
+
+Produces the same artifacts as `01 Full Release - Light`, but uses the dark
+installer wizard style.
+
+### Individual stage commands
+
+The commands below are optional shortcuts for rerunning one stage without
+repeating the whole pipeline. A single-stage command does not run its
+prerequisites automatically. Use `01 Full Release - Light` or
+`02 Full Release - Dark` when a complete, fresh release is required.
+
+#### 10 Build Release + Documentation
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage Build
+```
+
+Configures and builds the Release application and server runtime under
+`build/release`, then builds the `docs` target. The generated offline site is
+placed under `build/release/doc/site`. This stage does not create the canonical
+deployment, installer, ZIP, or update repository.
+
+#### 20 Deploy - CMake Install
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage Deploy
+```
+
+Runs `cmake --install` on the existing `build/release` tree and creates the
+self-contained canonical deployment under
+`release/<artifact-name>-<version>/`. This is a distributable application
+folder, not an installation into `Program Files`. Run `10 Build Release +
+Documentation` first whenever binaries or documentation have changed.
+
+#### 30 Verify Deployment
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage Verify
+```
+
+Checks the existing canonical deployment for the application and server
+executables, Qt plugins, OpenSSL, licensing files, offline documentation, and
+Qt WebView runtime, and rejects unwanted debug or development files. Run
+`20 Deploy - CMake Install` first whenever the deployment has changed.
+
+#### 40 Repack Offline Installer - Light
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage PackageInstaller -Theme light
+```
+
+Reuses the existing canonical deployment and creates the light-themed
+`<artifact-name>-<version>-Setup.exe`. It does not rebuild or redeploy the
+application. Use it after installer metadata, scripts, images, or styling have
+changed while the deployment itself remains current.
+
+#### 41 Repack Offline Installer - Dark
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage PackageInstaller -Theme dark
+```
+
+Works like `40 Repack Offline Installer - Light`, but uses the dark installer
+wizard style.
+
+#### 50 Repack Portable ZIP
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage PackagePortable
+```
+
+Reuses the existing canonical deployment, adds the `portable.ini` marker, and
+creates `<artifact-name>-<version>-win64.zip`. It does not rebuild or redeploy
+the application.
+
+#### 60 Regenerate Update Repository
+
+**Arguments:**
+
+```text
+-NoProfile -ExecutionPolicy Bypass -File "%{ActiveProject:Path}/packaging/release.ps1" -Stage GenerateRepository
+```
+
+Reuses the existing canonical deployment and regenerates
+`release/repository/`, including `Updates.xml`. This creates local repository
+files only; it does not upload or publish them. The product's update support is
+currently disabled in `product.json`, and the configured channel URLs must be
+replaced before publishing a real update repository.
+
+### Recommended menu
+
+The resulting Qt Creator menu can be organized as follows:
+
+```text
+Tools
+  External
+    OPC UA Manager Release
+      01 Full Release - Light
+      02 Full Release - Dark
+      10 Build Release + Documentation
+      20 Deploy - CMake Install
+      30 Verify Deployment
+      40 Repack Offline Installer - Light
+      41 Repack Offline Installer - Dark
+      50 Repack Portable ZIP
+      60 Regenerate Update Repository
+```
+
+For an ordinary release, run `01 Full Release - Light` (or the dark variant).
+Use the numbered stage commands only when their prerequisite output is already
+current and only that stage needs to be repeated. All commands read the default
+version from `packaging/product.json`; if the version changes, run a complete
+release or at least repeat `Build` and `Deploy` before repackaging artifacts.
