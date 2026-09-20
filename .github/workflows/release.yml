@@ -1,9 +1,18 @@
 name: Release
 
-# Builds the Canonical Deployment and produces the installer, portable ZIP and
-# update repository via packaging/release.ps1. Runs on version tags and on
-# demand. Artifacts are uploaded to the workflow run (no GitHub Release is
-# created here).
+# Builds the Canonical Deployment with packaging/release.ps1 and produces the
+# hybrid installer, the portable ZIP and the Qt IFW update repository.
+#
+#   - push of a tag vX.Y.Z : the tag must equal packaging/product.json "version";
+#                            tests run, the pipeline runs, the repogen output is
+#                            published to GitHub Pages (updates/stable/) and a
+#                            GitHub Release with the installer + ZIP is created.
+#   - workflow_dispatch     : dry run. Same checks, tests and pipeline; the
+#                            artifacts are only uploaded to the workflow run.
+#                            No Release, no Pages deployment, no version change.
+#
+# Nothing is published unless every earlier job (check, test, build) succeeded.
+# The version is never derived from the tag; product.json is the only source.
 on:
   push:
     tags:
@@ -13,23 +22,79 @@ on:
 permissions:
   contents: read
 
-jobs:
-  windows-release:
-    runs-on: windows-2022
+env:
+  QT_VERSION: '6.11.1'
+  # Qt Installer Framework: exact tool variant installed by aqt (4.10.0) and the
+  # directory it lands in below $IQTA_TOOLS.
+  IFW_TOOL_VARIANT: 'qt.tools.ifw.410'
+  IFW_DIR_VERSION: '4.10'
 
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: the product version must be X.Y.Z and, for a tag build, equal the tag.
+  # Runs before any build so a mismatch fails in seconds and publishes nothing.
+  # ---------------------------------------------------------------------------
+  check:
+    name: Check version and tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      is_release: ${{ steps.meta.outputs.is_release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Qt 6.11.1 + Installer Framework
+      - name: Read product.json and validate the tag
+        id: meta
+        shell: bash
+        run: |
+          version="$(jq -r '.version' packaging/product.json)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::packaging/product.json version '$version' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          is_release=false
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+            tag="$GITHUB_REF_NAME"
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::tag '$tag' is not of the form vX.Y.Z"
+              exit 1
+            fi
+            if [[ "${tag#v}" != "$version" ]]; then
+              echo "::error::tag '$tag' does not match packaging/product.json version '$version'"
+              exit 1
+            fi
+            is_release=true
+          fi
+          echo "version=$version"       >> "$GITHUB_OUTPUT"
+          echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
+          echo "version=$version is_release=$is_release"
+
+  # ---------------------------------------------------------------------------
+  # Tests: the same configure/build/ctest/qmllint run as ci.yml, in its own tree.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Build and test
+    needs: check
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.1'
+          version: ${{ env.QT_VERSION }}
           host: windows
           target: desktop
           arch: win64_msvc2022_64
           modules: 'qtopcua'
-          tools: 'tools_ifw'
           cache: true
 
       - name: Set up MSVC
@@ -40,40 +105,220 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
-      - name: Locate Qt Installer Framework
+      - name: Configure
+        run: >-
+          cmake -S . -B build/ci -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DOPCUAMANAGER_COPY_WINDOWS_RUNTIME=OFF
+
+      - name: Build
+        run: cmake --build build/ci --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build/ci --output-on-failure
+
+      - name: Run QML lint targets
+        run: cmake --build build/ci --target all_qmllint
+
+  # ---------------------------------------------------------------------------
+  # Release pipeline: packaging/release.ps1 -Stage All with a pinned Qt IFW.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Release pipeline
+    needs: check
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }} and Qt Installer Framework ${{ env.IFW_DIR_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: 'qtopcua'
+          tools: 'tools_ifw,${{ env.IFW_TOOL_VARIANT }}'
+          cache: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Verify Qt Installer Framework
         id: ifw
         shell: pwsh
         run: |
-          # tools_ifw installs under the Qt base; find binarycreator.exe and use its parent's parent.
-          $bc = Get-ChildItem -Path $env:RUNNER_WORKSPACE, 'C:\', $env:IQTA_TOOLS -Recurse -Filter binarycreator.exe -ErrorAction SilentlyContinue |
-                Select-Object -First 1
-          if (-not $bc) { throw 'binarycreator.exe not found; adjust the tools_ifw install path.' }
-          $root = Split-Path (Split-Path $bc.FullName -Parent) -Parent
+          # aqt installs the tool below $IQTA_TOOLS/QtInstallerFramework/<major.minor>;
+          # require the exact binaries and their 4.10.x file version instead of
+          # searching the disk.
+          $root = Join-Path $env:IQTA_TOOLS "QtInstallerFramework/$env:IFW_DIR_VERSION"
+          foreach ($tool in 'binarycreator.exe', 'repogen.exe', 'devtool.exe') {
+            $path = Join-Path $root "bin/$tool"
+            if (-not (Test-Path $path)) { throw "$tool not found at $path" }
+            $fileVersion = (Get-Item $path).VersionInfo.FileVersion
+            if (-not $fileVersion -or -not $fileVersion.StartsWith("$env:IFW_DIR_VERSION.")) {
+              throw "$tool has version '$fileVersion', expected $env:IFW_DIR_VERSION.x"
+            }
+            Write-Host "$tool : $fileVersion"
+          }
+          & (Join-Path $root 'bin/devtool.exe') --version
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "QTIFW_ROOT=$root"
 
       - name: Run release pipeline
         shell: pwsh
         run: |
-          ./packaging/release.ps1 `
+          ./packaging/release.ps1 -Stage All `
             -CMake cmake -Ninja ninja `
             -QtPrefix "$env:QT_ROOT_DIR" `
             -QtIfwRoot "${{ steps.ifw.outputs.root }}"
+
+      - name: Verify artifact versions
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          # The executable, the IFW package and the artifact names must all carry
+          # the product.json version that the check job validated.
+          $meta = Get-Content packaging/product.json -Raw | ConvertFrom-Json
+          $v = $env:EXPECTED_VERSION
+          if ($meta.version -ne $v) { throw "product.json version $($meta.version) != checked version $v" }
+          $base = $meta.artifactBase
+          $setup = "release/$base-$v-Setup.exe"
+          $zip   = "release/$base-$v-win64.zip"
+          $exe   = "release/$base-$v/$($meta.exeName).exe"
+          $upd   = 'release/repository/Updates.xml'
+          foreach ($f in $setup, $zip, $exe, $upd) {
+            if (-not (Test-Path $f)) { throw "expected artifact missing: $f" }
+          }
+          $exeVersion = (Get-Item $exe).VersionInfo.ProductVersion
+          if (-not $exeVersion.StartsWith($v)) { throw "executable version '$exeVersion' != $v" }
+          if (-not (Select-String -Path $upd -Pattern "<Version>$([regex]::Escape($v))</Version>" -Quiet)) {
+            throw "Updates.xml does not declare package version $v"
+          }
+          Write-Host "Version $v consistent across executable, installer, ZIP and repository."
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: installer
           path: release/*-Setup.exe
+          if-no-files-found: error
 
       - name: Upload portable ZIP
         uses: actions/upload-artifact@v4
         with:
           name: portable
           path: release/*-win64.zip
+          if-no-files-found: error
 
       - name: Upload update repository
         uses: actions/upload-artifact@v4
         with:
           name: repository
           path: release/repository/**
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # GitHub Pages: index.html + the complete repogen output under updates/stable/.
+  # Tag builds only. Deployed before the Release so the update repository is
+  # online by the time the GitHub Releases API reports the new version.
+  # ---------------------------------------------------------------------------
+  pages:
+    name: Publish update repository (GitHub Pages)
+    if: needs.check.outputs.is_release == 'true'
+    needs: [check, test, build]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download update repository
+        uses: actions/download-artifact@v4
+        with:
+          name: repository
+          path: site/updates/stable
+
+      - name: Assemble site
+        shell: bash
+        run: |
+          cp packaging/pages/index.html site/index.html
+          test -f site/updates/stable/Updates.xml
+          find site -type f | sort
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ---------------------------------------------------------------------------
+  # GitHub Release for the pushed tag with the installer and the portable ZIP.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish GitHub Release
+    if: needs.check.outputs.is_release == 'true'
+    needs: [check, test, build, pages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: installer
+          path: dist
+
+      - name: Download portable ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: portable
+          path: dist
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          ls -l dist
+          {
+            echo "OPC UA Manager ${VERSION} for Windows x64."
+            echo
+            echo '* `*-Setup.exe` - installer (creates the Maintenance Tool for in-place updates).'
+            echo '* `*-win64.zip` - portable package (unzip and run; update by replacing the folder).'
+            echo
+            echo 'Installed copies are updated through **Info > Check for updates...** or the Maintenance Tool.'
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "OPC UA Manager ${VERSION}" \
+            --notes-file notes.md \
+            --generate-notes \
+            dist/*-Setup.exe dist/*-win64.zip

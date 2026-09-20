@@ -18,12 +18,12 @@
   "artifactBase": "OPC-UA-Manager",
 
   "update": {
-    "enabled": false,
+    "enabled": true,
     "releasesApiUrl": "https://api.github.com/repos/SEB103/QtOpcUaManager/releases/latest",
     "releasesPageUrl": "https://github.com/SEB103/QtOpcUaManager/releases",
     "defaultChannel": "stable",
     "channels": {
-      "stable": "https://example.invalid/opcuamanager/updates/stable",
+      "stable": "https://seb103.github.io/QtOpcUaManager/updates/stable/",
       "preview": "https://example.invalid/opcuamanager/updates/preview",
       "dev": "https://example.invalid/opcuamanager/updates/dev"
     }

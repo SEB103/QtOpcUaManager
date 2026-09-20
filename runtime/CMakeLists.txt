@@ -29,10 +29,15 @@ set(UA_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(UA_FORCE_WERROR OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
+# EXCLUDE_FROM_ALL keeps open62541's own install() rules (headers, static
+# library, CMake package files) out of the canonical deployment produced by
+# cmake --install; the library itself is still built as a dependency of
+# OpcUaServerRuntime.
 FetchContent_Declare(open62541
     GIT_REPOSITORY https://github.com/open62541/open62541.git
     GIT_TAG v1.4.14
     GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(open62541)
 

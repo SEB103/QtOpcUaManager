@@ -32,21 +32,27 @@ target_link_libraries(tst_helpserver
 add_test(NAME HelpServer.Unit COMMAND tst_helpserver)
 
 # UpdateController lives in the application layer (app/); compile it into the test.
-# It includes the generated productinfo.h, so add the generated directory too.
+# It includes the generated productinfo.h, so add the generated directory too, and
+# it probes the installed/portable mode through AppPaths (src/core), which is
+# compiled in directly to keep the test independent of the OpcUaCore library.
 qt_add_executable(tst_updatecontroller
     unit/tst_updatecontroller.cpp
     "${CMAKE_SOURCE_DIR}/app/updatecontroller.cpp"
     "${CMAKE_SOURCE_DIR}/app/updatecontroller.h"
+    "${CMAKE_SOURCE_DIR}/src/core/apppaths.cpp"
+    "${CMAKE_SOURCE_DIR}/src/core/apppaths.h"
 )
 
 target_include_directories(tst_updatecontroller
     PRIVATE
         "${CMAKE_SOURCE_DIR}/app"
+        "${CMAKE_SOURCE_DIR}/src"
         "${OPCUA_GENERATED_DIR}"
 )
 
 target_link_libraries(tst_updatecontroller
     PRIVATE
+        Qt6::Gui
         Qt6::Network
         Qt6::Test
 )

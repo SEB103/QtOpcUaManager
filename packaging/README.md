@@ -9,11 +9,13 @@ This folder turns a Release build of OPC UA Manager into ready-to-distribute
 Windows artifacts. One build produces all three at once:
 
 ```
-Build -> Canonical Deployment -> { Setup.exe (installer), *-win64.zip (portable), repository/ (updates) }
+Build -> Canonical Deployment -> { Setup.exe (hybrid installer), *-win64.zip (portable), repository/ (updates) }
 ```
 
 One script does everything: [`release.ps1`](release.ps1). All names and the
-version come from a single file, [`product.json`](product.json).
+version come from a single file, [`product.json`](product.json). The same script
+runs unchanged in GitHub Actions, which publishes the result as a GitHub Release
+and the update repository as a GitHub Pages site (see section 12).
 
 ---
 
@@ -75,12 +77,15 @@ Everything lands in `release/` (git-ignored):
 ```
 release/
   OPC-UA-Manager-<version>/           # the app folder, ready to run
-  OPC-UA-Manager-<version>-Setup.exe  # the installer
+  OPC-UA-Manager-<version>-Setup.exe  # the hybrid installer
   OPC-UA-Manager-<version>-win64.zip  # portable package
   repository/                         # update repository (Updates.xml + data)
 ```
 
-The `<version>` is taken from `product.json`.
+The `<version>` is taken from `product.json` — it is the only place the version
+is defined, and it is the same value CMake compiles into the executable, so the
+artifact names, the installer metadata and the running program can never
+disagree. There is deliberately no command-line override.
 
 ---
 
@@ -94,9 +99,9 @@ stages must already have produced their output):
 | `Build` | Configure + build Release, then generate the offline documentation site (`docs` target -> `build/release/doc/site`). |
 | `Deploy` | `cmake --install` -> `release/<name>-<version>/` (the app folder with all Qt runtime, and `doc/site/` for in-app Help). |
 | `Verify` | Checks the deployment (exe, plugins, OpenSSL, licenses, the documentation site and the Qt WebView runtime; no debug/dev files). |
-| `PackageInstaller` | Builds `…-Setup.exe`. |
+| `PackageInstaller` | Builds the **hybrid** `…-Setup.exe` (`binarycreator --hybrid`: full offline payload plus the stable update repository URL), then dumps it with `devtool` and fails unless the binary really is hybrid. |
 | `PackagePortable` | Builds `…-win64.zip` (adds the `portable.ini` marker). |
-| `GenerateRepository` | Builds `repository/`. |
+| `GenerateRepository` | Builds `repository/` with `repogen` (`Updates.xml` + per-component archives). |
 
 Common examples (from the project root):
 
@@ -106,9 +111,6 @@ powershell -ExecutionPolicy Bypass -File .\packaging\release.ps1 -Stage PackageI
 
 # Dark-themed installer wizard
 powershell -ExecutionPolicy Bypass -File .\packaging\release.ps1 -Theme dark
-
-# Override the version (otherwise taken from product.json)
-powershell -ExecutionPolicy Bypass -File .\packaging\release.ps1 -Version 0.2.0
 
 # Point at a different Qt IFW / Qt
 powershell -ExecutionPolicy Bypass -File .\packaging\release.ps1 `
@@ -154,7 +156,15 @@ OPC-UA-Manager-0.1.0-Setup.exe install --root "C:\Program Files\OPC UA Manager" 
 (installing into `Program Files` needs administrator rights; a folder inside your
 user profile does not).
 
-**Update or uninstall:** use the Maintenance Tool created in the install folder
+**Update (installed):** in the application choose **Info → Check for updates…**.
+When a newer version exists the dialog offers **Install update**: the application
+closes (unsaved project changes are prompted for first) and starts the Maintenance
+Tool in updater mode (`OpcUaManagerMaintenanceTool.exe --start-updater`), which
+downloads the new version from the stable update repository and replaces the
+program files. User data is preserved. The same update can be started from the
+Maintenance Tool's Start-Menu shortcut.
+
+**Uninstall:** use the Maintenance Tool created in the install folder
 (`OpcUaManagerMaintenanceTool.exe`), from its Start-Menu shortcut or:
 
 ```bat
@@ -164,6 +174,13 @@ user profile does not).
 **Portable (no install):** unzip `OPC-UA-Manager-<version>-win64.zip` anywhere and
 run `appOpcUaManager.exe`. All data stays next to it (`config/`, `data/`, `logs/`),
 so you can move the folder freely.
+
+**Update (portable):** a portable copy is never updated in place. **Info → Check
+for updates…** offers **Open download page** instead, which opens the GitHub
+Release of the new version; download the new `…-win64.zip`, unzip it and copy
+your `config/`, `data/` and `logs/` folders over (or unzip on top of the old
+folder). A development build started from Qt Creator (installed mode but no
+Maintenance Tool next to the executable) gets the same download-page fallback.
 
 ---
 
@@ -206,8 +223,34 @@ itself is fixed by Qt IFW, so this is an accent/branding pass, not a full re-ski
 ## 10. Notes for maintainers
 
 **Single source of truth.** `product.json` holds the product name, version,
-publisher, URLs and installer identity. Change the version there (or pass
-`-Version`) — CMake and the packaging scripts both read it.
+publisher, URLs, installer identity and the update endpoints. Change the version
+only there — CMake, the packaging script and the release workflow all read it,
+and the workflow refuses a tag that does not match it.
+
+**Hybrid installer.** `Setup.exe` is built with `binarycreator --hybrid`: it
+carries the complete payload (installs offline, like before) *and* keeps the
+`<RemoteRepositories>` from `installer/config/config.xml.in`, whose URL is
+`update.channels.stable` in `product.json`. The Maintenance Tool it creates
+therefore checks that repository for newer versions. `release.ps1` verifies the
+result with `devtool dump` (the binary's `config-internal.ini` must record
+`hybridInstaller=true`). A plain `--offline-only` installer would never update.
+
+**Update repository.** `repogen` turns the same canonical deployment into
+`release/repository/`: `Updates.xml` plus 7z archives per component. `Updates.xml`
+is generated — never edit it by hand; regenerate with `-Stage GenerateRepository`.
+The published copy lives at `https://seb103.github.io/QtOpcUaManager/updates/stable/`
+(GitHub Pages, section 12). The update path stays valid across versions because the
+component id `com.opcuamanager.app` never changes. The channel URL ends with `/`;
+the IFW 4.10 Maintenance Tool then requests `…/updates/stable//Updates.xml`, which
+GitHub Pages serves normally (verified), so keep the URL exactly as configured.
+
+**In-app update check.** `update.enabled` in `product.json` gates the feature;
+it is `true`. The application queries the GitHub Releases API
+(`update.releasesApiUrl`), compares the latest tag with its own version and, when
+newer, offers *Install update* (installed copy: starts the Maintenance Tool with
+`--start-updater` and quits) or *Open download page* (portable copy, or no
+Maintenance Tool present). The automatic startup check only reports; it never
+starts the updater.
 
 **Licensing.** The app ships Qt as LGPL-3.0 shared libraries (see
 `THIRD_PARTY_NOTICES.md`). The installer and Maintenance Tool are themselves Qt
@@ -419,9 +462,8 @@ the application.
 
 Reuses the existing canonical deployment and regenerates
 `release/repository/`, including `Updates.xml`. This creates local repository
-files only; it does not upload or publish them. The product's update support is
-currently disabled in `product.json`, and the configured channel URLs must be
-replaced before publishing a real update repository.
+files only; it does not upload or publish them — publishing is done by the
+release workflow (section 12).
 
 ### Recommended menu
 
@@ -447,3 +489,70 @@ Use the numbered stage commands only when their prerequisite output is already
 current and only that stage needs to be repeated. All commands read the default
 version from `packaging/product.json`; if the version changes, run a complete
 release or at least repeat `Build` and `Deploy` before repackaging artifacts.
+
+---
+
+## 12. Publishing: GitHub Actions, Releases and Pages
+
+`.github/workflows/release.yml` runs the same `packaging/release.ps1 -Stage All`
+on a `windows-2022` runner with Qt 6.11.1 (`jurplel/install-qt-action`) and Qt
+Installer Framework 4.10 (`tools_ifw,qt.tools.ifw.410`, verified by file version
+before use). Nothing is published unless every earlier job succeeds.
+
+| Trigger | What happens |
+|---------|--------------|
+| push of a tag `vX.Y.Z` | `check` (tag must be `vX.Y.Z` **and** equal `product.json` `version`) → `test` (configure, build, `ctest`, `qmllint`) ∥ `build` (release pipeline, artifact/version consistency check) → `pages` (publish the update repository) → `release` (GitHub Release with the installer and the ZIP). |
+| `workflow_dispatch` (Actions → Release → Run workflow) | Dry run: `check`, `test`, `build` only. Artifacts are attached to the workflow run; no Release, no Pages deployment, no version change. |
+
+Three kinds of output:
+
+- **Workflow artifacts** (`installer`, `portable`, `repository`) — attached to
+  every run, including dry runs; useful to inspect what a tag build would publish.
+- **GitHub Release assets** — `…-Setup.exe` and `…-win64.zip` on
+  `https://github.com/SEB103/QtOpcUaManager/releases/latest`. This is what the
+  in-app check reads (via the Releases API) and what the download page offers.
+- **GitHub Pages site** — `index.html` (from `packaging/pages/index.html`) plus
+  the *complete* `repogen` output under `updates/stable/`
+  (`Updates.xml`, `com.opcuamanager.app/*.7z`, metadata). The Maintenance Tool of
+  every installed copy fetches updates from there. The site is deployed with
+  `configure-pages` / `upload-pages-artifact` / `deploy-pages` from the workflow
+  artifact; no `gh-pages` branch, no generated file is ever committed.
+
+Job permissions are minimal: `contents: read` for check/test/build,
+`pages: write` + `id-token: write` for the Pages job only, `contents: write` for
+the Release job only. Pages is deployed *before* the Release is created so that
+the update repository is already online when the API starts reporting the new
+version.
+
+### Releasing a new version
+
+1. Set the new version in `packaging/product.json` (`"version": "X.Y.Z"`, nothing
+   else; do not bump it anywhere else — there is no other source).
+2. Commit: `git commit -am "release: X.Y.Z"`.
+3. Tag the commit: `git tag vX.Y.Z`.
+4. Push commit and tag: `git push origin master` then `git push origin vX.Y.Z`
+   (or `git push origin master vX.Y.Z`).
+5. Watch **Actions → Release**: all five jobs must be green. If `check` fails,
+   the tag and `product.json` disagree — fix `product.json`, commit, and move or
+   recreate the tag (never edit `Updates.xml` or the Release by hand).
+6. Verify the **Release** page shows `…-Setup.exe` and `…-win64.zip`, and that
+   `https://seb103.github.io/QtOpcUaManager/updates/stable/Updates.xml` shows
+   `<Version>X.Y.Z</Version>`.
+7. Optional end-to-end check on a machine with the previous version installed:
+   **Info → Check for updates… → Install update** (or Maintenance Tool →
+   *Update components*).
+
+### Manual GitHub settings (once)
+
+- **Settings → Pages → Build and deployment → Source: GitHub Actions** (the
+  workflow deploys an artifact; no branch is used).
+- **Settings → Actions → General → Workflow permissions**: the workflow declares
+  per-job permissions (`contents: write` only in the Release job, `pages` /
+  `id-token` only in the Pages job), so the default *Read repository contents
+  and packages permissions* is sufficient; only make sure Actions are allowed
+  to run for the repository.
+- **Settings → Environments → `github-pages`** is created automatically by the
+  first deployment; if deployment branch/tag protection is enabled there, allow
+  tags `v*` (the Pages job runs on tag refs).
+- Nothing else: no secrets, no certificates (the installer is not code-signed).
+

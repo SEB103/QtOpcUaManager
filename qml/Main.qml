@@ -777,16 +777,29 @@ ApplicationWindow {
         id: updateDialog
 
         darkTheme: mainWindow.darkTheme
+
+        // Resolve unsaved client and Server Studio changes first (the user may
+        // cancel), then start the Maintenance Tool; quitting follows through
+        // onQuitRequested below.
+        onInstallUpdateRequested: {
+            mainWindow.runGuarded(() => mainWindow.runServerStudioGuarded(() => cppUpdate.installUpdate()))
+        }
     }
 
     // An automatic startup check surfaces the dialog only when a newer version is
     // found, so it never interrupts the user when the application is up to date.
+    // Quitting happens only after the user explicitly started the Maintenance
+    // Tool, so the update can replace the application files.
     Connections {
         target: cppUpdate
 
         function onStatusChanged() {
             if (cppUpdate.updateAvailable)
                 updateDialog.open()
+        }
+
+        function onQuitRequested() {
+            Qt.quit()
         }
     }
 

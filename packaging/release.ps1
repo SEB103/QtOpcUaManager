@@ -7,14 +7,14 @@
     Stages run in order and fail fast with a clear marker:
         Build -> Deploy -> Verify -> PackageInstaller -> PackagePortable -> GenerateRepository
     Use -Stage to run a single stage (its prerequisites must already exist).
-    All product identity comes from packaging/product.json.
+    All product identity, including the version, comes from
+    packaging/product.json; there is deliberately no override so that the
+    artifact names, the IFW package version and the compiled executable
+    can never disagree.
 
 .PARAMETER Stage
     All (default) or one of Build, Deploy, Verify, PackageInstaller,
     PackagePortable, GenerateRepository.
-
-.PARAMETER Version
-    Overrides the version from product.json (artifact names + metadata).
 
 .PARAMETER Theme
     Installer wizard theme: light (default) or dark. Per-user automatic
@@ -35,7 +35,6 @@
 param(
     [ValidateSet('All','Build','Deploy','Verify','PackageInstaller','PackagePortable','GenerateRepository')]
     [string] $Stage = 'All',
-    [string] $Version,
     [ValidateSet('light','dark')]
     [string] $Theme = 'light',
     [string] $QtIfwRoot = $(if ($env:QTIFW_ROOT) { $env:QTIFW_ROOT } else { 'C:\Qt\Tools\QtInstallerFramework\4.10' }),
@@ -56,7 +55,10 @@ $ProductJson = Join-Path $PSScriptRoot 'product.json'
 if (-not (Test-Path $ProductJson)) { throw "product.json not found at $ProductJson" }
 $Meta = Get-Content $ProductJson -Raw | ConvertFrom-Json
 
-if (-not $Version) { $Version = $Meta.version }
+# The version is read from product.json only (the same value CMake compiles
+# into the executable); it is validated here so a typo fails before building.
+$Version = [string] $Meta.version
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "product.json version '$Version' is not MAJOR.MINOR.PATCH" }
 
 $ArtifactBase = $Meta.artifactBase
 $ExeName      = $Meta.exeName
@@ -208,14 +210,42 @@ function Build-InstallerWorkTree {
 function Invoke-PackageInstaller {
     Write-Stage 'PackageInstaller'
     $binarycreator = Join-Path $QtIfwRoot 'bin/binarycreator.exe'
+    $devtool       = Join-Path $QtIfwRoot 'bin/devtool.exe'
     if (-not (Test-Path $binarycreator)) { Fail-Stage 'PackageInstaller' "binarycreator not found: $binarycreator (set -QtIfwRoot)." }
+    if (-not (Test-Path $devtool))       { Fail-Stage 'PackageInstaller' "devtool not found: $devtool (set -QtIfwRoot)." }
     $tree = Build-InstallerWorkTree
     if (Test-Path $SetupExe) { Remove-Item -Force $SetupExe }
-    & $binarycreator --offline-only -c (Join-Path $tree.Config 'config.xml') -p $tree.Packages $SetupExe
+    # Hybrid installer (Qt IFW 4.x): the full payload is embedded for an offline
+    # first install, and the <RemoteRepositories> from config.xml are kept so the
+    # Maintenance Tool can later fetch updates from the published repository.
+    & $binarycreator --hybrid -c (Join-Path $tree.Config 'config.xml') -p $tree.Packages $SetupExe
     if ($LASTEXITCODE -ne 0) { Fail-Stage 'PackageInstaller' 'binarycreator failed.' }
     if (-not (Test-Path $SetupExe)) { Fail-Stage 'PackageInstaller' 'Setup.exe was not produced.' }
+    Test-HybridInstaller -Devtool $devtool
     Write-Host "Installer: $SetupExe"
     Complete-Stage 'PackageInstaller'
+}
+
+function Test-HybridInstaller([string] $Devtool) {
+    # binarycreator records the installer kind in metadata/config/config-internal.ini
+    # inside the binary (offline-only: offlineOnly=true, hybridInstaller=false;
+    # hybrid: offlineOnly=true, hybridInstaller=true). Dump it and require the
+    # hybrid flag so an accidental offline-only or online-only build cannot ship.
+    $dumpDir = Join-Path $WorkDir '_dump'
+    if (Test-Path $dumpDir) { Remove-Item -Recurse -Force $dumpDir }
+    & $Devtool dump $SetupExe $dumpDir
+    if ($LASTEXITCODE -ne 0) { Fail-Stage 'PackageInstaller' 'devtool dump failed; cannot verify the installer kind.' }
+    $ini = Join-Path $dumpDir 'metadata/config/config-internal.ini'
+    if (-not (Test-Path $ini)) { Fail-Stage 'PackageInstaller' "config-internal.ini not found in the installer dump ($ini)." }
+    $flags = @{}
+    foreach ($line in Get-Content $ini) {
+        if ($line -match '^\s*([A-Za-z]+)\s*=\s*(.+?)\s*$') { $flags[$matches[1]] = $matches[2] }
+    }
+    if ($flags['hybridInstaller'] -ne 'true') {
+        Fail-Stage 'PackageInstaller' "Installer is not hybrid (hybridInstaller=$($flags['hybridInstaller']), offlineOnly=$($flags['offlineOnly']))."
+    }
+    Write-Host "Installer kind: hybrid (offline payload + remote repository $($Tokens.StableChannelUrl))"
+    Remove-Item -Recurse -Force $dumpDir
 }
 
 function Invoke-PackagePortable {

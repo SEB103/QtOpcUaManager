@@ -4,6 +4,10 @@ OpcUaManager is a Qt Quick desktop application for discovering OPC UA servers, s
 
 The project is currently in the stabilization phase before further product development.
 
+**Download latest release:** <https://github.com/SEB103/QtOpcUaManager/releases/latest>
+(Windows installer and portable ZIP). How releases are built and published is
+documented in [`packaging/README.md`](packaging/README.md).
+
 ## Project baseline
 
 - Qt 6.11.x

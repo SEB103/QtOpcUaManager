@@ -41,4 +41,8 @@
 // Human-facing releases page opened when a newer version is available.
 #define PRODUCT_UPDATE_RELEASES_PAGE "@PRODUCT_UPDATE_RELEASES_PAGE@"
 
+// Base name (without .exe) of the Qt Installer Framework Maintenance Tool that
+// an installed copy finds next to the executable; the in-app updater starts it.
+#define PRODUCT_MAINTENANCE_TOOL_NAME "@PRODUCT_MAINTENANCE_TOOL_NAME@"
+
 #endif // PRODUCTINFO_H
