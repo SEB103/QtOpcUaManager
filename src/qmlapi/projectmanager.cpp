@@ -53,6 +53,32 @@ ProjectManager::ProjectManager(QObject *parent)
 
 ProjectManager::~ProjectManager() = default;
 
+/*!
+ * \brief Rebuilds the last notification for the status bar after a language switch.
+ *
+ * Emits statusRetranslated() with the last message re-rendered in the active
+ * language. The transient banner is intentionally not re-raised.
+ */
+void ProjectManager::retranslate()
+{
+    if (m_lastStatus.isValid())
+        emit statusRetranslated(m_lastStatus.level, m_lastStatus.render());
+}
+
+/*!
+ * \internal
+ * \brief Emits \a render's text at \a level and stores the renderer for retranslate().
+ *
+ * The renderer captures its runtime arguments by value, so re-invoking it later
+ * re-runs its tr() calls in the active language.
+ */
+void ProjectManager::notify(Diagnostics::Level level, std::function<QString()> render)
+{
+    m_lastStatus.level = level;
+    m_lastStatus.render = std::move(render);
+    emit notification(level, m_lastStatus.render());
+}
+
 bool ProjectManager::hasActiveProject() const
 {
     return !m_activePath.isEmpty();
@@ -208,7 +234,9 @@ bool ProjectManager::createProjectAtPath(const QString &pathOrUrl)
     }
     setActiveProject(path, data.displayName);
     addOrUpdateRecent(path, data.displayName, data.connection.discoveryUrl);
-    emit notification(Diagnostics::Info, tr("Created project %1.").arg(data.displayName));
+    notify(Diagnostics::Info, [=, this] {
+        return tr("Created project %1.").arg(data.displayName);
+    });
     return true;
 }
 
@@ -231,8 +259,9 @@ bool ProjectManager::openProject(const QString &pathOrUrl)
     setActiveProject(path, result.data.displayName);
     addOrUpdateRecent(path, result.data.displayName, result.data.connection.discoveryUrl);
 
-    emit notification(Diagnostics::Info,
-                      tr("Opened project %1.").arg(result.data.displayName));
+    notify(Diagnostics::Info, [=, this] {
+        return tr("Opened project %1.").arg(result.data.displayName);
+    });
 
     // Only after the full project state is restored does the connection begin.
     if (m_opcUaManager)
@@ -307,7 +336,9 @@ bool ProjectManager::writeActiveProjectTo(const QString &path, const QString &di
 
     setActiveProject(path, displayName);
     addOrUpdateRecent(path, displayName, data.connection.discoveryUrl);
-    emit notification(Diagnostics::Info, tr("Saved project %1.").arg(displayName));
+    notify(Diagnostics::Info, [=, this] {
+        return tr("Saved project %1.").arg(displayName);
+    });
     return true;
 }
 
@@ -323,7 +354,9 @@ void ProjectManager::closeProject()
     clearActiveProject();
 
     if (!closedName.isEmpty())
-        emit notification(Diagnostics::Info, tr("Closed project %1.").arg(closedName));
+        notify(Diagnostics::Info, [=, this] {
+            return tr("Closed project %1.").arg(closedName);
+        });
 }
 
 /*!

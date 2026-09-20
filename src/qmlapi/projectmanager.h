@@ -6,6 +6,9 @@
 #include <QString>
 #include <QVariantList>
 
+#include "core/diagnosticslevel.h"
+#include "core/retranslatablestatus.h"
+
 QT_BEGIN_NAMESPACE
 class QSettings;
 QT_END_NAMESPACE
@@ -129,6 +132,13 @@ public:
     /** Returns the local file path for \a pathOrUrl, converting file: URLs. */
     Q_INVOKABLE static QString toLocalPath(const QString &pathOrUrl);
 
+    /**
+     * Rebuilds the last notification's text in the active language after a UI
+     * language switch, so the persistent status bar re-translates live. Emits
+     * statusRetranslated() without re-raising the transient notification banner.
+     */
+    void retranslate();
+
 signals:
     /** Emitted when the active project, its name, or its path changes. */
     void activeProjectChanged();
@@ -154,6 +164,13 @@ signals:
      */
     void notification(int level, const QString &message);
 
+    /**
+     * Re-emits the last notification's text rebuilt in the active language for
+     * the persistent status bar only; emitted from retranslate() and must not
+     * re-raise the transient notification banner.
+     */
+    void statusRetranslated(int level, const QString &message);
+
 protected:
     /**
      * Creates a Default project from legacy pre-project state on first launch.
@@ -161,6 +178,14 @@ protected:
      * existing installation's single session is preserved as a real project.
      */
     void maybeMigrateLegacyState();
+
+    /**
+     * Emits a notification built by \a render at severity \a level and stores the
+     * renderer so retranslate() can rebuild the status bar text after a live UI
+     * language switch.
+     */
+    void notify(Diagnostics::Level level, std::function<QString()> render);
+
     /** Loads the recent-projects list from the injected settings store. */
     void loadRecentProjects();
 
@@ -215,6 +240,9 @@ protected:
 
     /** Whether the active project has unsaved changes. */
     bool m_dirty {false};
+
+    /** Last notification, kept re-buildable so retranslate() can refresh it. */
+    RetranslatableStatus m_lastStatus;
 };
 
 #endif // PROJECTMANAGER_H

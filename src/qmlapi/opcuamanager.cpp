@@ -342,6 +342,27 @@ void OpcUaManager::retranslate()
         m_dataModel->retranslate();
     if (m_attributesModel)
         m_attributesModel->retranslate();
+
+    // Rebuild the last notification in the new language for the persistent status
+    // bar only. This must not go through notification(), which would re-raise the
+    // transient banner on every language switch.
+    if (m_lastStatus.isValid())
+        emit statusRetranslated(m_lastStatus.level, m_lastStatus.render());
+}
+
+/*!
+ * \internal
+ * \brief Emits \a render's text at \a level and stores the renderer for retranslate().
+ *
+ * The renderer captures its runtime arguments by value, so re-invoking it later
+ * from retranslate() re-runs its tr() calls in the active language and yields the
+ * same message translated afresh.
+ */
+void OpcUaManager::notify(Diagnostics::Level level, std::function<QString()> render)
+{
+    m_lastStatus.level = level;
+    m_lastStatus.render = std::move(render);
+    emit notification(level, m_lastStatus.render());
 }
 
 DataAccessModel *OpcUaManager::dataModel() const
@@ -686,11 +707,13 @@ int OpcUaManager::monitorChildVariables(const QModelIndex &treeIndex)
     if (added > 0) {
         refreshMonitoredNodeIds();
         emit projectStateChanged();
-        emit notification(Diagnostics::Info,
-                          tr("Added %n node(s) to the Data View.", nullptr, added));
+        notify(Diagnostics::Info, [=, this] {
+            return tr("Added %n node(s) to the Data View.", nullptr, added);
+        });
     } else {
-        emit notification(Diagnostics::Warning,
-                          tr("No monitorable child node was found. Expand the branch first."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("No monitorable child node was found. Expand the branch first.");
+        });
     }
 
     return added;
@@ -796,10 +819,11 @@ void OpcUaManager::setSamplingInterval(int row, int intervalMs)
     }
 
     const int applied = m_dataModel->samplingIntervalAt(row);
-    emit notification(Diagnostics::Info,
-                      applied > 0
-                          ? tr("Sampling interval set to %1 ms.").arg(applied)
-                          : tr("Sampling interval reset to the default."));
+    notify(Diagnostics::Info, [=, this] {
+        return applied > 0
+                   ? tr("Sampling interval set to %1 ms.").arg(applied)
+                   : tr("Sampling interval reset to the default.");
+    });
 
     emit projectStateChanged();
 }
@@ -861,9 +885,10 @@ bool OpcUaManager::exportDataViewCsv(const QUrl &fileUrl,
         return false;
     }
 
-    emit notification(Diagnostics::Info,
-                      tr("Exported %n row(s) to %1.", nullptr, int(viewRows.size()))
-                          .arg(QFileInfo(path).fileName()));
+    notify(Diagnostics::Info, [this, rows = int(viewRows.size()), path] {
+        return tr("Exported %n row(s) to %1.", nullptr, rows)
+            .arg(QFileInfo(path).fileName());
+    });
     return true;
 }
 
@@ -1128,8 +1153,9 @@ void OpcUaManager::connectToLast()
         return;
     }
 
-    emit notification(Diagnostics::Info,
-                      tr("Reconnecting to %1…").arg(connectionSummary()));
+    notify(Diagnostics::Info, [this, summary = connectionSummary()] {
+        return tr("Reconnecting to %1…").arg(summary);
+    });
     connectUsingConfig(m_connection);
 }
 
@@ -1169,7 +1195,9 @@ void OpcUaManager::connectToLocalEndpoint(const QString &discoveryUrl)
     config.authMode = 0; // anonymous
     config.endpointUrlRewriteEnabled = true;
 
-    emit notification(Diagnostics::Info, tr("Connecting to %1…").arg(discoveryUrl));
+    notify(Diagnostics::Info, [this, discoveryUrl] {
+        return tr("Connecting to %1…").arg(discoveryUrl);
+    });
     connectUsingConfig(config);
 }
 
@@ -1781,9 +1809,10 @@ void OpcUaManager::applyConnected(bool connected)
     if (m_treeModel)
         m_treeModel->setConnectionActive(connected);
 
-    emit notification(Diagnostics::Info,
-                      connected ? tr("Connected to %1.").arg(connectionSummary())
-                                : tr("Disconnected from the server."));
+    notify(Diagnostics::Info, [this, connected, summary = connectionSummary()] {
+        return connected ? tr("Connected to %1.").arg(summary)
+                         : tr("Disconnected from the server.");
+    });
 
     if (connected) {
         // Seed the tree with the persisted monitored node ids before its browse
@@ -1894,8 +1923,11 @@ void OpcUaManager::applyLastError(const QString &lastError)
 
     // Clearing the error is not worth reporting; a new one always is, because
     // the connection dialog that used to be its only home is usually closed.
-    if (!lastError.isEmpty())
-        emit notification(Diagnostics::Error, OpcUaStatusHint::describe(lastError));
+    if (!lastError.isEmpty()) {
+        notify(Diagnostics::Error, [lastError] {
+            return OpcUaStatusHint::describe(lastError);
+        });
+    }
 }
 
 /*!
@@ -2038,8 +2070,9 @@ void OpcUaManager::applyMonitoredValue(const OpcUaValueUpdate &update)
 void OpcUaManager::applyWriteCompleted(const QString &nodeId, bool success, const QString &error)
 {
     if (success) {
-        emit notification(Diagnostics::Info,
-                          tr("Wrote the value of %1.").arg(displayNameForNodeId(nodeId)));
+        notify(Diagnostics::Info, [this, name = displayNameForNodeId(nodeId)] {
+            return tr("Wrote the value of %1.").arg(name);
+        });
         return;
     }
 

@@ -395,6 +395,10 @@ void AppEngine::setLocaleController(LocaleController* controller)
     connect(controller, &LocaleController::languageChanged, this, [this]() {
         if (m_opcUaManager)
             m_opcUaManager->retranslate();
+        if (m_projectManager)
+            m_projectManager->retranslate();
+        if (m_serverStudio)
+            m_serverStudio->retranslate();
     });
 }
 

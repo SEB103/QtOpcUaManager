@@ -15,6 +15,7 @@
 #include "core/opcuanodedata.h"
 #include "core/opcuavaluedata.h"
 #include "core/opcuavaluetree.h"
+#include "core/retranslatablestatus.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/dataviewfiltermodel.h"
@@ -609,6 +610,16 @@ signals:
     void notification(int level, const QString &message);
 
     /**
+     * Re-emits the last notification's text rebuilt in the active language after
+     * a UI language switch.
+     *
+     * \a level and \a message mirror notification(), but this signal must refresh
+     * only the persistent status bar: it is emitted from retranslate() and must
+     * not re-raise the transient notification banner.
+     */
+    void statusRetranslated(int level, const QString &message);
+
+    /**
      * Emitted while connectToLast() needs the password for username authentication
      * with \a userName. QML shows a prompt and calls provideReconnectPassword().
      */
@@ -699,6 +710,13 @@ public slots:
     void applyWriteCompleted(const QString &nodeId, bool success, const QString &error);
 
 private:
+    /**
+     * Emits a notification built by \a render at severity \a level and remembers
+     * the renderer so retranslate() can rebuild the status bar text after a live
+     * UI language switch.
+     */
+    void notify(Diagnostics::Level level, std::function<QString()> render);
+
     /** Builds a slash-separated browse path for \a treeIndex from its ancestors. */
     QString buildNodePath(const QModelIndex &treeIndex) const;
     /** Makes \a nodeId the selected node and requests its attributes and value. */
@@ -787,6 +805,9 @@ private:
 
     /** Cached user-visible error text. */
     QString m_lastError;
+
+    /** Last notification, kept re-buildable so retranslate() can refresh it. */
+    RetranslatableStatus m_lastStatus;
 
     /** Cached authentication token mode as an integer. */
     int m_authMode {0};

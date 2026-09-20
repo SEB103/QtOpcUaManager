@@ -7,6 +7,8 @@
 #include <QVariantMap>
 
 #include "core/clonebrowser.h"
+#include "core/diagnosticslevel.h"
+#include "core/retranslatablestatus.h"
 #include "serverproject/serverprojectdata.h"
 #include "serverruntimecontroller.h"
 
@@ -245,6 +247,13 @@ public:
     /** Connects the existing OPC UA client to the running local endpoint. */
     Q_INVOKABLE void openInClient();
 
+    /**
+     * Rebuilds the last notification's text in the active language after a UI
+     * language switch, so the persistent status bar re-translates live. Emits
+     * statusRetranslated() without re-raising the transient notification banner.
+     */
+    void retranslate();
+
 signals:
     void stateChanged();
     void endpointUrlChanged();
@@ -258,9 +267,22 @@ signals:
     void rulesChanged();
     void nodesChanged();
     void notification(int level, const QString &message);
+    /**
+     * Re-emits the last notification's text rebuilt in the active language for
+     * the persistent status bar only; emitted from retranslate() and must not
+     * re-raise the transient notification banner.
+     */
+    void statusRetranslated(int level, const QString &message);
     void openInClientRequested();
 
 private:
+    /**
+     * Emits a notification built by \a render at severity \a level and stores the
+     * renderer so retranslate() can rebuild the status bar text after a live UI
+     * language switch.
+     */
+    void notify(Diagnostics::Level level, std::function<QString()> render);
+
     /** Marks the project modified and notifies observers. */
     void setDirty(bool dirty);
 
@@ -314,6 +336,9 @@ private:
 
     /** Whether the project has unsaved changes. */
     bool m_dirty = false;
+
+    /** Last notification, kept re-buildable so retranslate() can refresh it. */
+    RetranslatableStatus m_lastStatus;
 
     /**
      * Whether the project was edited since the running server last (re)started.

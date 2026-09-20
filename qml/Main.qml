@@ -61,15 +61,38 @@ ApplicationWindow {
     property int statusMessageLevel: 1
 
     /*!
-        Records the outcome \a message at severity \a level.
+        Identifies which controller produced \l statusMessage ("opcua", "project"
+        or "studio"). A live language switch re-translates the status bar from the
+        matching controller's statusRetranslated() only, so an older message from
+        another controller cannot overwrite the one currently shown.
+    */
+    property string statusSource: ""
+
+    /*!
+        Records the outcome \a message at severity \a level, produced by the
+        controller identified by \a source.
 
         Every outcome lands in the status bar; the banner additionally surfaces
         warnings and errors, which the user has to notice.
     */
-    function showNotification(level, message) {
+    function showNotification(level, message, source) {
         mainWindow.statusMessage = message
         mainWindow.statusMessageLevel = level
+        mainWindow.statusSource = source !== undefined ? source : ""
         mainScreen.notificationBanner.show(level, message)
+    }
+
+    /*!
+        Updates the persistent status bar with \a message at \a level after a live
+        language switch, but only when \a source matches the controller that
+        produced the message currently shown. Unlike showNotification() this does
+        not re-raise the transient banner.
+    */
+    function refreshStatus(level, message, source) {
+        if (mainWindow.statusSource !== source)
+            return
+        mainWindow.statusMessage = message
+        mainWindow.statusMessageLevel = level
     }
 
     /*!
@@ -201,7 +224,11 @@ ApplicationWindow {
         target: cppServerStudio
 
         function onNotification(level, message) {
-            mainWindow.showNotification(level, message)
+            mainWindow.showNotification(level, message, "studio")
+        }
+
+        function onStatusRetranslated(level, message) {
+            mainWindow.refreshStatus(level, message, "studio")
         }
 
         // After connecting the client to the local runtime, leave Server Studio
@@ -568,7 +595,11 @@ ApplicationWindow {
         }
 
         function onNotification(level, message) {
-            mainWindow.showNotification(level, message)
+            mainWindow.showNotification(level, message, "project")
+        }
+
+        function onStatusRetranslated(level, message) {
+            mainWindow.refreshStatus(level, message, "project")
         }
     }
 
@@ -678,7 +709,11 @@ ApplicationWindow {
         target: cppManagerOpcUa
 
         function onNotification(level, message) {
-            mainWindow.showNotification(level, message)
+            mainWindow.showNotification(level, message, "opcua")
+        }
+
+        function onStatusRetranslated(level, message) {
+            mainWindow.refreshStatus(level, message, "opcua")
         }
 
         function onConnectedChanged() {

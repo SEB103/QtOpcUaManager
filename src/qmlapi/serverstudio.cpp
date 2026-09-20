@@ -117,6 +117,32 @@ ServerStudio::ServerStudio(QObject *parent)
 ServerStudio::~ServerStudio() = default;
 
 /*!
+ * \brief Rebuilds the last notification for the status bar after a language switch.
+ *
+ * Emits statusRetranslated() with the last message re-rendered in the active
+ * language. The transient banner is intentionally not re-raised.
+ */
+void ServerStudio::retranslate()
+{
+    if (m_lastStatus.isValid())
+        emit statusRetranslated(m_lastStatus.level, m_lastStatus.render());
+}
+
+/*!
+ * \internal
+ * \brief Emits \a render's text at \a level and stores the renderer for retranslate().
+ *
+ * The renderer captures its runtime arguments by value, so re-invoking it later
+ * re-runs its tr() calls in the active language.
+ */
+void ServerStudio::notify(Diagnostics::Level level, std::function<QString()> render)
+{
+    m_lastStatus.level = level;
+    m_lastStatus.render = std::move(render);
+    emit notification(level, m_lastStatus.render());
+}
+
+/*!
  * \brief Injects the client \a manager used by openInClient().
  */
 void ServerStudio::setOpcUaManager(OpcUaManager *manager)
@@ -535,8 +561,9 @@ bool ServerStudio::openProject(const QString &path)
     const ServerProject::Serializer::LoadResult result =
         ServerProject::Serializer::load(local);
     if (!result.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Cannot open server project: %1").arg(result.errorString));
+        notify(Diagnostics::Error, [this, error = result.errorString] {
+            return tr("Cannot open server project: %1").arg(error);
+        });
         return false;
     }
 
@@ -552,7 +579,9 @@ bool ServerStudio::openProject(const QString &path)
     emit securityChanged();
     emit dirtyChanged();
     emit selectedNodeChanged();
-    emit notification(Diagnostics::Info, tr("Opened server project %1").arg(m_project.displayName));
+    notify(Diagnostics::Info, [this, name = m_project.displayName] {
+        return tr("Opened server project %1").arg(name);
+    });
     return true;
 }
 
@@ -563,8 +592,9 @@ bool ServerStudio::saveProject()
     const ServerProject::Serializer::SaveResult result =
         ServerProject::Serializer::save(m_projectPath, m_project);
     if (!result.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Cannot save server project: %1").arg(result.errorString));
+        notify(Diagnostics::Error, [this, error = result.errorString] {
+            return tr("Cannot save server project: %1").arg(error);
+        });
         return false;
     }
     setDirty(false);
@@ -577,8 +607,9 @@ bool ServerStudio::saveProjectAs(const QString &path)
     const ServerProject::Serializer::SaveResult result =
         ServerProject::Serializer::save(local, m_project);
     if (!result.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Cannot save server project: %1").arg(result.errorString));
+        notify(Diagnostics::Error, [this, error = result.errorString] {
+            return tr("Cannot save server project: %1").arg(error);
+        });
         return false;
     }
     m_projectPath = local;
@@ -611,17 +642,22 @@ void ServerStudio::closeProject()
 bool ServerStudio::exportNodeSet(const QString &path)
 {
     if (!m_hasProject) {
-        emit notification(Diagnostics::Warning, tr("Open a server project first."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("Open a server project first.");
+        });
         return false;
     }
     const ServerProject::NodeSet::Result result =
         ServerProject::NodeSet::exportToFile(toLocalPath(path), m_project);
     if (!result.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Cannot export NodeSet2: %1").arg(result.errorString));
+        notify(Diagnostics::Error, [this, error = result.errorString] {
+            return tr("Cannot export NodeSet2: %1").arg(error);
+        });
         return false;
     }
-    emit notification(Diagnostics::Info, tr("Exported NodeSet2."));
+    notify(Diagnostics::Info, [this] {
+        return tr("Exported NodeSet2.");
+    });
     return true;
 }
 
@@ -630,8 +666,9 @@ bool ServerStudio::importNodeSet(const QString &path)
     const ServerProject::NodeSet::ImportResult result =
         ServerProject::NodeSet::importFromFile(toLocalPath(path));
     if (!result.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Cannot import NodeSet2: %1").arg(result.errorString));
+        notify(Diagnostics::Error, [this, error = result.errorString] {
+            return tr("Cannot import NodeSet2: %1").arg(error);
+        });
         return false;
     }
 
@@ -680,14 +717,18 @@ bool ServerStudio::importNodeSet(const QString &path)
             parts.append(QStringLiteral("%1: %2")
                              .arg(kindLabel(kind))
                              .arg(result.skippedKinds.value(kind)));
-        emit notification(Diagnostics::Info,
-                          tr("Imported %1 node(s); skipped %2 (%3).")
-                              .arg(result.nodes.size())
-                              .arg(result.skippedCount)
-                              .arg(parts.join(QStringLiteral(", "))));
+        notify(Diagnostics::Info,
+               [this, n = int(result.nodes.size()), skipped = result.skippedCount,
+                detail = parts.join(QStringLiteral(", "))] {
+                   return tr("Imported %1 node(s); skipped %2 (%3).")
+                       .arg(n)
+                       .arg(skipped)
+                       .arg(detail);
+               });
     } else {
-        emit notification(Diagnostics::Info,
-                          tr("Imported %1 node(s) from NodeSet2.").arg(result.nodes.size()));
+        notify(Diagnostics::Info, [this, n = int(result.nodes.size())] {
+            return tr("Imported %1 node(s) from NodeSet2.").arg(n);
+        });
     }
     return true;
 }
@@ -695,17 +736,23 @@ bool ServerStudio::importNodeSet(const QString &path)
 bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
 {
     if (!m_opcUaManager) {
-        emit notification(Diagnostics::Error, tr("No OPC UA client is available."));
+        notify(Diagnostics::Error, [this] {
+            return tr("No OPC UA client is available.");
+        });
         return false;
     }
     if (m_cloneInProgress) {
-        emit notification(Diagnostics::Warning, tr("A clone is already in progress."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("A clone is already in progress.");
+        });
         return false;
     }
 
     m_clonePreserveIds = preserveOriginalIds;
     m_cloneInProgress = true;
-    emit notification(Diagnostics::Info, tr("Cloning the server address space…"));
+    notify(Diagnostics::Info, [this] {
+        return tr("Cloning the server address space…");
+    });
     m_opcUaManager->requestCloneSnapshot();
     return true;
 }
@@ -716,8 +763,9 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     m_cloneInProgress = false;
 
     if (!success || nodes.isEmpty()) {
-        emit notification(Diagnostics::Warning,
-                          tr("Nothing was cloned. Connect to a server and try again."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("Nothing was cloned. Connect to a server and try again.");
+        });
         return;
     }
 
@@ -829,12 +877,14 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     emit selectedNodeChanged();
 
     if (truncated) {
-        emit notification(Diagnostics::Warning,
-                          tr("Cloned %1 node(s); the address space was large and was truncated.")
-                              .arg(project.nodes.size()));
+        notify(Diagnostics::Warning, [this, n = int(project.nodes.size())] {
+            return tr("Cloned %1 node(s); the address space was large and was truncated.")
+                .arg(n);
+        });
     } else {
-        emit notification(Diagnostics::Info,
-                          tr("Cloned %1 node(s) from the server.").arg(project.nodes.size()));
+        notify(Diagnostics::Info, [this, n = int(project.nodes.size())] {
+            return tr("Cloned %1 node(s) from the server.").arg(n);
+        });
     }
 }
 
@@ -859,7 +909,9 @@ QString ServerStudio::addFolder(const QString &parentNodeId, const QString &brow
     node.kind = NodeKind::Folder;
     node.nodeId = makeUniqueNodeId(browseName);
     node.parentNodeId = parentNodeId;
-    node.browseName = browseName.trimmed().isEmpty() ? tr("Folder") : browseName.trimmed();
+    // The browse name is persisted project data, not UI text, so the default is a
+    // fixed identifier independent of the UI language.
+    node.browseName = browseName.trimmed().isEmpty() ? QStringLiteral("Folder") : browseName.trimmed();
     node.displayName = node.browseName;
     m_project.nodes.append(node);
     refreshModel();
@@ -876,7 +928,9 @@ QString ServerStudio::addObject(const QString &parentNodeId, const QString &brow
     node.kind = NodeKind::Object;
     node.nodeId = makeUniqueNodeId(browseName);
     node.parentNodeId = parentNodeId;
-    node.browseName = browseName.trimmed().isEmpty() ? tr("Object") : browseName.trimmed();
+    // The browse name is persisted project data, not UI text, so the default is a
+    // fixed identifier independent of the UI language.
+    node.browseName = browseName.trimmed().isEmpty() ? QStringLiteral("Object") : browseName.trimmed();
     node.displayName = node.browseName;
     m_project.nodes.append(node);
     refreshModel();
@@ -894,7 +948,9 @@ QString ServerStudio::addVariable(const QString &parentNodeId, const QString &br
     node.kind = NodeKind::Variable;
     node.nodeId = makeUniqueNodeId(browseName);
     node.parentNodeId = parentNodeId;
-    node.browseName = browseName.trimmed().isEmpty() ? tr("Variable") : browseName.trimmed();
+    // The browse name is persisted project data, not UI text, so the default is a
+    // fixed identifier independent of the UI language.
+    node.browseName = browseName.trimmed().isEmpty() ? QStringLiteral("Variable") : browseName.trimmed();
     node.displayName = node.browseName;
     node.dataType = dataTypeNames().contains(dataType) ? dataType : QStringLiteral("Double");
     node.valueRank = (valueRank == 1) ? 1 : -1;
@@ -1094,22 +1150,27 @@ void ServerStudio::removeUser(const QString &username)
 void ServerStudio::startServer()
 {
     if (!m_hasProject) {
-        emit notification(Diagnostics::Warning, tr("Create or open a server project first."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("Create or open a server project first.");
+        });
         return;
     }
 
     const ServerProject::Validator::Result validation =
         ServerProject::Validator::validate(m_project);
     if (!validation.ok) {
-        emit notification(Diagnostics::Error,
-                          tr("Project is not valid: %1")
-                              .arg(validation.errors.join(QStringLiteral("; "))));
+        notify(Diagnostics::Error,
+               [this, detail = validation.errors.join(QStringLiteral("; "))] {
+                   return tr("Project is not valid: %1").arg(detail);
+               });
         return;
     }
 
     const QString snapshot = writeRuntimeSnapshot();
     if (snapshot.isEmpty()) {
-        emit notification(Diagnostics::Error, tr("Could not prepare the server project."));
+        notify(Diagnostics::Error, [this] {
+            return tr("Could not prepare the server project.");
+        });
         return;
     }
 
@@ -1150,7 +1211,9 @@ bool ServerStudio::trustRejectedCertificate(const QString &fileName)
     const QString source = pki + QStringLiteral("/rejected/certs/") + fileName;
     const QString trustedDir = pki + QStringLiteral("/trusted/certs");
     if (!QFileInfo::exists(source)) {
-        emit notification(Diagnostics::Warning, tr("The certificate is no longer available."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("The certificate is no longer available.");
+        });
         return false;
     }
     QDir().mkpath(trustedDir);
@@ -1158,12 +1221,15 @@ bool ServerStudio::trustRejectedCertificate(const QString &fileName)
     const QString target = trustedDir + QLatin1Char('/') + fileName;
     QFile::remove(target); // replace any stale copy so the rename can succeed
     if (!QFile::rename(source, target)) {
-        emit notification(Diagnostics::Error, tr("Could not trust the certificate."));
+        notify(Diagnostics::Error, [this] {
+            return tr("Could not trust the certificate.");
+        });
         return false;
     }
 
-    emit notification(Diagnostics::Info,
-                      tr("Certificate trusted. Restart the server to apply it."));
+    notify(Diagnostics::Info, [this] {
+        return tr("Certificate trusted. Restart the server to apply it.");
+    });
     emit securityChanged();
     return true;
 }
@@ -1190,12 +1256,15 @@ void ServerStudio::kill()
 void ServerStudio::openInClient()
 {
     if (!running() || m_controller.endpointUrl().isEmpty()) {
-        emit notification(Diagnostics::Warning,
-                          tr("Start the server runtime before opening it in the client."));
+        notify(Diagnostics::Warning, [this] {
+            return tr("Start the server runtime before opening it in the client.");
+        });
         return;
     }
     if (!m_opcUaManager) {
-        emit notification(Diagnostics::Error, tr("No OPC UA client is available."));
+        notify(Diagnostics::Error, [this] {
+            return tr("No OPC UA client is available.");
+        });
         return;
     }
     m_opcUaManager->connectToLocalEndpoint(m_controller.endpointUrl());
