@@ -53,4 +53,12 @@
     ucraino. La lingua può essere cambiata durante l’esecuzione e viene ricordata tra le
     sessioni (vedi \l {Configurazione}). Questa documentazione è disponibile nelle stesse
     lingue; il riferimento dell’API è in inglese.
+
+    \section1 Aprire questa documentazione
+
+    Questa guida è fornita con l’applicazione e si apre da \e{Info > Documentazione}. Viene
+    mostrata in una finestra di documentazione offline che non richiede alcuna connessione a
+    Internet e segue il tema dell’applicazione; i controlli di navigazione consentono di
+    tornare indietro, andare avanti, ricaricare e tornare alla pagina iniziale della guida.
+    La stessa finestra ospita anche il \l {OpcUaManager API Reference}.
 */

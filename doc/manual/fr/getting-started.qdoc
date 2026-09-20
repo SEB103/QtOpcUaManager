@@ -53,4 +53,12 @@
     russe et ukrainien. La langue peut être changée en cours d’exécution et est mémorisée
     d’une session à l’autre (voir \l {Configuration}). Cette documentation est disponible
     dans les mêmes langues ; la référence de l’API est en anglais.
+
+    \section1 Ouvrir cette documentation
+
+    Ce guide est fourni avec l’application et s’ouvre depuis \e{Info > Documentation}. Il
+    s’affiche dans une fenêtre de documentation hors ligne qui ne nécessite aucune connexion
+    Internet et suit le thème de l’application ; les commandes de navigation permettent de
+    revenir en arrière, d’avancer, de recharger et de revenir à la page d’accueil du guide.
+    La même fenêtre héberge aussi la \l {OpcUaManager API Reference}.
 */

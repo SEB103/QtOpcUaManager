@@ -40,7 +40,7 @@
     \row \li Server project model / file / validation / NodeSet2
          \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
     \row \li The headless server itself
-         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer, \c RuleEngine
     \row \li Client project (\c .uaproj)
          \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
     \row \li Monitored-node persistence

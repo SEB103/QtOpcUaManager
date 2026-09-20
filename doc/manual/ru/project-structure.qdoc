@@ -40,7 +40,7 @@
     \row \li Модель / файл / валидация серверного проекта / NodeSet2
          \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
     \row \li Сам автономный сервер
-         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer, \c RuleEngine
     \row \li Клиентский проект (\c .uaproj)
          \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
     \row \li Персистентность отслеживаемых узлов

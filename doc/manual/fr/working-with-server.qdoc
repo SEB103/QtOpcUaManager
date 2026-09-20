@@ -50,4 +50,12 @@
 
     Utilisez l’import/export NodeSet2 pour déplacer un espace d’adressage entre cet outil et
     d’autres outils OPC UA, ou pour conserver une copie versionnée d’un modèle conçu.
+
+    \section1 Émuler les échanges requête/réponse d’un automate
+
+    Ajoutez des règles de comportement à un serveur conçu afin qu’une écriture du client
+    déclenche une réponse côté serveur — par exemple \c PageRequest → \c PageResponse (voir
+    \l {Serveur OPC UA}). Cela émule les échanges qu’une IHM attend d’un automate, ce qui vous
+    permet d’exercer une IHM ou un client face à un comportement requête/réponse réaliste
+    qu’un espace d’adressage statique ne peut pas fournir.
 */

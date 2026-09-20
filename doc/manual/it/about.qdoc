@@ -5,7 +5,7 @@
 
     \section1 Versione dell’applicazione
 
-    La versione dell’applicazione è mostrata nella finestra di dialogo \e{Aiuto > Informazioni},
+    La versione dell’applicazione è mostrata nella finestra di dialogo \e{Info > Informazioni su OpcUaManager…},
     insieme alle informazioni di build e della toolchain e alle note di licenza. La versione
     proviene da un’unica fonte di verità (i metadati del prodotto), che alimenta anche
     l’installer e i metadati dell’eseguibile Windows (\l AppInfo).
@@ -25,7 +25,7 @@
 
     L’applicazione è distribuita sotto la licenza dichiarata e include componenti di terze
     parti sotto le rispettive licenze. I testi completi e le note sono disponibili nella
-    finestra di dialogo \e{Aiuto > Informazioni} e nei file di licenza forniti accanto al
+    finestra di dialogo \e{Info > Informazioni su OpcUaManager…} e nei file di licenza forniti accanto al
     programma.
 
     \section1 Feedback

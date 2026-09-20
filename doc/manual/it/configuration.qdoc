@@ -42,7 +42,7 @@
     \section1 Progetti server (\c .uaserver)
 
     Un progetto server memorizza la definizione completa del server — spazi dei nomi, nodi,
-    tipi di enumerazione, endpoint e sicurezza
+    tipi di enumerazione, endpoint, sicurezza e regole di comportamento
     (\l{ServerProject}{ServerProject::ProjectData}). È un file JSON scritto in modo atomico
     dal suo serializzatore.
 

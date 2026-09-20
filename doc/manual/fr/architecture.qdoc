@@ -38,7 +38,7 @@
         \li \c cppProjectManager → la façade du projet client
         \li \c cppAppEngine → \l AppEngine (services de l’application)
         \li \c cppAppInfo → \l AppInfo, \c cppLocale → \l LocaleController,
-            \c cppLicenseModel → \l LicenseModel
+            \c cppLicenseModel → \l LicenseModel, \c cppUpdate → \l UpdateController
     \endlist
 
     Comme les propriétés de contexte ne nécessitent aucun import, les composants
@@ -74,7 +74,7 @@
             d’édition, et pilote le runtime.
         \li \l ServerRuntimeController possède un \c QProcess exécutant \b OpcUaServerRuntime.
             Le runtime intègre open62541, construit l’espace d’adressage à partir du projet,
-            applique la sécurité et simule les valeurs.
+            applique la sécurité, simule les valeurs et exécute des règles de comportement.
         \li Les deux communiquent selon un contrat simple : le runtime imprime une ligne
             \c READY avec son point de terminaison sur stdout et accepte \c STOP sur stdin.
             Un canal latéral de diagnostics \c QLocalSocket distinct diffuse en continu le

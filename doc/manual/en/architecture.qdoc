@@ -38,7 +38,7 @@
         \li \c cppProjectManager → the client-project facade
         \li \c cppAppEngine → \l AppEngine (application services)
         \li \c cppAppInfo → \l AppInfo, \c cppLocale → \l LocaleController,
-            \c cppLicenseModel → \l LicenseModel
+            \c cppLicenseModel → \l LicenseModel, \c cppUpdate → \l UpdateController
     \endlist
 
     Because context properties need no import, the reusable \l {Base QML Types}{Base}
@@ -71,7 +71,7 @@
             models, and drives the runtime.
         \li \l ServerRuntimeController owns a \c QProcess running \b OpcUaServerRuntime.
             The runtime embeds open62541, builds the address space from the project,
-            applies security, and simulates values.
+            applies security, simulates values, and runs behavior rules.
         \li The two communicate over a simple contract: the runtime prints a \c READY
             line with its endpoint on stdout and accepts \c STOP on stdin. A separate
             \c QLocalSocket diagnostics side-channel streams live session/uptime JSON.

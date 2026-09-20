@@ -49,4 +49,12 @@
     Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento
     e altri strumenti OPC UA, o per conservare una copia con versione di un modello
     progettato.
+
+    \section1 Emulare gli handshake richiesta/risposta di un PLC
+
+    Aggiungi regole di comportamento a un server progettato in modo che una scrittura del
+    client attivi una risposta lato server — per esempio \c PageRequest → \c PageResponse
+    (vedi \l {Server OPC UA}). Questo emula gli handshake che un’HMI si aspetta da un PLC,
+    permettendoti di mettere alla prova un’HMI o un client con un comportamento
+    richiesta/risposta realistico che uno spazio degli indirizzi statico non può fornire.
 */

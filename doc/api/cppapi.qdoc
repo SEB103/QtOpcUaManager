@@ -53,6 +53,17 @@
            \c cppLocale.
 */
 
+/*!
+    \class UpdateController
+    \inmodule OpcUaManager
+    \brief Optional in-app update check against the configured release server,
+           exposed to QML as \c cppUpdate.
+
+    The check is gated by the \c update.enabled field of the product metadata and
+    is disabled in the default build; when disabled, a requested check resolves
+    immediately without any network access.
+*/
+
 // ---------------------------------------------------------------------------
 // Core OPC UA client (src/core/)
 // ---------------------------------------------------------------------------
@@ -260,7 +271,7 @@
     \struct ServerProject::ProjectData
     \inmodule OpcUaManager
     \brief Complete definition of an OPC UA server project: namespaces, nodes,
-           enums, endpoint, and security.
+           enums, endpoint, security, and behavior rules.
 */
 
 /*!
@@ -291,6 +302,20 @@
     \struct ServerProject::SimulationDefinition
     \inmodule OpcUaManager
     \brief Value-simulation settings attached to a variable node.
+*/
+
+/*!
+    \struct ServerProject::Rule
+    \inmodule OpcUaManager
+    \brief A behavior rule: when a client writes the trigger variable, run its
+           actions.
+*/
+
+/*!
+    \struct ServerProject::RuleAction
+    \inmodule OpcUaManager
+    \brief One action of a ServerProject::Rule: write a literal value or the value
+           just written to the trigger, optionally after a delay.
 */
 
 /*!
@@ -340,6 +365,14 @@
     \inmodule OpcUaManager
     \brief Timer-driven value simulation (counter, toggle, random, sine, ramp) that
            writes to running server variables.
+*/
+
+/*!
+    \class RuleEngine
+    \inmodule OpcUaManager
+    \brief Runs a server project's behavior rules in the headless runtime: on a
+           client write to a trigger variable it performs the rule's actions through
+           OPC UA write value callbacks.
 */
 
 /*!

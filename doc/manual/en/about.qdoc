@@ -5,7 +5,7 @@
 
     \section1 Application version
 
-    The application version is shown in the \e{Help > About} dialog, together with build
+    The application version is shown in the \e{Info > About OpcUaManager…} dialog, together with build
     and toolchain information and the license notices. The version comes from a single
     source of truth (the product metadata), which also drives the installer and the
     Windows executable metadata (\l AppInfo).
@@ -24,7 +24,7 @@
 
     The application is distributed under its stated license, and it bundles third-party
     components under their own licenses. The full texts and notices are available in the
-    \e{Help > About} dialog and in the license files shipped next to the program.
+    \e{Info > About OpcUaManager…} dialog and in the license files shipped next to the program.
 
     \section1 Feedback
 

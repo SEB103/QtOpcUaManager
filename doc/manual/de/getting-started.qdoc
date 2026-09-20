@@ -55,4 +55,12 @@
     Die Sprache kann zur Laufzeit umgeschaltet werden und wird zwischen Sitzungen gemerkt
     (siehe \l {Konfiguration}). Diese Dokumentation ist in denselben Sprachen verfügbar;
     die API-Referenz ist in Englisch.
+
+    \section1 Diese Dokumentation öffnen
+
+    Diese Anleitung wird mit der Anwendung ausgeliefert und über \e{Info > Dokumentation}
+    geöffnet. Sie wird in einem Offline-Dokumentationsfenster angezeigt, das keine
+    Internetverbindung benötigt und dem Anwendungsthema folgt; die Navigationselemente
+    erlauben Zurück, Vorwärts, Neu laden und die Rückkehr zur Startseite der Anleitung. Im
+    selben Fenster liegt auch die \l {OpcUaManager API Reference}.
 */

@@ -45,4 +45,11 @@
 
     Use NodeSet2 import/export to move an address space between this tool and other OPC
     UA tooling, or to keep a versioned copy of a designed model.
+
+    \section1 Emulate PLC request/response handshakes
+
+    Add behavior rules to a designed server so that a client write triggers a server-side
+    response — for example \c PageRequest → \c PageResponse (see \l {OPC UA Server}). This
+    emulates the handshakes an HMI expects from a PLC, letting you exercise an HMI or client
+    against realistic request/response behavior that a static address space cannot provide.
 */

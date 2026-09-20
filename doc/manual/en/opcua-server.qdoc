@@ -13,7 +13,7 @@
 
     A server project (\c .uaserver) is a JSON file holding everything the runtime needs:
     the custom namespaces, the address-space nodes, any custom enumeration data types,
-    the endpoint configuration, and the security settings (\l{ServerProject}{ServerProject::ProjectData}).
+    the endpoint configuration, the security settings, and the behavior rules (\l{ServerProject}{ServerProject::ProjectData}).
     Projects are created, opened, saved, and closed from Server Studio.
 
     \section1 Designing the address space
@@ -68,4 +68,14 @@
     runs — counter, toggle, random, sine, or ramp (\l SimulationEngine). The runtime
     writes the simulated values into the server, so connected clients see real
     data-change notifications, which is useful for testing trends and subscriptions.
+
+    \section1 Reacting to writes (behavior rules)
+
+    A variable can be given \e{behavior rules}: when a client writes the variable, the
+    runtime performs one or more actions on other variables. An action either writes a
+    fixed value or copies the value that was just written, optionally after a delay. This
+    reproduces the request/response handshakes an HMI expects from a PLC — for example,
+    writing \c PageRequest makes the server set \c PageResponse — which a static
+    address-space snapshot cannot. Rules are stored in the project and evaluated by the
+    runtime through OPC UA write callbacks (\l RuleEngine).
 */

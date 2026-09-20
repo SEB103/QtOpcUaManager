@@ -40,7 +40,7 @@
     \section1 Server projects (\c .uaserver)
 
     A server project stores the full server definition — namespaces, nodes, enumeration
-    types, endpoint, and security (\l{ServerProject}{ServerProject::ProjectData}). It is
+    types, endpoint, security, and behavior rules (\l{ServerProject}{ServerProject::ProjectData}). It is
     a JSON file written atomically by its serializer.
 
     \section1 Monitored-node database

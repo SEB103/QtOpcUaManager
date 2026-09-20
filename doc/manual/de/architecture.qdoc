@@ -38,7 +38,7 @@
         \li \c cppProjectManager → die Client-Projekt-Fassade
         \li \c cppAppEngine → \l AppEngine (Anwendungsdienste)
         \li \c cppAppInfo → \l AppInfo, \c cppLocale → \l LocaleController,
-            \c cppLicenseModel → \l LicenseModel
+            \c cppLicenseModel → \l LicenseModel, \c cppUpdate → \l UpdateController
     \endlist
 
     Da Kontext-Eigenschaften keinen Import benötigen, bleiben die wiederverwendbaren
@@ -71,7 +71,7 @@
             Bearbeitungsmodelle und steuert die Laufzeit.
         \li \l ServerRuntimeController besitzt einen \c QProcess, der \b OpcUaServerRuntime
             ausführt. Die Laufzeit bettet open62541 ein, baut den Adressraum aus dem Projekt,
-            wendet Sicherheit an und simuliert Werte.
+            wendet Sicherheit an, simuliert Werte und führt Verhaltensregeln aus.
         \li Beide kommunizieren über einen einfachen Vertrag: Die Laufzeit gibt eine
             \c READY-Zeile mit ihrem Endpunkt auf stdout aus und akzeptiert \c STOP auf stdin.
             Ein separater \c QLocalSocket-Diagnose-Seitenkanal streamt Live-JSON zu Sitzung und

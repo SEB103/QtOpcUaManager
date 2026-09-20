@@ -54,4 +54,11 @@
     The language can be switched at runtime and is remembered between sessions
     (see \l {Configuration}). This documentation is available in the same languages;
     the API reference is English.
+
+    \section1 Opening this documentation
+
+    This guide ships with the application and opens from \e{Info > Documentation}. It is
+    shown in an offline documentation window that needs no internet connection and follows
+    the application theme; navigation controls let you go back, forward, reload, and return
+    to the guide's home page. The same window also hosts the \l {OpcUaManager API Reference}.
 */

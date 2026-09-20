@@ -49,4 +49,12 @@
     Verwenden Sie NodeSet2-Import/-Export, um einen Adressraum zwischen diesem Werkzeug und
     anderer OPC-UA-Software zu verschieben oder eine versionierte Kopie eines entworfenen
     Modells zu behalten.
+
+    \section1 SPS-Request/Response-Handshakes nachbilden
+
+    Fügen Sie einem entworfenen Server Verhaltensregeln hinzu, sodass ein Client-Schreibvorgang
+    eine serverseitige Antwort auslöst — zum Beispiel \c PageRequest → \c PageResponse (siehe
+    \l {OPC UA Server}). Das bildet die Handshakes nach, die eine HMI von einer SPS erwartet,
+    sodass Sie eine HMI oder einen Client gegen realistisches Request/Response-Verhalten prüfen
+    können, das ein statischer Adressraum nicht bietet.
 */

@@ -121,6 +121,7 @@ QString UpdateController::statusMessage() const
  *
  * Ignores an unchanged value. The preference is written through the injected
  * settings store, mirroring how the UI language is persisted.
+ * \param enabled Whether the automatic startup update check is turned on.
  */
 void UpdateController::setCheckAutomatically(bool enabled)
 {
@@ -241,6 +242,10 @@ void UpdateController::setStatus(Status status, const QString &message)
  * Only the numeric MAJOR.MINOR.PATCH segments are compared; a missing segment
  * counts as zero and any trailing pre-release suffix is ignored. This is enough
  * for the semantic versions the packaging layer produces.
+ * \param lhs Left-hand version string.
+ * \param rhs Right-hand version string.
+ * \return A negative value if \a lhs precedes \a rhs, zero if they are equal, and
+ *         a positive value if \a lhs follows \a rhs.
  */
 int UpdateController::compareVersions(const QString &lhs, const QString &rhs)
 {

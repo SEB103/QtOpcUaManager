@@ -44,7 +44,7 @@
     \section1 Projets serveur (\c .uaserver)
 
     Un projet serveur enregistre la définition complète du serveur — espaces de noms,
-    nœuds, types d’énumération, point de terminaison et sécurité
+    nœuds, types d’énumération, point de terminaison, sécurité et règles de comportement
     (\l{ServerProject}{ServerProject::ProjectData}). C’est un fichier JSON écrit de façon
     atomique par son sérialiseur.
 

@@ -36,7 +36,7 @@
         \li \c cppProjectManager → фасад клієнтського проєкту
         \li \c cppAppEngine → \l AppEngine (сервіси застосунку)
         \li \c cppAppInfo → \l AppInfo, \c cppLocale → \l LocaleController,
-            \c cppLicenseModel → \l LicenseModel
+            \c cppLicenseModel → \l LicenseModel, \c cppUpdate → \l UpdateController
     \endlist
 
     Оскільки контекстні властивості не потребують імпорту, повторно використовувані компоненти
@@ -69,7 +69,7 @@
             керує середовищем виконання.
         \li \l ServerRuntimeController володіє \c QProcess, що запускає \b OpcUaServerRuntime.
             Середовище виконання вбудовує open62541, будує адресний простір із проєкту, застосовує
-            безпеку та симулює значення.
+            безпеку, симулює значення та виконує правила поведінки.
         \li Обидва взаємодіють за простим контрактом: середовище виконання друкує рядок \c READY зі
             своєю кінцевою точкою в stdout і приймає \c STOP зі stdin. Окремий побічний канал
             діагностики \c QLocalSocket передає живий JSON про сеанси та час роботи.

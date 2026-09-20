@@ -14,8 +14,8 @@
 
     Ein Server-Projekt (\c .uaserver) ist eine JSON-Datei mit allem, was die Laufzeit
     benötigt: die benutzerdefinierten Namensräume, die Adressraum-Knoten, etwaige
-    benutzerdefinierte Enumerations-Datentypen, die Endpunktkonfiguration und die
-    Sicherheitseinstellungen (\l{ServerProject}{ServerProject::ProjectData}). Projekte werden
+    benutzerdefinierte Enumerations-Datentypen, die Endpunktkonfiguration, die
+    Sicherheitseinstellungen und die Verhaltensregeln (\l{ServerProject}{ServerProject::ProjectData}). Projekte werden
     in Server Studio angelegt, geöffnet, gespeichert und geschlossen.
 
     \section1 Adressraum entwerfen
@@ -72,4 +72,15 @@
     (\l SimulationEngine). Die Laufzeit schreibt die simulierten Werte in den Server, sodass
     verbundene Clients echte Datenänderungs-Benachrichtigungen erhalten, was zum Testen von
     Trends und Abonnements nützlich ist.
+
+    \section1 Auf Schreibvorgänge reagieren (Verhaltensregeln)
+
+    Einer Variablen lassen sich \e{Verhaltensregeln} zuweisen: Wenn ein Client die Variable
+    schreibt, führt die Laufzeit eine oder mehrere Aktionen auf anderen Variablen aus. Eine
+    Aktion schreibt entweder einen festen Wert oder kopiert den soeben geschriebenen Wert,
+    optional nach einer Verzögerung. Damit lassen sich die Request/Response-Handshakes
+    nachbilden, die eine HMI von einer SPS erwartet — etwa setzt der Server nach dem
+    Schreiben von \c PageRequest den Wert \c PageResponse —, was eine statische Momentaufnahme
+    des Adressraums nicht kann. Regeln werden im Projekt gespeichert und von der Laufzeit
+    über OPC-UA-Schreib-Callbacks ausgewertet (\l RuleEngine).
 */

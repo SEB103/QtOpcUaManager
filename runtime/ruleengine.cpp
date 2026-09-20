@@ -94,8 +94,11 @@ void onWriteTrampoline(UA_Server * /*server*/, const UA_NodeId * /*sessionId*/,
 
 /*!
  * \brief Compiles the rules and installs the trigger write callbacks.
+ * \param server Running open62541 server whose values the rules read and write; not owned.
+ * \param project Server project whose \c rules are compiled and installed.
+ * \param parent Optional QObject parent.
  */
-RuleEngine::RuleEngine(UA_Server *server, const ProjectData &project, QObject *parent)
+RuleEngine::RuleEngine(UA_Server *server, const ServerProject::ProjectData &project, QObject *parent)
     : QObject(parent)
     , m_server(server)
 {
@@ -162,6 +165,7 @@ RuleEngine::~RuleEngine()
 
 /*!
  * \brief Routes a client write of \a nodeId to the matching rules.
+ * \param data Value just written, used by copy-trigger actions.
  */
 void RuleEngine::onTriggerWrite(const UA_NodeId *nodeId, const UA_DataValue *data)
 {

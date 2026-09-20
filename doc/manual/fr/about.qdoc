@@ -5,7 +5,7 @@
 
     \section1 Version de l’application
 
-    La version de l’application est indiquée dans la boîte de dialogue \e{Aide > À propos},
+    La version de l’application est indiquée dans la boîte de dialogue \e{Info > À propos d’OpcUaManager…},
     accompagnée des informations de compilation et de chaîne d’outils ainsi que des mentions
     de licence. La version provient d’une source de vérité unique (les métadonnées produit),
     qui alimente également l’installateur et les métadonnées de l’exécutable Windows
@@ -26,7 +26,7 @@
 
     L’application est distribuée sous sa licence indiquée, et elle intègre des composants
     tiers sous leurs propres licences. Les textes complets et les mentions sont disponibles
-    dans la boîte de dialogue \e{Aide > À propos} et dans les fichiers de licence fournis à
+    dans la boîte de dialogue \e{Info > À propos d’OpcUaManager…} et dans les fichiers de licence fournis à
     côté du programme.
 
     \section1 Retour d’information

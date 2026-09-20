@@ -40,7 +40,7 @@
     \row \li Server-Projektmodell / -Datei / -Validierung / NodeSet2
          \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
     \row \li Der eigenständige Server selbst
-         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer, \c RuleEngine
     \row \li Client-Projekt (\c .uaproj)
          \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
     \row \li Persistenz überwachter Knoten

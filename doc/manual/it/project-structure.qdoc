@@ -40,7 +40,7 @@
     \row \li Modello / file / validazione / NodeSet2 del progetto server
          \li \c src/serverproject/ \li \l{ServerProject}{ServerProject::*}
     \row \li Il server headless stesso
-         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer
+         \li \c runtime/ \li \c ProjectBuilder, \c SimulationEngine, \c SecuritySetup, \c DiagnosticsServer, \c RuleEngine
     \row \li Progetto client (\c .uaproj)
          \li \c src/project/ \li \l ProjectData, \c ProjectSerializer
     \row \li Persistenza dei nodi monitorati

@@ -42,7 +42,7 @@
     \section1 Server-Projekte (\c .uaserver)
 
     Ein Server-Projekt speichert die vollständige Server-Definition — Namensräume, Knoten,
-    Enumerationstypen, Endpunkt und Sicherheit (\l{ServerProject}{ServerProject::ProjectData}).
+    Enumerationstypen, Endpunkt, Sicherheit und Verhaltensregeln (\l{ServerProject}{ServerProject::ProjectData}).
     Es ist eine JSON-Datei, die von seinem Serializer atomar geschrieben wird.
 
     \section1 Datenbank der überwachten Knoten

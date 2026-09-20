@@ -14,8 +14,8 @@
 
     Un progetto server (\c .uaserver) è un file JSON che contiene tutto ciò di cui il runtime
     ha bisogno: gli spazi dei nomi personalizzati, i nodi dello spazio degli indirizzi, gli
-    eventuali tipi di dati di enumerazione personalizzati, la configurazione dell’endpoint e
-    le impostazioni di sicurezza (\l{ServerProject}{ServerProject::ProjectData}). I progetti
+    eventuali tipi di dati di enumerazione personalizzati, la configurazione dell’endpoint,
+    le impostazioni di sicurezza e le regole di comportamento (\l{ServerProject}{ServerProject::ProjectData}). I progetti
     vengono creati, aperti, salvati e chiusi da Server Studio.
 
     \section1 Progettare lo spazio degli indirizzi
@@ -72,4 +72,15 @@
     rampa (\l SimulationEngine). Il runtime scrive i valori simulati nel server, così i
     client connessi ricevono vere notifiche di modifica dei dati, utili per testare tendenze
     e sottoscrizioni.
+
+    \section1 Reagire alle scritture (regole di comportamento)
+
+    A una variabile possono essere assegnate \e{regole di comportamento}: quando un client
+    scrive la variabile, il runtime esegue una o più azioni su altre variabili. Un’azione
+    scrive un valore fisso oppure copia il valore appena scritto, eventualmente dopo un
+    ritardo. Questo riproduce gli handshake richiesta/risposta che un’HMI si aspetta da un
+    PLC — per esempio, scrivere \c PageRequest fa impostare al server \c PageResponse —, cosa
+    che un’istantanea statica dello spazio degli indirizzi non può fare. Le regole sono
+    memorizzate nel progetto e valutate dal runtime tramite callback di scrittura OPC UA
+    (\l RuleEngine).
 */
