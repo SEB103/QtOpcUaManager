@@ -501,10 +501,10 @@ before use). Nothing is published unless every earlier job succeeds.
 
 | Trigger | What happens |
 |---------|--------------|
-| push of a tag `vX.Y.Z` | `check` (tag must be `vX.Y.Z` **and** equal `product.json` `version`) → `test` (configure, build, `ctest`, `qmllint`) ∥ `build` (release pipeline, artifact/version consistency check) → `pages` (publish the update repository) → `release` (GitHub Release with the installer and the ZIP). |
+| push of a tag `vX.Y.Z` | `check` (tag must be `vX.Y.Z` **and** equal `product.json` `version`) → `test` (configure, build, `ctest`, `qmllint`) ∥ `build` (release pipeline, artifact/version consistency check) → `pages` (publish the update repository) → `release` (GitHub Release with the installer and the ZIP) → `wiki` (user manual to the GitHub Wiki). |
 | `workflow_dispatch` (Actions → Release → Run workflow) | Dry run: `check`, `test`, `build` only. Artifacts are attached to the workflow run; no Release, no Pages deployment, no version change. |
 
-Three kinds of output:
+Four kinds of output:
 
 - **Workflow artifacts** (`installer`, `portable`, `repository`) — attached to
   every run, including dry runs; useful to inspect what a tag build would publish.
@@ -517,10 +517,12 @@ Three kinds of output:
   every installed copy fetches updates from there. The site is deployed with
   `configure-pages` / `upload-pages-artifact` / `deploy-pages` from the workflow
   artifact; no `gh-pages` branch, no generated file is ever committed.
+- **GitHub Wiki** — the user manual (`doc/manual/<lang>/*.qdoc`, every
+  language) as Markdown pages, see *Wiki* below.
 
 Job permissions are minimal: `contents: read` for check/test/build,
 `pages: write` + `id-token: write` for the Pages job only, `contents: write` for
-the Release job only. Pages is deployed *before* the Release is created so that
+the Release and Wiki jobs only. Pages is deployed *before* the Release is created so that
 the update repository is already online when the API starts reporting the new
 version.
 
@@ -532,7 +534,7 @@ version.
 3. Tag the commit: `git tag vX.Y.Z`.
 4. Push commit and tag: `git push origin master` then `git push origin vX.Y.Z`
    (or `git push origin master vX.Y.Z`).
-5. Watch **Actions → Release**: all five jobs must be green. If `check` fails,
+5. Watch **Actions → Release**: all six jobs must be green. If `check` fails,
    the tag and `product.json` disagree — fix `product.json`, commit, and move or
    recreate the tag (never edit `Updates.xml` or the Release by hand).
 6. Verify the **Release** page shows `…-Setup.exe` and `…-win64.zip`, and that
@@ -554,5 +556,39 @@ version.
 - **Settings → Environments → `github-pages`** is created automatically by the
   first deployment; if deployment branch/tag protection is enabled there, allow
   tags `v*` (the Pages job runs on tag refs).
+- **Wiki** (repository → *Wiki* tab): create the first page once so that the
+  `<repo>.wiki.git` repository exists; the `wiki` job pushes with the default
+  `GITHUB_TOKEN` and fails with a clear message until then.
 - Nothing else: no secrets, no certificates (the installer is not code-signed).
+
+### Wiki: the user manual as GitHub Wiki pages
+
+`doc/qdoc2wiki.py` converts the QDoc manual (`doc/manual/<lang>/*.qdoc`) to
+GitHub-flavored Markdown - one wiki page per manual page and language, plus
+`_Sidebar.md` (per-language table of contents) and `_Footer.md`. English pages
+are named after their title (`Getting-Started`, `OPC-UA-Client`, ...; the index
+becomes `Home`), the other languages get a prefix (`de-Getting-Started`,
+`ru-Home`, ...). Every page starts with a language switcher. The generated API
+reference is *not* part of the wiki: links into it are rendered as plain text
+unless `--api-url` points to a published copy of the QDoc site's
+`opcuamanager/` directory.
+
+The `wiki` job does this on every tag build. To publish by hand (first time, or
+between releases):
+
+```powershell
+git clone git@github.com:SEB103/QtOpcUaManager.wiki.git ..\QtOpcUaManager.wiki
+python doc\qdoc2wiki.py --out ..\QtOpcUaManager.wiki --clean
+cd ..\QtOpcUaManager.wiki
+git add -A
+git commit -m "docs: user manual"
+git push
+```
+
+`--clean` removes only the files listed in the wiki's `.qdoc2wiki-manifest`
+(what the previous run generated); hand-written wiki pages are kept. The
+version shown on the *About* page comes from `product.json` unless `--version`
+is given. The script needs Python 3.10+ and no third-party packages; it exits
+non-zero on unknown QDoc markup or an unresolved link, so extending the manual
+with new commands means extending the converter.
 

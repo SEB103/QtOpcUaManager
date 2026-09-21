@@ -8,6 +8,11 @@ The project is currently in the stabilization phase before further product devel
 (Windows installer and portable ZIP). How releases are built and published is
 documented in [`packaging/README.md`](packaging/README.md).
 
+**User manual:** <https://github.com/SEB103/QtOpcUaManager/wiki> (English,
+German, French, Italian, Russian, Ukrainian). The same manual ships with the
+application (**Info → Documentation**) together with the API reference; both are
+generated from `doc/` by QDoc, the wiki pages by `doc/qdoc2wiki.py`.
+
 ## Project baseline
 
 - Qt 6.11.x
