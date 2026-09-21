@@ -111,13 +111,10 @@ jobs:
           aqtsource: ${{ env.AQTINSTALL_SOURCE }}
           cache: true
 
-      - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up MSVC and Ninja
+        uses: ./.github/actions/setup-msvc
         with:
           arch: x64
-
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
 
       # qtopcua is not part of the public Qt online repository for the
       # open-source Windows kits: build it from the matching Git tag.
@@ -171,13 +168,10 @@ jobs:
           tools: 'tools_ifw,${{ env.IFW_TOOL_VARIANT }}'
           cache: true
 
-      - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up MSVC and Ninja
+        uses: ./.github/actions/setup-msvc
         with:
           arch: x64
-
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
 
       # qtopcua is not part of the public Qt online repository for the
       # open-source Windows kits: build it from the matching Git tag.
