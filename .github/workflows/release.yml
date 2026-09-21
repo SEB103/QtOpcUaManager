@@ -54,7 +54,7 @@ jobs:
       is_release: ${{ steps.meta.outputs.is_release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Read product.json and validate the tag
         id: meta
@@ -96,7 +96,7 @@ jobs:
       CMAKE_GENERATOR: Ninja
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4
@@ -155,7 +155,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Qt ${{ env.QT_VERSION }} and Qt Installer Framework ${{ env.IFW_DIR_VERSION }}
         uses: jurplel/install-qt-action@v4
@@ -241,21 +241,21 @@ jobs:
           Write-Host "Version $v consistent across executable, installer, ZIP and repository."
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: installer
           path: release/*-Setup.exe
           if-no-files-found: error
 
       - name: Upload portable ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: portable
           path: release/*-win64.zip
           if-no-files-found: error
 
       - name: Upload update repository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: repository
           path: release/repository/**
@@ -282,10 +282,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download update repository
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: repository
           path: site/updates/stable
@@ -298,16 +298,16 @@ jobs:
           find site -type f | sort
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   # ---------------------------------------------------------------------------
   # GitHub Release for the pushed tag with the installer and the portable ZIP.
@@ -321,16 +321,16 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: installer
           path: dist
 
       - name: Download portable ZIP
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: portable
           path: dist
