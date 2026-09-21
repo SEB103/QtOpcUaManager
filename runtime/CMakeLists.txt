@@ -71,6 +71,12 @@ set_target_properties(OpcUaServerRuntime PROPERTIES
     WIN32_EXECUTABLE FALSE
 )
 
+# Product name, version and publisher metadata for the Windows .exe; required
+# by the code-signing service for every signed executable.
+opcua_add_windows_version_info(OpcUaServerRuntime
+    DESCRIPTION "${PRODUCT_DISPLAY_NAME} Server Runtime"
+)
+
 install(TARGETS OpcUaServerRuntime
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )

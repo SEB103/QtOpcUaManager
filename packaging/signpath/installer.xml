@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "installer" (signing round 2).
+
+  Reference copy of the configuration stored in the SignPath project. The
+  release workflow uploads the finished Qt IFW installer as one GitHub Actions
+  artifact (a ZIP containing the single Setup.exe). The installer is a PE file
+  with the package payload appended, which Authenticode signs as a whole; the
+  executables inside it were already signed in round 1.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="OPC-UA-Manager-*-Setup.exe">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

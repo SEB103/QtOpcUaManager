@@ -145,8 +145,10 @@ Working directory `%{ActiveProject:Path}`.
 
 **Graphical install:** double-click `OPC-UA-Manager-<version>-Setup.exe` and follow
 the wizard (choose the folder, accept the licence, optional desktop shortcut).
-Default location `C:\Program Files\OPC UA Manager`. Because the installer is not
-code-signed yet, Windows SmartScreen shows a warning: click *More info → Run anyway*.
+Default location `C:\Program Files\OPC UA Manager`. Release builds from GitHub are
+code-signed (publisher *SignPath Foundation*, see section 13); a locally built or
+dry-run installer is unsigned, so Windows SmartScreen shows a warning for it after
+download: click *More info → Run anyway*.
 
 **Silent install (command line):**
 
@@ -256,9 +258,8 @@ starts the updater.
 `THIRD_PARTY_NOTICES.md`). The installer and Maintenance Tool are themselves Qt
 Installer Framework programs by The Qt Company, so their distribution carries the
 IFW/Qt attribution obligation — add that attribution before a public release.
-Code signing is not set up yet; unsigned installers trigger SmartScreen until a
-certificate is added (a signing step can be inserted after the build/package
-stages).
+Code signing happens only in the GitHub release workflow (section 13); local
+pipeline runs produce unsigned artifacts.
 
 **Local update test (already verified).** Install version A, publish version B to
 `release/repository/`, then update in place. Note the IFW CLI: repository options
@@ -494,15 +495,16 @@ release or at least repeat `Build` and `Deploy` before repackaging artifacts.
 
 ## 12. Publishing: GitHub Actions, Releases and Pages
 
-`.github/workflows/release.yml` runs the same `packaging/release.ps1 -Stage All`
+`.github/workflows/release.yml` runs the same `packaging/release.ps1` stages
 on a `windows-2022` runner with Qt 6.11.1 (`jurplel/install-qt-action`) and Qt
 Installer Framework 4.10 (`tools_ifw,qt.tools.ifw.410`, verified by file version
-before use). Nothing is published unless every earlier job succeeds.
+before use), with the code-signing rounds of section 13 inserted between the
+stages. Nothing is published unless every earlier job succeeds.
 
 | Trigger | What happens |
 |---------|--------------|
 | push of a tag `vX.Y.Z` | `check` (tag must be `vX.Y.Z` **and** equal `product.json` `version`) → `test` (configure, build, `ctest`, `qmllint`) ∥ `build` (release pipeline, artifact/version consistency check) → `pages` (publish the update repository) → `release` (GitHub Release with the installer and the ZIP) → `wiki` (user manual to the GitHub Wiki). |
-| `workflow_dispatch` (Actions → Release → Run workflow) | Dry run: `check`, `test`, `build` only. Artifacts are attached to the workflow run; no Release, no Pages deployment, no version change. |
+| `workflow_dispatch` (Actions → Release → Run workflow) | Dry run: `check`, `test`, `build` only. Artifacts are attached to the workflow run; no Release, no Pages deployment, no version change. Unsigned unless the **sign** input is ticked. |
 
 Four kinds of output:
 
@@ -520,7 +522,8 @@ Four kinds of output:
 - **GitHub Wiki** — the user manual (`doc/manual/<lang>/*.qdoc`, every
   language) as Markdown pages, see *Wiki* below.
 
-Job permissions are minimal: `contents: read` for check/test/build,
+Job permissions are minimal: `contents: read` for check/test/build (plus
+`actions: read` in `build`, so SignPath can fetch the unsigned artifact),
 `pages: write` + `id-token: write` for the Pages job only, `contents: write` for
 the Release and Wiki jobs only. Pages is deployed *before* the Release is created so that
 the update repository is already online when the API starts reporting the new
@@ -537,6 +540,8 @@ version.
 5. Watch **Actions → Release**: all six jobs must be green. If `check` fails,
    the tag and `product.json` disagree — fix `product.json`, commit, and move or
    recreate the tag (never edit `Updates.xml` or the Release by hand).
+   The `build` job pauses twice for code signing: approve each signing request
+   in SignPath (section 13) — the job waits up to 2 h per request.
 6. Verify the **Release** page shows `…-Setup.exe` and `…-win64.zip`, and that
    `https://seb103.github.io/QtOpcUaManager/updates/stable/Updates.xml` shows
    `<Version>X.Y.Z</Version>`.
@@ -559,7 +564,10 @@ version.
 - **Wiki** (repository → *Wiki* tab): create the first page once so that the
   `<repo>.wiki.git` repository exists; the `wiki` job pushes with the default
   `GITHUB_TOKEN` and fails with a clear message until then.
-- Nothing else: no secrets, no certificates (the installer is not code-signed).
+- **Settings → Secrets and variables → Actions**: secret `SIGNPATH_API_TOKEN`,
+  variables `SIGNPATH_ORGANIZATION_ID` and `SIGNPATH_PROJECT_SLUG` (section 13).
+  Without them a tag build fails at the first signing step; a dry run without
+  the **sign** input does not need them.
 
 ### Wiki: the user manual as GitHub Wiki pages
 
@@ -592,3 +600,60 @@ is given. The script needs Python 3.10+ and no third-party packages; it exits
 non-zero on unknown QDoc markup or an unresolved link, so extending the manual
 with new commands means extending the converter.
 
+---
+
+## 13. Code signing (SignPath Foundation)
+
+Release binaries are Authenticode-signed by [SignPath.io](https://signpath.io)
+with a certificate issued by the [SignPath Foundation](https://signpath.org),
+which provides free code signing for open-source projects. Windows therefore
+shows *SignPath Foundation* as the publisher, and Defender SmartScreen no longer
+blocks the downloaded installer as an "unknown app". The certificate's private
+key never leaves SignPath's HSM; nothing is stored in this repository.
+
+**What is signed.** Two signing requests per release, both in the `build` job:
+
+1. *executables* — `appOpcUaManager.exe` and `OpcUaServerRuntime.exe` from the
+   canonical deployment, **before** packaging, so the installer, the portable
+   ZIP and the update repository all contain the signed binaries. The
+   deployment is then re-verified with `verify-deployment.ps1 -RequireSignature`.
+2. *installer* — the finished `OPC-UA-Manager-<version>-Setup.exe`.
+
+Not signed, on purpose: the Qt runtime, OpenSSL, `vc_redist.x64.exe` and the Qt
+Installer Framework `installerbase` / Maintenance Tool — they are third-party
+binaries signed by their vendors (or, for IFW, not signable under the
+Foundation's terms, which allow signing only the project's own code). The
+Maintenance Tool is created locally by the installer and never carries the
+mark-of-the-web, so SmartScreen does not warn about it.
+
+**How it works.** Each round uploads the unsigned files as a workflow artifact,
+`signpath/github-action-submit-signing-request` submits it to SignPath, SignPath
+verifies the origin (this repository, GitHub-hosted runner) and waits for a
+member of the project's *Approvers* group to approve the request in the SignPath
+web UI, then the signed files are downloaded and put back in place. Signing is
+only possible for builds made by GitHub Actions; `release.ps1` on a developer
+machine always produces unsigned artifacts.
+
+**SignPath project settings** (mirrored in `packaging/signpath/` for reference):
+
+| Item | Value |
+|------|-------|
+| Trusted Build System | `GitHub.com` (predefined), linked to the project |
+| Signing policy slug | `release-signing` |
+| Artifact configuration slugs | `executables` (`packaging/signpath/executables.xml`), `installer` (`packaging/signpath/installer.xml`) |
+| Repository URL (origin verification) | `https://github.com/SEB103/QtOpcUaManager` |
+| API token | a CI user with *Submitter* permission → GitHub secret `SIGNPATH_API_TOKEN` |
+| Organization ID / project slug | GitHub variables `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG` |
+
+**Obligations that the repository must keep satisfied** (SignPath Foundation
+terms): every signed executable carries `ProductName` = product name and the
+same `ProductVersion` in each build (generated from `product.json` by
+`cmake/WindowsVersionInfo.cmake` and checked by `verify-deployment.ps1`); the
+top-level `README.md` keeps its *Code signing policy* section; all team members
+use multi-factor authentication on GitHub and SignPath.
+
+**First-time / integration test.** Run **Actions → Release → Run workflow** with
+**sign** ticked: this signs a dry-run build without publishing anything, so the
+SignPath configuration, the approval flow and the signature on the IFW installer
+can be checked (download the `installer` artifact and inspect *Properties →
+Digital Signatures*, or run `Get-AuthenticodeSignature`).

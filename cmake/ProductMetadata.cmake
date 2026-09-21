@@ -3,7 +3,7 @@
 # Loads the single product-metadata source (packaging/product.json) and exposes
 # its fields as PRODUCT_* CMake variables in the including scope. Include this
 # BEFORE project() so that project(... VERSION ${PRODUCT_VERSION} ...) and the
-# generated productinfo.h / app.rc all draw from the same file.
+# generated productinfo.h / *.rc files all draw from the same file.
 #
 # The JSON is intentionally the only place the product name and version are
 # defined; both the CMake build and the PowerShell packaging scripts read it, so
@@ -65,6 +65,6 @@ set(PRODUCT_VERSION_MINOR "${CMAKE_MATCH_2}")
 set(PRODUCT_VERSION_PATCH "${CMAKE_MATCH_3}")
 set(PRODUCT_VERSION_BUILD "0")
 
-# Absolute, forward-slash path to the .exe icon for the generated app.rc.
-# rc.exe accepts forward slashes; this avoids backslash escaping in the .rc.
+# Absolute, forward-slash path to the application .exe icon (embedded through
+# opcua_add_windows_version_info(); see cmake/WindowsVersionInfo.cmake).
 set(PRODUCT_ICON_PATH "${_opcua_project_root}/resources/images/app/OpcUaManager.ico")

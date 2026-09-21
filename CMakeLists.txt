@@ -59,6 +59,7 @@ qt_standard_project_setup(
 include(CTest)
 include(GNUInstallDirs)
 include(cmake/OpcUaManagerDocs.cmake)
+include(cmake/WindowsVersionInfo.cmake)
 
 # Keep all generated QML module metadata under one predictable build-tree root.
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
@@ -142,17 +143,13 @@ set_target_properties(appOpcUaManager PROPERTIES
 )
 
 # Embed the application icon and version metadata into the Windows .exe (used by
-# Explorer, the taskbar/Alt+Tab and Desktop/Start Menu shortcuts). The .rc is
-# generated from cmake/app.rc.in so its VERSIONINFO block and icon path come
-# from packaging/product.json; MSVC compiles it automatically.
-if(WIN32)
-    configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/app.rc.in"
-        "${OPCUA_GENERATED_DIR}/app.rc"
-        @ONLY
-    )
-    target_sources(appOpcUaManager PRIVATE "${OPCUA_GENERATED_DIR}/app.rc")
-endif()
+# Explorer, the taskbar/Alt+Tab and Desktop/Start Menu shortcuts). The generated
+# .rc takes its VERSIONINFO block from packaging/product.json; MSVC compiles it
+# automatically.
+opcua_add_windows_version_info(appOpcUaManager
+    DESCRIPTION "${PRODUCT_DISPLAY_NAME}"
+    ICON "${PRODUCT_ICON_PATH}"
+)
 
 qt_add_translations(appOpcUaManager
     TS_FILES

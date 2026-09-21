@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "executables" (signing round 1).
+
+  Reference copy of the configuration stored in the SignPath project; the
+  release workflow uploads the two project executables as one GitHub Actions
+  artifact (a ZIP with the files at its root) and SignPath signs them in place.
+  Only binaries built from this repository are listed; Qt, OpenSSL, the VC++
+  redistributable and the Qt Installer Framework tools are signed by their
+  vendors and are not part of the request.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="appOpcUaManager.exe">
+      <authenticode-sign/>
+    </pe-file>
+    <pe-file path="OpcUaServerRuntime.exe">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

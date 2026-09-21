@@ -173,6 +173,30 @@ The project uses `qt_generate_deploy_qml_app_script()` for installation deployme
 
 Before distributing binaries, verify all Qt, open62541, OpenSSL, and icon-license obligations. See `THIRD_PARTY_NOTICES.md`.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+Windows release binaries (`appOpcUaManager.exe`, `OpcUaServerRuntime.exe` and the
+installer) are signed by SignPath.io from builds made by this repository's GitHub
+Actions release workflow; the publisher shown by Windows is *SignPath Foundation*.
+How the signing is integrated is described in
+[`packaging/README.md`](packaging/README.md#13-code-signing-signpath-foundation).
+
+Team roles:
+
+- **Committers and reviewers:** [SEB103](https://github.com/SEB103)
+- **Approvers:** [SEB103](https://github.com/SEB103)
+
+Privacy policy: this program will not transfer any information to other networked
+systems unless specifically requested by the user or the person installing or
+operating it. The application connects only to the OPC UA servers the user
+configures, and — if the user leaves the optional startup check enabled
+(**Settings → Updates → Check for updates automatically on startup**) or triggers
+it manually (**Info → Check for updates…**) —
+to the GitHub Releases API to look up the latest published version.
+
 ## License
 
 OpcUaManager is licensed under the **GNU General Public License v3.0 or later**

@@ -11,6 +11,16 @@ name: Release
 #   - workflow_dispatch     : dry run. Same checks, tests and pipeline; the
 #                            artifacts are only uploaded to the workflow run.
 #                            No Release, no Pages deployment, no version change.
+#                            Unsigned unless the "sign" input is set.
+#
+# Code signing (tag builds, or a dry run with sign=true) is done by SignPath.io
+# with the SignPath Foundation certificate for open-source projects. The build
+# job submits two signing requests: the project executables before packaging
+# (so the installer, the portable ZIP and the update repository all carry
+# signed binaries) and the finished Setup.exe afterwards. Each request waits
+# for manual approval in SignPath; see packaging/README.md, "Code signing".
+# Configuration: secret SIGNPATH_API_TOKEN, repository variables
+# SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG.
 #
 # Nothing is published unless every earlier job (check, test, build) succeeded.
 # The version is never derived from the tag; product.json is the only source.
@@ -19,6 +29,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      sign:
+        description: 'Sign the dry-run artifacts through SignPath (waits for approval)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,6 +68,7 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
       is_release: ${{ steps.meta.outputs.is_release }}
+      sign: ${{ steps.meta.outputs.sign }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -60,6 +76,8 @@ jobs:
       - name: Read product.json and validate the tag
         id: meta
         shell: bash
+        env:
+          SIGN_INPUT: ${{ inputs.sign }}
         run: |
           version="$(jq -r '.version' packaging/product.json)"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -79,9 +97,15 @@ jobs:
             fi
             is_release=true
           fi
+          # Releases are always signed; a dry run only when requested.
+          sign=false
+          if [[ "$is_release" == "true" || "$SIGN_INPUT" == "true" ]]; then
+            sign=true
+          fi
           echo "version=$version"       >> "$GITHUB_OUTPUT"
           echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
-          echo "version=$version is_release=$is_release"
+          echo "sign=$sign"             >> "$GITHUB_OUTPUT"
+          echo "version=$version is_release=$is_release sign=$sign"
 
   # ---------------------------------------------------------------------------
   # Tests: the same configure/build/ctest/qmllint run as ci.yml, in its own tree.
@@ -146,11 +170,19 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: Release pipeline
-    timeout-minutes: 60
+    # Build and packaging take well under an hour; the rest is headroom for
+    # the two signing requests, each of which waits for a manual approval.
+    timeout-minutes: 300
     needs: check
     runs-on: windows-2022
     permissions:
       contents: read
+      # SignPath downloads the unsigned artifact of this run with the job token.
+      actions: read
+    env:
+      SIGN: ${{ needs.check.outputs.sign }}
+      # Upper bound for one signing request, approval wait included (2 h).
+      SIGNPATH_WAIT_SECONDS: '7200'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -202,13 +234,120 @@ jobs:
           & (Join-Path $root 'bin/devtool.exe') --version
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Run release pipeline
+      # The pipeline runs stage by stage so the two signing rounds can be
+      # inserted: executables after Deploy/Verify, the installer after packaging.
+      - name: Build, deploy and verify the canonical deployment
         shell: pwsh
         run: |
-          ./packaging/release.ps1 -Stage All `
-            -CMake cmake -Ninja ninja `
-            -QtPrefix "$env:QT_ROOT_DIR" `
-            -QtIfwRoot "${{ steps.ifw.outputs.root }}"
+          foreach ($stage in 'Build', 'Deploy', 'Verify') {
+            ./packaging/release.ps1 -Stage $stage `
+              -CMake cmake -Ninja ninja `
+              -QtPrefix "$env:QT_ROOT_DIR" `
+              -QtIfwRoot "${{ steps.ifw.outputs.root }}"
+            if ($LASTEXITCODE -ne 0) { throw "release.ps1 -Stage $stage failed" }
+          }
+
+      # ----- Signing round 1: project executables (before packaging) -----
+      - name: Collect unsigned executables
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $meta = Get-Content packaging/product.json -Raw | ConvertFrom-Json
+          $deploy = "release/$($meta.artifactBase)-$($meta.version)"
+          New-Item -ItemType Directory -Force signing/unsigned-executables | Out-Null
+          foreach ($exe in "$($meta.exeName).exe", 'OpcUaServerRuntime.exe') {
+            Copy-Item "$deploy/$exe" signing/unsigned-executables/
+          }
+          Get-ChildItem signing/unsigned-executables
+
+      - name: Upload unsigned executables
+        if: env.SIGN == 'true'
+        id: upload-unsigned-executables
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-executables
+          path: signing/unsigned-executables/*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign executables (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: executables
+          github-artifact-id: ${{ steps.upload-unsigned-executables.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: ${{ env.SIGNPATH_WAIT_SECONDS }}
+          output-artifact-directory: signing/signed-executables
+
+      - name: Install signed executables into the deployment
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          # Replace the unsigned binaries in the canonical deployment, then
+          # re-verify it with the signature requirement switched on.
+          $meta = Get-Content packaging/product.json -Raw | ConvertFrom-Json
+          $deploy = "release/$($meta.artifactBase)-$($meta.version)"
+          foreach ($exe in "$($meta.exeName).exe", 'OpcUaServerRuntime.exe') {
+            $signed = "signing/signed-executables/$exe"
+            if (-not (Test-Path $signed)) { throw "signed executable missing: $signed" }
+            Copy-Item $signed "$deploy/$exe" -Force
+          }
+          ./packaging/verify-deployment.ps1 -DeploymentDir $deploy -RequireSignature
+          if ($LASTEXITCODE -ne 0) { throw 'signed deployment verification failed' }
+
+      - name: Package installer, portable ZIP and update repository
+        shell: pwsh
+        run: |
+          foreach ($stage in 'PackageInstaller', 'PackagePortable', 'GenerateRepository') {
+            ./packaging/release.ps1 -Stage $stage `
+              -CMake cmake -Ninja ninja `
+              -QtPrefix "$env:QT_ROOT_DIR" `
+              -QtIfwRoot "${{ steps.ifw.outputs.root }}"
+            if ($LASTEXITCODE -ne 0) { throw "release.ps1 -Stage $stage failed" }
+          }
+
+      # ----- Signing round 2: the installer -----
+      - name: Upload unsigned installer
+        if: env.SIGN == 'true'
+        id: upload-unsigned-installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-installer
+          path: release/*-Setup.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign installer (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: ${{ env.SIGNPATH_WAIT_SECONDS }}
+          output-artifact-directory: signing/signed-installer
+
+      - name: Install the signed installer
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $meta = Get-Content packaging/product.json -Raw | ConvertFrom-Json
+          $name = "$($meta.artifactBase)-$($meta.version)-Setup.exe"
+          $signed = "signing/signed-installer/$name"
+          if (-not (Test-Path $signed)) { throw "signed installer missing: $signed" }
+          Copy-Item $signed "release/$name" -Force
+          $sig = Get-AuthenticodeSignature "release/$name"
+          if ($sig.Status -ne 'Valid') { throw "installer signature is $($sig.Status)" }
+          Write-Host "Installer signed by: $($sig.SignerCertificate.Subject)"
 
       - name: Verify artifact versions
         shell: pwsh

@@ -19,13 +19,19 @@
 .PARAMETER RequireOpenSsl
     When set, missing OpenSSL runtime DLLs are treated as a failure. Defaults to
     true because the application uses secure OPC UA connections.
+
+.PARAMETER RequireSignature
+    When set, every project executable (the main executable and the server
+    runtime) must carry a valid Authenticode signature. Off by default: local
+    builds are unsigned; the release workflow enables it after the signing step.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string] $DeploymentDir,
     [string] $ExeName,
-    [bool]   $RequireOpenSsl = $true
+    [bool]   $RequireOpenSsl = $true,
+    [switch] $RequireSignature
 )
 
 $ErrorActionPreference = 'Stop'
@@ -79,8 +85,33 @@ if (-not (Test-Path $DeploymentDir)) {
     exit 2
 }
 
-# 1. Main executable.
+# 1. Project executables: present, with the version metadata the code-signing
+#    service requires (ProductName and ProductVersion), and, when requested,
+#    signed. Only binaries built from this repository are checked; Qt tools and
+#    the VC++ redistributable are third-party and signed by their vendors.
 Test-Item "$ExeName.exe" 'Main executable'
+Test-Item 'OpcUaServerRuntime.exe' 'Server runtime executable'
+
+$projectExes = @("$ExeName.exe", 'OpcUaServerRuntime.exe') |
+    ForEach-Object { Join-Path $DeploymentDir $_ } |
+    Where-Object { Test-Path $_ }
+foreach ($exe in $projectExes) {
+    $name = Split-Path $exe -Leaf
+    $info = (Get-Item $exe).VersionInfo
+    if ($info.ProductName -and $info.ProductVersion) {
+        $checks.Add("OK   : version metadata ($name : $($info.ProductName) $($info.ProductVersion))")
+    } else {
+        $errors.Add("FAIL : ProductName/ProductVersion metadata missing ($name)")
+    }
+    if ($RequireSignature) {
+        $sig = Get-AuthenticodeSignature -FilePath $exe
+        if ($sig.Status -eq 'Valid') {
+            $checks.Add("OK   : Authenticode signature ($name : $($sig.SignerCertificate.Subject))")
+        } else {
+            $errors.Add("FAIL : Authenticode signature $($sig.Status) ($name)")
+        }
+    }
+}
 
 # 2. No debug Qt / backend DLLs (a release deployment must not ship debug runtime).
 $debugDlls = Get-ChildItem -Path $DeploymentDir -Recurse -File -Filter '*d.dll' |
