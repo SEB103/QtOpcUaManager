@@ -46,7 +46,7 @@ jobs:
   # ---------------------------------------------------------------------------
   check:
     name: Check version and tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -264,7 +264,7 @@ jobs:
     name: Publish update repository (GitHub Pages)
     if: needs.check.outputs.is_release == 'true'
     needs: [check, test, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write
@@ -310,7 +310,7 @@ jobs:
     name: Publish GitHub Release
     if: needs.check.outputs.is_release == 'true'
     needs: [check, test, build, pages]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
