@@ -41,6 +41,7 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 [[annotations]]
 path = [
     "README.md",
+    "SECURITY.md",
     "NOTICE",
     "THIRD_PARTY_NOTICES.md",
     "doc/**",
