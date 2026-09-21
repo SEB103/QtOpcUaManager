@@ -33,6 +33,11 @@ env:
   # is only on master, so install-qt-action is pointed at a pinned commit.
   # Drop AQTINSTALL_SOURCE once a release newer than 3.3.0 is published.
   AQTINSTALL_SOURCE: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
+  # On Windows, QCommandLineParser shows --help/--version/usage-error text in a
+  # message box when the process has no console window (the case for runner
+  # steps). The Qt IFW tools (devtool, binarycreator, repogen) would then block
+  # forever on the headless runner; this routes the text to stdout/stderr.
+  QT_COMMAND_LINE_PARSER_NO_GUI_MESSAGE_BOXES: '1'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -82,6 +87,7 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     name: Build and test
+    timeout-minutes: 60
     needs: check
     runs-on: windows-2022
     permissions:
@@ -142,6 +148,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: Release pipeline
+    timeout-minutes: 60
     needs: check
     runs-on: windows-2022
     permissions:
