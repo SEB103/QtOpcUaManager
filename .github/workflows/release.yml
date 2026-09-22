@@ -13,14 +13,18 @@ name: Release
 #                            No Release, no Pages deployment, no version change.
 #                            Unsigned unless the "sign" input is set.
 #
-# Code signing (tag builds, or a dry run with sign=true) is done by SignPath.io
-# with the SignPath Foundation certificate for open-source projects. The build
-# job submits two signing requests: the project executables before packaging
-# (so the installer, the portable ZIP and the update repository all carry
-# signed binaries) and the finished Setup.exe afterwards. Each request waits
-# for manual approval in SignPath; see packaging/README.md, "Code signing".
-# Configuration: secret SIGNPATH_API_TOKEN, repository variables
-# SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG.
+# Code signing is done by SignPath.io with the SignPath Foundation certificate
+# for open-source projects. The build job submits two signing requests: the
+# project executables before packaging (so the installer, the portable ZIP and
+# the update repository all carry signed binaries) and the finished Setup.exe
+# afterwards. Each request waits for manual approval in SignPath; see
+# packaging/README.md, "Code signing".
+#
+# Signing runs only when the repository is configured for it: the variables
+# SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG and the secret
+# SIGNPATH_API_TOKEN must be set. Until then (and if they are ever removed)
+# releases are built and published unsigned instead of failing, and the check
+# job says so in its summary.
 #
 # Nothing is published unless every earlier job (check, test, build) succeeded.
 # The version is never derived from the tag; product.json is the only source.
@@ -78,6 +82,8 @@ jobs:
         shell: bash
         env:
           SIGN_INPUT: ${{ inputs.sign }}
+          # Presence only; the values are read in the build job.
+          SIGNPATH_CONFIGURED: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && vars.SIGNPATH_PROJECT_SLUG != '' }}
         run: |
           version="$(jq -r '.version' packaging/product.json)"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -97,10 +103,17 @@ jobs:
             fi
             is_release=true
           fi
-          # Releases are always signed; a dry run only when requested.
+          # Releases are signed, a dry run only when requested -- but both
+          # need the SignPath configuration. Without it the pipeline still runs
+          # and publishes, just unsigned; a missing token must not break a
+          # release.
           sign=false
           if [[ "$is_release" == "true" || "$SIGN_INPUT" == "true" ]]; then
-            sign=true
+            if [[ "$SIGNPATH_CONFIGURED" == "true" ]]; then
+              sign=true
+            else
+              echo "::warning::SignPath is not configured (SIGNPATH_ORGANIZATION_ID / SIGNPATH_PROJECT_SLUG); artifacts will be UNSIGNED"
+            fi
           fi
           echo "version=$version"       >> "$GITHUB_OUTPUT"
           echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
@@ -483,6 +496,8 @@ jobs:
             echo '* `*-win64.zip` - portable package (unzip and run; update by replacing the folder).'
             echo
             echo 'Installed copies are updated through **Info > Check for updates...** or the Maintenance Tool.'
+            echo
+            echo 'Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).'
           } > notes.md
           gh release create "$GITHUB_REF_NAME" \
             --verify-tag \

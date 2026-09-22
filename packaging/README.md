@@ -566,8 +566,9 @@ version.
   `GITHUB_TOKEN` and fails with a clear message until then.
 - **Settings → Secrets and variables → Actions**: secret `SIGNPATH_API_TOKEN`,
   variables `SIGNPATH_ORGANIZATION_ID` and `SIGNPATH_PROJECT_SLUG` (section 13).
-  Without them a tag build fails at the first signing step; a dry run without
-  the **sign** input does not need them.
+  They are optional: without them the pipeline runs and publishes as before,
+  only unsigned, and the `check` job logs a warning. Adding them switches
+  signing on with no further change.
 
 ### Wiki: the user manual as GitHub Wiki pages
 
@@ -604,12 +605,21 @@ with new commands means extending the converter.
 
 ## 13. Code signing (SignPath Foundation)
 
+> **Status:** the integration is in place, but the project has not been accepted
+> into the SignPath Foundation program yet. Until the variables below exist,
+> every build is unsigned and nothing in the pipeline changes.
+
 Release binaries are Authenticode-signed by [SignPath.io](https://signpath.io)
 with a certificate issued by the [SignPath Foundation](https://signpath.org),
 which provides free code signing for open-source projects. Windows therefore
 shows *SignPath Foundation* as the publisher, and Defender SmartScreen no longer
 blocks the downloaded installer as an "unknown app". The certificate's private
 key never leaves SignPath's HSM; nothing is stored in this repository.
+
+**When it runs.** Only when the repository variables `SIGNPATH_ORGANIZATION_ID`
+and `SIGNPATH_PROJECT_SLUG` are set (checked by the `check` job), and then for
+tag builds or a dry run with the **sign** input. A missing configuration never
+fails a release: the artifacts are published unsigned with a warning in the log.
 
 **What is signed.** Two signing requests per release, both in the `build` job:
 
