@@ -24,7 +24,9 @@ name: Release
 # SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG and the secret
 # SIGNPATH_API_TOKEN must be set. Until then (and if they are ever removed)
 # releases are built and published unsigned instead of failing, and the check
-# job says so in its summary.
+# job says so in its summary. The release notes then carry the Windows
+# installation notice instead of the SignPath attribution. (Status 2026-09: the
+# SignPath Foundation application was declined, so releases are unsigned.)
 #
 # Nothing is published unless every earlier job (check, test, build) succeeded.
 # The version is never derived from the tag; product.json is the only source.
@@ -487,6 +489,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
+          # The notes must not claim signed binaries while SignPath is not configured.
+          SIGNED: ${{ needs.check.outputs.sign }}
         run: |
           ls -l dist
           {
@@ -494,10 +498,15 @@ jobs:
             echo
             echo '* `*-Setup.exe` - installer (creates the Maintenance Tool for in-place updates).'
             echo '* `*-win64.zip` - portable package (unzip and run; update by replacing the folder).'
+            echo '* *Source code (zip / tar.gz)* - build it yourself with CMake or `packaging/release.ps1`.'
             echo
             echo 'Installed copies are updated through **Info > Check for updates...** or the Maintenance Tool.'
             echo
-            echo 'Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).'
+            if [[ "$SIGNED" == "true" ]]; then
+              echo 'Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).'
+            else
+              echo '**Windows installation notice:** these binaries are not code-signed, so Microsoft Edge or Defender SmartScreen may warn about an unknown publisher; this is expected and does not by itself indicate malicious software. See [Installation](https://github.com/SEB103/QtOpcUaManager#windows-installation-notice) for how to proceed and how to check the SHA-256 digest shown next to each file.'
+            fi
           } > notes.md
           gh release create "$GITHUB_REF_NAME" \
             --verify-tag \

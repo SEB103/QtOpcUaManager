@@ -7,6 +7,55 @@
     Dieses Kapitel führt vom Start der Anwendung bis zu dem Punkt, an dem Sie einen Server
     durchsuchen oder einen entwerfen können.
 
+    \section1 Anwendung installieren
+
+    OpcUaManager für Windows x64 wird auf der
+    \l {https://github.com/SEB103/QtOpcUaManager/releases/latest}{Releases-Seite des Projekts auf GitHub} veröffentlicht. Jedes Release bietet
+    drei Wege:
+
+    \list
+        \li \b Installer — \c {OPC-UA-Manager-<version>-Setup.exe} installiert die Anwendung,
+            legt Startmenü-Verknüpfungen und das Maintenance Tool an und erhält Updates über
+            \e{Info > Nach Updates suchen…}.
+        \li \b{Portables ZIP} — \c {OPC-UA-Manager-<version>-win64.zip} in einen beliebigen
+            beschreibbaren Ordner entpacken und \c appOpcUaManager.exe starten; alle Daten
+            bleiben neben der ausführbaren Datei (siehe \l {Konfiguration}).
+        \li \b{Aus dem Quellcode bauen} — \e{Source code (zip)} von derselben Seite
+            herunterladen oder das Repository klonen, dann mit CMake oder Qt Creator bauen
+            oder mit \c packaging/release.ps1 einen eigenen Installer erzeugen. Die
+            Voraussetzungen stehen in der README des Projekts.
+    \endlist
+
+    \section2 Windows-Warnungen bei nicht signierten Downloads
+
+    OpcUaManager ist ein junges Open-Source-Projekt und wird derzeit ohne digitales
+    Code-Signing-Zertifikat verteilt. Microsoft Edge, Microsoft Defender SmartScreen oder
+    Windows können deshalb beim Herunterladen oder Ausführen des Installers vor einem
+    unbekannten Herausgeber oder einer unbekannten Datei warnen. Das ist bei den aktuellen
+    Releases zu erwarten und bedeutet für sich genommen nicht, dass der Installer
+    Schadsoftware enthält.
+
+    Blockiert Windows den Download oder den Start des Installers, verwenden Sie die
+    Möglichkeiten, die Windows für nicht erkannte Anwendungen anbietet (Bezeichnungen der
+    englischen Oberfläche in Klammern):
+
+    \list
+        \li Edge blockiert den Download: in der Downloadliste das Menü \e{…} der Datei
+            öffnen, die Datei behalten (\e Keep), dann \e{Show more > Keep anyway}.
+        \li \e{Der Computer wurde durch Windows geschützt}: \e{Weitere Informationen}
+            (\e{More info}), dann \e{Trotzdem ausführen} (\e{Run anyway}).
+        \li Portables ZIP: vor dem Entpacken die \e Eigenschaften der ZIP-Datei öffnen und
+            \e Zulassen (\e Unblock) ankreuzen.
+    \endlist
+
+    Bei aktivierter intelligenter App-Steuerung (Smart App Control, Windows 11) können
+    nicht signierte Anwendungen ohne die Option \e{Trotzdem ausführen} blockiert werden.
+    Laden Sie Releases nur von der GitHub-Releases-Seite des Projekts herunter. GitHub
+    zeigt neben jeder Datei einen SHA-256-Hashwert; vergleichen Sie ihn mit der Ausgabe von
+    \c {Get-FileHash <file> -Algorithm SHA256}.
+
+    Code-Signing kann später hinzukommen, wenn das Projekt wächst und breiter genutzt wird.
+
     \section1 Anwendung starten
 
     Starten Sie die installierte Anwendung (oder die ausführbare Datei der portablen

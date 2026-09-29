@@ -26,13 +26,19 @@ packaging/release.ps1 and published by .github/workflows/release.yml).
      (installer and portable ZIP).</p>
   <p>Installed copies receive updates automatically through the Maintenance Tool from the
      update repository at <code>updates/stable/</code> on this site.</p>
-  <p><a href="https://github.com/SEB103/QtOpcUaManager">Source code on GitHub</a></p>
-  <h2>Code signing policy</h2>
-  <p>Free code signing provided by <a href="https://signpath.io">SignPath.io</a>,
-     certificate by <a href="https://signpath.org">SignPath Foundation</a>.
-     Windows release binaries are signed from builds made by the project's GitHub
-     Actions workflow; the publisher shown by Windows is <em>SignPath Foundation</em>.
-     Roles and the privacy statement are listed in the
-     <a href="https://github.com/SEB103/QtOpcUaManager#code-signing-policy">project README</a>.</p>
+  <p>Source code: download <em>Source code (zip)</em> from the release page or clone
+     <a href="https://github.com/SEB103/QtOpcUaManager">the repository on GitHub</a>, then build it
+     with CMake or produce your own installer; see
+     <a href="https://github.com/SEB103/QtOpcUaManager#installation">Installation</a>.</p>
+  <h2>Windows installation notice</h2>
+  <p>OPC UA Manager is a young open-source project and is currently distributed without a
+     digital code-signing certificate. Microsoft Edge, Microsoft Defender SmartScreen, or
+     Windows may therefore warn about an unknown publisher or an unrecognized file when
+     downloading or running the installer. This is expected for the current releases and does
+     not by itself indicate that the installer contains malicious software.</p>
+  <p>If Windows blocks the download or the start of the installer, use the options Windows
+     provides for unrecognized applications (for example <em>More info &rarr; Run anyway</em>).
+     Step-by-step instructions and how to check the SHA-256 digest of a download are in the
+     <a href="https://github.com/SEB103/QtOpcUaManager#windows-installation-notice">project README</a>.</p>
 </body>
 </html>

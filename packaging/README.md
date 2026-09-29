@@ -145,10 +145,12 @@ Working directory `%{ActiveProject:Path}`.
 
 **Graphical install:** double-click `OPC-UA-Manager-<version>-Setup.exe` and follow
 the wizard (choose the folder, accept the licence, optional desktop shortcut).
-Default location `C:\Program Files\OPC UA Manager`. Release builds from GitHub are
-code-signed (publisher *SignPath Foundation*, see section 13); a locally built or
-dry-run installer is unsigned, so Windows SmartScreen shows a warning for it after
-download: click *More info → Run anyway*.
+Default location `C:\Program Files\OPC UA Manager`. Installers are currently
+**unsigned** — the GitHub releases as well as locally built or dry-run ones (code
+signing is inactive, see section 13) — so Microsoft Edge and Windows SmartScreen
+may warn after download: in Edge choose *Keep → Show more → Keep anyway*, in the
+SmartScreen dialog *More info → Run anyway*. The user-facing instructions are in
+the top-level `README.md`, section *Windows installation notice*.
 
 **Silent install (command line):**
 
@@ -605,11 +607,18 @@ with new commands means extending the converter.
 
 ## 13. Code signing (SignPath Foundation)
 
-> **Status:** the integration is in place, but the project has not been accepted
-> into the SignPath Foundation program yet. Until the variables below exist,
-> every build is unsigned and nothing in the pipeline changes.
+> **Status (2026-09):** the SignPath Foundation application was **declined** —
+> the program requires more public visibility and community adoption than the
+> project has at this stage; reapplying later is explicitly possible, and a paid
+> SignPath subscription is the alternative. The integration below stays in the
+> workflow but is inactive: the variables are not set, so every release is
+> published unsigned, its notes carry the Windows installation notice instead of
+> the SignPath attribution, and the top-level `README.md` explains the SmartScreen
+> warnings (*Windows installation notice*). Once a certificate is available,
+> set the variables and the secret and restore the *Code signing policy* section
+> in `README.md` and `packaging/pages/index.html` (see the obligations below).
 
-Release binaries are Authenticode-signed by [SignPath.io](https://signpath.io)
+When enabled, release binaries are Authenticode-signed by [SignPath.io](https://signpath.io)
 with a certificate issued by the [SignPath Foundation](https://signpath.org),
 which provides free code signing for open-source projects. Windows therefore
 shows *SignPath Foundation* as the publisher, and Defender SmartScreen no longer

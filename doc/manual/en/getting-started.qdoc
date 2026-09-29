@@ -7,6 +7,51 @@
     This chapter walks through starting the application and reaching the point where
     you can browse a server or design one.
 
+    \section1 Installing the application
+
+    OpcUaManager for Windows x64 is published on the project's
+    \l {https://github.com/SEB103/QtOpcUaManager/releases/latest}{GitHub Releases page}. Each release offers three ways to get it:
+
+    \list
+        \li \b Installer — \c {OPC-UA-Manager-<version>-Setup.exe} installs the application,
+            creates Start-menu shortcuts and the Maintenance Tool, and receives updates
+            through \e{Info > Check for updates…}.
+        \li \b{Portable ZIP} — extract \c {OPC-UA-Manager-<version>-win64.zip} into any
+            writable folder and run \c appOpcUaManager.exe; all data stays next to the
+            executable (see \l {Configuration}).
+        \li \b{Build from source} — download \e{Source code (zip)} from the same page or
+            clone the repository, then build it with CMake or Qt Creator, or create your own
+            installer with \c packaging/release.ps1. The prerequisites are listed in the
+            project README.
+    \endlist
+
+    \section2 Windows warnings about unsigned downloads
+
+    OpcUaManager is a young open-source project and is currently distributed without a
+    digital code-signing certificate. Microsoft Edge, Microsoft Defender SmartScreen, or
+    Windows may therefore warn about an unknown publisher or an unrecognized file when you
+    download or run the installer. This is expected for the current releases and does not
+    by itself indicate that the installer contains malicious software.
+
+    If Windows blocks the download or the start of the installer, use the options Windows
+    provides for unrecognized applications:
+
+    \list
+        \li Edge blocks the download: in the downloads list open the file's \e{…} menu,
+            choose \e Keep, then \e{Show more > Keep anyway}.
+        \li \e{Windows protected your PC}: choose \e{More info}, then \e{Run anyway}.
+        \li Portable ZIP: before extracting, open the ZIP file's \e Properties and tick
+            \e Unblock.
+    \endlist
+
+    With Smart App Control turned on (Windows 11), unsigned applications may be blocked
+    without a \e{Run anyway} option. Download releases only from the project's GitHub
+    Releases page. GitHub shows a SHA-256 digest next to each file; compare it with the
+    output of \c {Get-FileHash <file> -Algorithm SHA256}.
+
+    Code signing may be added in the future as the project grows and becomes more widely
+    adopted.
+
     \section1 Starting the application
 
     Launch the installed application (or the portable build's executable). On start the

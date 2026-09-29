@@ -5,13 +5,82 @@ OpcUaManager is a Qt Quick desktop application for discovering OPC UA servers, s
 The project is currently in the stabilization phase before further product development.
 
 **Download latest release:** <https://github.com/SEB103/QtOpcUaManager/releases/latest>
-(Windows installer and portable ZIP). How releases are built and published is
-documented in [`packaging/README.md`](packaging/README.md).
+(Windows installer, portable ZIP and the source code archives). See
+[Installation](#installation) for the options and for the Windows warnings about
+unsigned downloads. How releases are built and published is documented in
+[`packaging/README.md`](packaging/README.md).
 
 **User manual:** <https://github.com/SEB103/QtOpcUaManager/wiki> (English,
 German, French, Italian, Russian, Ukrainian). The same manual ships with the
 application (**Info → Documentation**) together with the API reference; both are
 generated from `doc/` by QDoc, the wiki pages by `doc/qdoc2wiki.py`.
+
+## Installation
+
+Every [release](https://github.com/SEB103/QtOpcUaManager/releases/latest) offers
+three ways to get OpcUaManager on Windows x64:
+
+1. **Installer** — `OPC-UA-Manager-<version>-Setup.exe`. Installs the application
+   (default `C:\Program Files\OPC UA Manager`), creates Start-menu shortcuts and the
+   Maintenance Tool, and receives updates through **Info → Check for updates…**.
+   Uninstall with the Maintenance Tool; user data is kept.
+2. **Portable ZIP** — `OPC-UA-Manager-<version>-win64.zip`. Extract the archive
+   into any writable folder and run `appOpcUaManager.exe`. Settings, projects and
+   logs stay next to the executable; update by replacing the folder.
+3. **Build from source** — download *Source code (zip)* or *Source code (tar.gz)*
+   from the same release page, or clone the repository:
+
+   ```powershell
+   git clone https://github.com/SEB103/QtOpcUaManager.git
+   ```
+
+   Then build it with CMake or Qt Creator
+   ([Configure and build with CMake presets](#configure-and-build-with-cmake-presets)),
+   or produce your own installer and portable ZIP with the release script
+   ([Build your own installer](#build-your-own-installer)).
+
+GitHub shows a SHA-256 digest next to each downloaded file on the release page.
+To check a download, compare it with:
+
+```powershell
+Get-FileHash .\OPC-UA-Manager-<version>-Setup.exe -Algorithm SHA256
+```
+
+### Windows installation notice
+
+OPC UA Manager is a young open-source project and is currently distributed
+without a digital code-signing certificate.
+
+As a result, Microsoft Edge, Microsoft Defender SmartScreen, or Windows may
+display a warning about an unknown publisher or an unrecognized file when
+downloading or running the installer. This is expected for the current releases
+and does not by itself indicate that the installer contains malicious software.
+
+The project has applied for free code signing through the SignPath Foundation
+program, but at its current stage it does not yet meet the program's
+requirements regarding public visibility and community adoption.
+
+If Windows blocks the normal download or execution of the installer, the
+application can still be installed using the options provided by Windows for
+unrecognized applications:
+
+- **Microsoft Edge blocks the download** ("… isn't commonly downloaded"): open
+  the Downloads list, choose **… → Keep**, then **Show more → Keep anyway**.
+- **"Windows protected your PC"** (Defender SmartScreen) when starting
+  `Setup.exe`: choose **More info → Run anyway**.
+- **Portable ZIP**: before extracting, right-click the ZIP, choose
+  **Properties**, tick **Unblock** and confirm (or run
+  `Unblock-File .\OPC-UA-Manager-<version>-win64.zip`). Otherwise every extracted
+  file inherits the download mark and SmartScreen warns when it starts.
+
+On Windows 11 with **Smart App Control** turned on, unsigned applications may be
+blocked without a *Run anyway* option, because Smart App Control offers no
+per-application exceptions. Download releases only from this repository's
+[Releases page](https://github.com/SEB103/QtOpcUaManager/releases) and check the
+SHA-256 digest if in doubt.
+
+Code signing may be added in the future as the project grows and becomes more
+widely adopted.
 
 ## Project baseline
 
@@ -34,11 +103,26 @@ Install the following modules for the selected Qt 6.11 MSVC 2022 kit:
 - Qt QML
 - Qt Quick
 - Qt Quick Controls 2
+- Qt Quick Dialogs 2
+- Qt SQL
+- Qt SVG
+- Qt WebView (documentation viewer)
 - Qt OPC UA
 - Qt Linguist Tools
 - Qt Test and Qt Quick Test for tests
 
 The Qt OPC UA installation must contain a usable backend plugin, normally the open62541 backend.
+If the Qt online installer does not offer Qt OPC UA for your kit, build the module from
+the `qtopcua` sources tagged for your Qt version and install it into the kit;
+`.github/actions/build-qtopcua/action.yml` contains the exact configuration used by CI.
+
+Further build prerequisites:
+
+- Git and internet access during the first configure: the embedded server runtime
+  fetches open62541 v1.4.14 with CMake `FetchContent`.
+- OpenSSL 3 development files for the server runtime's encryption; the OpenSSL from
+  the Qt Maintenance Tool (`C:\Qt\Tools\OpenSSLv3\Win_x64`) is detected
+  automatically, otherwise set `OPENSSL_ROOT_DIR`.
 
 ## Architecture
 
@@ -75,6 +159,10 @@ translations/                Qt Linguist translation sources
 
 ## Configure and build with CMake presets
 
+Get the sources first, either as *Source code (zip)* from a
+[release](https://github.com/SEB103/QtOpcUaManager/releases) or with
+`git clone https://github.com/SEB103/QtOpcUaManager.git`.
+
 Set `QTDIR` to the root of the selected Qt 6.11 MSVC 2022 kit, for example:
 
 ```powershell
@@ -101,6 +189,22 @@ The presets use the Visual Studio 2022 x64 generator and create build trees belo
 ## Configure in Qt Creator
 
 Open the root `CMakeLists.txt` or import `CMakePresets.json`, then select a Qt 6.11.x MSVC 2022 64-bit kit. Keep the project standard at C++20. Local `.user` and `.qtcreator` data must not be committed.
+
+## Build your own installer
+
+`packaging/release.ps1` builds the same artifacts as a GitHub release — the canonical
+deployment folder, the `Setup.exe` installer, the portable ZIP and the update
+repository — under `release/`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\packaging\release.ps1
+```
+
+It additionally needs the Qt Installer Framework (default
+`C:\Qt\Tools\QtInstallerFramework\4.10`). Prerequisites, single stages and options
+are described in [`packaging/README.md`](packaging/README.md). Self-built installers
+are unsigned as well, so the notes of the
+[Windows installation notice](#windows-installation-notice) apply to them too.
 
 ## Run tests
 
@@ -173,29 +277,23 @@ The project uses `qt_generate_deploy_qml_app_script()` for installation deployme
 
 Before distributing binaries, verify all Qt, open62541, OpenSSL, and icon-license obligations. See `THIRD_PARTY_NOTICES.md`.
 
-## Code signing policy
+## Code signing
 
-Free code signing provided by [SignPath.io](https://signpath.io), certificate by
-[SignPath Foundation](https://signpath.org).
-
-Windows release binaries (`appOpcUaManager.exe`, `OpcUaServerRuntime.exe` and the
-installer) are signed by SignPath.io from builds made by this repository's GitHub
-Actions release workflow; the publisher shown by Windows is *SignPath Foundation*.
-How the signing is integrated is described in
+Release binaries are currently **not code-signed**; see the
+[Windows installation notice](#windows-installation-notice). The release workflow
+already contains an optional SignPath signing step that stays inactive until the
+project has a signing certificate; see
 [`packaging/README.md`](packaging/README.md#13-code-signing-signpath-foundation).
 
-Team roles:
+## Privacy
 
-- **Committers and reviewers:** [SEB103](https://github.com/SEB103)
-- **Approvers:** [SEB103](https://github.com/SEB103)
-
-Privacy policy: this program will not transfer any information to other networked
-systems unless specifically requested by the user or the person installing or
-operating it. The application connects only to the OPC UA servers the user
-configures, and — if the user leaves the optional startup check enabled
+This program will not transfer any information to other networked systems unless
+specifically requested by the user or the person installing or operating it. The
+application connects only to the OPC UA servers the user configures, and — if the
+user leaves the optional startup check enabled
 (**Settings → Updates → Check for updates automatically on startup**) or triggers
-it manually (**Info → Check for updates…**) —
-to the GitHub Releases API to look up the latest published version.
+it manually (**Info → Check for updates…**) — to the GitHub Releases API to look up
+the latest published version.
 
 ## License
 
