@@ -130,16 +130,35 @@ function Import-VsDevEnv {
     }
 }
 
+# open62541 is fetched with git (FetchContent). CMake caches GIT_EXECUTABLE and
+# never re-validates it, so a Git for Windows update that moves git.exe (e.g.
+# mingw64 -> ucrt64) breaks every later configure. Resolve git on each run and
+# pass it explicitly; prefer the stable Git for Windows launcher in cmd\.
+function Resolve-GitExecutable {
+    $candidates = @(Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty Source) +
+        @(Join-Path $env:ProgramFiles 'Git\cmd\git.exe') |
+        Where-Object { $_ -and (Test-Path $_) }
+    $git = $candidates | Where-Object { $_ -like '*\Git\cmd\git.exe' } | Select-Object -First 1
+    if (-not $git) { $git = $candidates | Select-Object -First 1 }
+    if (-not $git) { return $null }
+    return ($git -replace '\\', '/')
+}
+
 # ---------------------------------------------------------------------------
 # Stages
 # ---------------------------------------------------------------------------
 function Invoke-Build {
     Write-Stage 'Build'
     Import-VsDevEnv
+    $git = Resolve-GitExecutable
+    if (-not $git) { Fail-Stage 'Build' 'git.exe not found (needed to fetch open62541); install Git for Windows or add git to PATH.' }
+    Write-Host "Git     : $git"
     & $CMake -S $Root -B $BuildDir -G $Generator `
         -DCMAKE_BUILD_TYPE=Release `
         -DCMAKE_CXX_COMPILER=cl `
         "-DCMAKE_MAKE_PROGRAM=$Ninja" `
+        "-DGIT_EXECUTABLE=$git" `
         "-DCMAKE_PREFIX_PATH=$QtPrefix" `
         -DBUILD_TESTING=OFF `
         -DOPCUAMANAGER_COPY_WINDOWS_RUNTIME=OFF `
