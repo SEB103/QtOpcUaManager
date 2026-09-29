@@ -17,6 +17,17 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.0.2] - 2026-09-30
+
+Bug-fix release for the menu icons introduced in 1.0.1.
+
+### User interface
+- Submenu entries (OPC UA, Open Recent, Value Format, Toolbars) showed their
+  icons at twice the size of the other menu items; all menu icons now have
+  the same size.
+- The menu bar titles are text-only again; icons are shown only inside the
+  dropdown menus and submenus.
+
 ## [1.0.1] - 2026-09-30
 
 Maintenance release: menu icons, clearer installer tooling, installation
@@ -102,5 +113,6 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.0.2]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.2
 [1.0.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.1
 [1.0.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.0
