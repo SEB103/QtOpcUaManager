@@ -147,18 +147,8 @@ MenuBar {
     */
     signal cloneToServerStudioRequested()
 
-    // Shows each menu's Menu.icon next to its title. The smaller icon and
-    // spacing keep the bar height close to the text-only layout.
-    delegate: MenuBarItem {
-        icon.source: menu ? menu.icon.source : ""
-        icon.width: 20
-        icon.height: 20
-        spacing: 8
-    }
-
     Menu {
         title: qsTr("Application")
-        icon.source: "qrc:/images/svg/apps.svg"
 
         MenuItem {
             text: qsTr("&Login")
@@ -167,8 +157,13 @@ MenuBar {
         }
 
         Menu {
+            // A submenu entry copies the whole Menu.icon, so an unset size would
+            // replace the style's 24 px item icon with the SVG's intrinsic size.
+            // Every submenu therefore states the menu item icon size explicitly.
             title: qsTr("OPC UA")
             icon.source: "qrc:/images/svg/hub.svg"
+            icon.width: 24
+            icon.height: 24
 
             MenuItem {
                 text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
@@ -221,7 +216,6 @@ MenuBar {
 
     Menu {
         title: qsTr("Project")
-        icon.source: "qrc:/images/svg/work.svg"
 
         MenuItem {
             text: qsTr("&New Project…")
@@ -240,6 +234,8 @@ MenuBar {
 
             title: qsTr("Open &Recent")
             icon.source: "qrc:/images/svg/history.svg"
+            icon.width: 24
+            icon.height: 24
             enabled: cppProjectManager.recentProjects.length > 0
 
             Instantiator {
@@ -298,7 +294,6 @@ MenuBar {
 
     Menu {
         title: qsTr("View")
-        icon.source: "qrc:/images/svg/view_quilt.svg"
 
         MenuItem {
             text: appMenuBar.darkTheme
@@ -328,6 +323,8 @@ MenuBar {
         Menu {
             title: qsTr("&Value Format")
             icon.source: "qrc:/images/svg/code.svg"
+            icon.width: 24
+            icon.height: 24
 
             ActionGroup {
                 id: valueFormatGroup
@@ -357,6 +354,8 @@ MenuBar {
         Menu {
             title: qsTr("&Toolbars")
             icon.source: "qrc:/images/svg/toolbar.svg"
+            icon.width: 24
+            icon.height: 24
             enabled: false
 
             MenuItem {
@@ -368,7 +367,6 @@ MenuBar {
 
     Menu {
         title: qsTr("Info")
-        icon.source: "qrc:/images/svg/help.svg"
 
         MenuItem {
             text: qsTr("&Documentation")
