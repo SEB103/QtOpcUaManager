@@ -17,6 +17,33 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.0.1] - 2026-09-30
+
+Maintenance release: menu icons, clearer installer tooling, installation
+guidance for unsigned builds, and a more robust release build.
+
+### User interface
+- Menu bar titles, menu items and submenus show Material Symbols icons; the
+  icons follow the light/dark theme.
+
+### Windows distribution
+- The Maintenance Tool and `Setup.exe` use their own icon, so they are no
+  longer mistaken for the application.
+- `packaging/release.ps1` resolves `git.exe` on every build and passes it to
+  CMake, so a Git for Windows update no longer breaks the open62541 download
+  with a stale cached path.
+- Release binaries are not code-signed yet; the SignPath integration stays
+  dormant until the project is accepted, and releases are published unsigned.
+
+### Documentation
+- README, download page and user manual (all languages) explain every way to
+  install (installer, portable ZIP, build from source), how to verify the
+  SHA-256 checksum, and how to handle Windows SmartScreen for unsigned builds.
+- The user manual is also published to the GitHub Wiki.
+
+### Project
+- Security policy (`SECURITY.md`) and Dependabot updates for GitHub Actions.
+
 ## [1.0.0] - 2026-09-15
 
 First stable release. OPC UA Manager is a Qt&nbsp;6 desktop application for
@@ -75,4 +102,5 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.0.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.1
 [1.0.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.0
