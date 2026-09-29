@@ -63,6 +63,18 @@ Item {
             verify(checkForUpdatesSpy.valid);
         }
 
+        /*! Verifies that every top-level menu provides an icon for the menu bar title. */
+        function test_menuBarTopLevelIcons() {
+            const menuBar = createTemporaryObject(menuBarComponent, root);
+            verify(menuBar !== null);
+            compare(menuBar.count, 4);
+            for (let i = 0; i < menuBar.count; ++i) {
+                const menu = menuBar.menuAt(i);
+                verify(menu.icon.source.toString().length > 0,
+                       "menu " + menu.title + " has no icon");
+            }
+        }
+
         /*! Verifies that BsOpcUaConnectionForm can be created with its default state. */
         function test_connectionFormCreation() {
             const connectionForm = createTemporaryObject(connectionFormComponent, root);

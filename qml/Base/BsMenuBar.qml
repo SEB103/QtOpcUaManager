@@ -147,25 +147,40 @@ MenuBar {
     */
     signal cloneToServerStudioRequested()
 
+    // Shows each menu's Menu.icon next to its title. The smaller icon and
+    // spacing keep the bar height close to the text-only layout.
+    delegate: MenuBarItem {
+        icon.source: menu ? menu.icon.source : ""
+        icon.width: 20
+        icon.height: 20
+        spacing: 8
+    }
+
     Menu {
         title: qsTr("Application")
+        icon.source: "qrc:/images/svg/apps.svg"
 
         MenuItem {
             text: qsTr("&Login")
+            icon.source: "qrc:/images/svg/login.svg"
             enabled: false
         }
 
         Menu {
             title: qsTr("OPC UA")
+            icon.source: "qrc:/images/svg/hub.svg"
 
             MenuItem {
                 text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
+                icon.source: cppManagerOpcUa.connected ? "qrc:/images/svg/link_off.svg"
+                                                       : "qrc:/images/svg/link.svg"
                 enabled: !cppManagerOpcUa.busy
                 onTriggered: appMenuBar.apiServerConnectionRequested()
             }
 
             MenuItem {
                 text: qsTr("Connect to Last Server")
+                icon.source: "qrc:/images/svg/replay.svg"
                 enabled: !cppManagerOpcUa.busy
                          && !cppManagerOpcUa.connected
                          && cppManagerOpcUa.hasLastConnection
@@ -175,6 +190,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("Sta&rt/Stop")
+            icon.source: "qrc:/images/svg/power_settings_new.svg"
             enabled: false
         }
 
@@ -182,6 +198,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("Server &Manager")
+            icon.source: "qrc:/images/svg/dns.svg"
             onTriggered: appMenuBar.serverManagerRequested()
         }
 
@@ -189,6 +206,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Settings…")
+            icon.source: "qrc:/images/svg/settings.svg"
             onTriggered: appMenuBar.settingsRequested()
         }
 
@@ -196,20 +214,24 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Quit")
+            icon.source: "qrc:/images/svg/exit_to_app.svg"
             onTriggered: appMenuBar.quitRequested()
         }
     }
 
     Menu {
         title: qsTr("Project")
+        icon.source: "qrc:/images/svg/work.svg"
 
         MenuItem {
             text: qsTr("&New Project…")
+            icon.source: "qrc:/images/svg/note_add.svg"
             onTriggered: appMenuBar.newProjectRequested()
         }
 
         MenuItem {
             text: qsTr("&Open Project…")
+            icon.source: "qrc:/images/svg/folder_open.svg"
             onTriggered: appMenuBar.openProjectRequested()
         }
 
@@ -217,6 +239,7 @@ MenuBar {
             id: recentMenu
 
             title: qsTr("Open &Recent")
+            icon.source: "qrc:/images/svg/history.svg"
             enabled: cppProjectManager.recentProjects.length > 0
 
             Instantiator {
@@ -228,6 +251,7 @@ MenuBar {
 
                     text: modelData.displayName.length > 0
                           ? modelData.displayName : modelData.path
+                    icon.source: "qrc:/images/svg/description.svg"
                     enabled: modelData.available
                     onTriggered: appMenuBar.openRecentRequested(index)
                 }
@@ -241,12 +265,14 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Save")
+            icon.source: "qrc:/images/svg/save.svg"
             enabled: cppProjectManager.hasActiveProject && cppProjectManager.dirty
             onTriggered: appMenuBar.saveProjectRequested()
         }
 
         MenuItem {
             text: qsTr("Save &As…")
+            icon.source: "qrc:/images/svg/save_as.svg"
             enabled: cppProjectManager.hasActiveProject
             onTriggered: appMenuBar.saveProjectAsRequested()
         }
@@ -255,6 +281,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&Close Project")
+            icon.source: "qrc:/images/svg/close.svg"
             enabled: cppProjectManager.hasActiveProject
             onTriggered: appMenuBar.closeProjectRequested()
         }
@@ -263,6 +290,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("Clone to Server Studio")
+            icon.source: "qrc:/images/svg/content_copy.svg"
             enabled: cppManagerOpcUa.connected
             onTriggered: appMenuBar.cloneToServerStudioRequested()
         }
@@ -270,23 +298,28 @@ MenuBar {
 
     Menu {
         title: qsTr("View")
+        icon.source: "qrc:/images/svg/view_quilt.svg"
 
         MenuItem {
             text: appMenuBar.darkTheme
                   ? qsTr("Switch to &Light Theme")
                   : qsTr("Switch to &Dark Theme")
+            icon.source: appMenuBar.darkTheme ? "qrc:/images/svg/light_mode.svg"
+                                              : "qrc:/images/svg/dark_mode.svg"
             onTriggered: appMenuBar.themeToggleRequested()
         }
 
         MenuItem {
             text: appMenuBar.trendPanelVisible ? qsTr("Hide &Trend Panel")
                                                : qsTr("Show &Trend Panel")
+            icon.source: "qrc:/images/svg/show_chart.svg"
             onTriggered: appMenuBar.trendPanelToggleRequested()
         }
 
         MenuItem {
             text: appMenuBar.logPanelVisible ? qsTr("Hide &Log Panel")
                                              : qsTr("Show &Log Panel")
+            icon.source: "qrc:/images/svg/article.svg"
             onTriggered: appMenuBar.logPanelToggleRequested()
         }
 
@@ -294,6 +327,7 @@ MenuBar {
 
         Menu {
             title: qsTr("&Value Format")
+            icon.source: "qrc:/images/svg/code.svg"
 
             ActionGroup {
                 id: valueFormatGroup
@@ -322,6 +356,7 @@ MenuBar {
 
         Menu {
             title: qsTr("&Toolbars")
+            icon.source: "qrc:/images/svg/toolbar.svg"
             enabled: false
 
             MenuItem {
@@ -333,14 +368,17 @@ MenuBar {
 
     Menu {
         title: qsTr("Info")
+        icon.source: "qrc:/images/svg/help.svg"
 
         MenuItem {
             text: qsTr("&Documentation")
+            icon.source: "qrc:/images/svg/menu_book.svg"
             onTriggered: appMenuBar.helpRequested()
         }
 
         MenuItem {
             text: qsTr("&Check for updates…")
+            icon.source: "qrc:/images/svg/update.svg"
             onTriggered: appMenuBar.checkForUpdatesRequested()
         }
 
@@ -348,6 +386,7 @@ MenuBar {
 
         MenuItem {
             text: qsTr("&About OpcUaManager…")
+            icon.source: "qrc:/images/svg/info.svg"
             onTriggered: appMenuBar.aboutRequested()
         }
     }

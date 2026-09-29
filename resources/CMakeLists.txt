@@ -51,6 +51,28 @@ qt_add_resources(appOpcUaManager "application_resources"
         images/svg/schedule.svg
         images/svg/category_cyan.svg
 
+        # Application menu bar icons (top-level titles, items and submenus).
+        images/svg/apps.svg
+        images/svg/article.svg
+        images/svg/close.svg
+        images/svg/code.svg
+        images/svg/content_copy.svg
+        images/svg/description.svg
+        images/svg/dns.svg
+        images/svg/exit_to_app.svg
+        images/svg/folder_open.svg
+        images/svg/history.svg
+        images/svg/hub.svg
+        images/svg/menu_book.svg
+        images/svg/note_add.svg
+        images/svg/replay.svg
+        images/svg/save_as.svg
+        images/svg/show_chart.svg
+        images/svg/toolbar.svg
+        images/svg/update.svg
+        images/svg/view_quilt.svg
+        images/svg/work.svg
+
         # Country flags for the UI-language selector and the active-locale
         # indicator (4:3 SVGs; public-domain flag artwork). File names are the
         # ISO country part of each supported locale: en_GB->gb, de_DE->de,
