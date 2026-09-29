@@ -21,7 +21,9 @@
     <!-- The Maintenance Tool handles updates, modification and uninstall. -->
     <MaintenanceToolName>@MaintenanceToolName@</MaintenanceToolName>
 
-    <!-- Branding. installer.ico is the window/app icon. The header uses a wide,
+    <!-- Branding. installer.ico is the window/app icon of Setup.exe and of the
+         Maintenance Tool; release.ps1 copies it from MaintenanceTool.ico so it
+         differs from the application icon. The header uses a wide,
          flat banner (banner.png) with the product name and a compact 64x64 logo
          (logo.png); both are generated at package time so the Modern wizard's
          header stays small and the page list remains fully visible. -->

@@ -185,8 +185,11 @@ function Build-InstallerWorkTree {
 
     # config.xml + branding + chosen theme stylesheet.
     Copy-WithTokens (Join-Path $InstallerSrc 'config/config.xml.in') (Join-Path $workConfig 'config.xml')
-    Copy-Item (Join-Path $Root 'resources/images/app/OpcUaManager.ico') (Join-Path $workConfig 'installer.ico') -Force
-    Copy-Item (Join-Path $InstallerSrc "styles/$Theme.qss")             (Join-Path $workConfig 'style.qss') -Force
+    # installer.ico becomes the icon of Setup.exe and of the Maintenance Tool
+    # (IFW writes the Maintenance Tool from the installer binary), so it uses a
+    # dedicated icon that is distinct from the application icon.
+    Copy-Item (Join-Path $Root 'resources/images/app/MaintenanceTool.ico') (Join-Path $workConfig 'installer.ico') -Force
+    Copy-Item (Join-Path $InstallerSrc "styles/$Theme.qss")                (Join-Path $workConfig 'style.qss') -Force
     # Generate the compact header logo and flat name banner (keeps the Modern
     # wizard header small so the page list stays fully visible).
     & (Join-Path $PSScriptRoot 'make-installer-images.ps1') `
