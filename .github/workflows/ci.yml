@@ -14,10 +14,12 @@ env:
   # is only on master, so install-qt-action is pointed at a pinned commit.
   # Drop AQTINSTALL_SOURCE once a release newer than 3.3.0 is published.
   AQTINSTALL_SOURCE: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
-  # The pinned aqtinstall requires py7zr >= 1.1.3, which rejects the qtwebview
-  # archive ("Bad7zFile: Specified path is bad: plugins/webview"). Extract with
-  # the runner's 7-Zip instead of py7zr. The cache key prefix changes with the
-  # extraction method so a cached Qt from the old method is not reused.
+  # Parallel extraction of the Qt 6.11.1 archives into one prefix fails (py7zr:
+  # "Bad7zFile: Specified path is bad"; 7-Zip: "Cannot create output directory").
+  # aqtinstall therefore extracts one archive at a time (.github/aqt-settings.ini,
+  # loaded through AQT_CONFIG) using the runner's 7-Zip. The cache key prefix
+  # changes with the extraction setup so a Qt cached the old way is not reused.
+  AQT_CONFIG: ${{ github.workspace }}/.github/aqt-settings.ini
   AQT_EXTRA_ARGS: '--external 7z'
   QT_CACHE_KEY_PREFIX: 'install-qt-action-7z'
 
