@@ -31,6 +31,9 @@ private slots:
     void rejectsInvalidPorts_data();
     void rejectsInvalidPorts();
 
+    /*! Verifies that parsing stops as soon as the port list exceeds the limit. */
+    void stopsParsingPortsAtTheLimit();
+
     /*! Verifies subnet suggestions derived from interface addresses. */
     void suggestsSubnetsFromInterfaces();
 };
@@ -157,6 +160,8 @@ void IpRangeTest::rejectsInvalidPorts_data()
     QTest::newRow("too many") << QStringLiteral("4840-4900");
     QTest::newRow("full range") << QStringLiteral("1-65535");
     QTest::newRow("seventeen ports") << QStringLiteral("4840-4856");
+    QTest::newRow("seventeen single ports")
+        << QStringLiteral("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17");
 }
 
 /*!
@@ -168,6 +173,21 @@ void IpRangeTest::rejectsInvalidPorts()
     const IpRange::PortList result = IpRange::parsePorts(input);
     QVERIFY(!result.error.isEmpty());
     QVERIFY(result.ports.isEmpty());
+}
+
+/*!
+ * \brief Verifies that parsing stops as soon as the port list exceeds the limit.
+ *
+ * The part after the seventeenth port is never examined, so the limit error is
+ * reported instead of the invalid trailing part.
+ */
+void IpRangeTest::stopsParsingPortsAtTheLimit()
+{
+    const IpRange::PortList result = IpRange::parsePorts(
+        QStringLiteral("1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,opc"));
+    QVERIFY(result.ports.isEmpty());
+    QCOMPARE(result.error,
+             QStringLiteral("Too many ports (17); the maximum is %1.").arg(IpRange::kMaxPorts));
 }
 
 /*!

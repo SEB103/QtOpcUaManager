@@ -149,6 +149,10 @@ AddressList parseRange(const QString &text)
 /*!
  * \brief Parses \a text as comma-separated ports and port ranges.
  * \param text The user input, e.g. "4840, 48010-48012".
+ *
+ * Parsing stops at the first invalid part or as soon as the part just read
+ * takes the distinct ports over kMaxPorts; the error then reports the distinct
+ * count reached so far, and later parts are not examined.
  */
 PortList parsePorts(const QString &text)
 {
@@ -185,17 +189,19 @@ PortList parsePorts(const QString &text)
             if (!result.ports.contains(quint16(port)))
                 result.ports << quint16(port);
         }
+        // Stop at the limit so a long list of single ports is never collected in full.
+        if (result.ports.size() > kMaxPorts) {
+            result.error = QCoreApplication::translate("IpRange",
+                                                       "Too many ports (%1); the maximum is %2.")
+                               .arg(result.ports.size())
+                               .arg(kMaxPorts);
+            result.ports.clear();
+            return result;
+        }
     }
 
-    if (result.ports.isEmpty()) {
+    if (result.ports.isEmpty())
         result.error = QCoreApplication::translate("IpRange", "Enter at least one port.");
-    } else if (result.ports.size() > kMaxPorts) {
-        result.error = QCoreApplication::translate("IpRange",
-                                                   "Too many ports (%1); the maximum is %2.")
-                           .arg(result.ports.size())
-                           .arg(kMaxPorts);
-        result.ports.clear();
-    }
     return result;
 }
 
