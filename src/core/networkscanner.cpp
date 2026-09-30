@@ -74,14 +74,27 @@ NetworkScanner::NetworkScanner(QObject *parent)
 }
 
 /*!
- * \brief Stops all work and releases the private OPC UA client.
+ * \brief Stops all work and releases the private OPC UA clients.
+ *
+ * Deleting a client waits for its backend thread. A client that is still in a
+ * request (the current one, or one retired after a timeout) can therefore block
+ * the calling thread for up to the backend's fixed discovery timeout of about
+ * five seconds.
+ *
+ * The provider is intentionally never deleted. QOpcUaProvider deletes the
+ * backend plugins it used, but a plugin is one process-wide instance shared by
+ * every provider in the process. The OPC UA service owns another provider that
+ * is destroyed first at application exit, so deleting this one as well would
+ * delete the plugin a second time. The service's provider cannot be used
+ * instead: it lives in the service's worker thread, and
+ * QOpcUaProvider::createClient() updates its plugin table without locking. The
+ * provider is a small object and stays alive until the process ends.
  */
 NetworkScanner::~NetworkScanner()
 {
     abortAll();
     delete m_client;
     qDeleteAll(m_retiredClients);
-    delete m_provider;
 }
 
 /*!

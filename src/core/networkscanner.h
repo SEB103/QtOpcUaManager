@@ -26,7 +26,10 @@ class QTimer;
  * Stage 1 connects to every address/port pair with a bounded pool of sockets.
  * Stage 2 sends FindServers and GetEndpoints to each open port, one at a time,
  * on a private QOpcUaClient, so the application's session is never touched.
- * Lives in the GUI thread; all work is asynchronous.
+ * Lives in the GUI thread; all work is asynchronous, but destruction may wait up
+ * to about five seconds for a client whose backend thread is still in a request.
+ * The private QOpcUaProvider is kept until the process ends, because deleting it
+ * would also delete the backend plugin that other providers share.
  */
 class NetworkScanner : public QObject
 {
@@ -39,7 +42,7 @@ public:
 
     /** Creates an idle scanner owned by \a parent. */
     explicit NetworkScanner(QObject *parent = nullptr);
-    /** Stops all work and releases the private OPC UA client. */
+    /** Stops all work and releases the private OPC UA clients; may block up to about 5 s. */
     ~NetworkScanner() override;
 
     /** Scans every combination of \a addresses and \a ports; a running scan is cancelled first. */

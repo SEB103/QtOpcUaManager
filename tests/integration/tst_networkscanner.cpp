@@ -8,7 +8,10 @@
 #include <QTcpServer>
 #include <QtTest>
 
+#include <QOpcUaClient>
 #include <QOpcUaProvider>
+
+#include <memory>
 
 #include "core/networkscanner.h"
 
@@ -33,6 +36,9 @@ private slots:
 
     /*! Verifies that cancelling stops the scan without further results. */
     void cancelStopsTheScan();
+
+    /*! Verifies the scanner can be destroyed after another provider released the plugin. */
+    void outlivesAnotherProviderOfTheSamePlugin();
 
     /*! Stops the runtime process. */
     void cleanupTestCase();
@@ -199,6 +205,33 @@ void NetworkScannerIntegrationTest::cancelStopsTheScan()
     QTest::qWait(6500);
     QCOMPARE(resultsAfterCancel, 0);
     QCOMPARE(finishedSpy.size(), 0);
+}
+
+/*!
+ * \brief Verifies the scanner can be destroyed after another provider released the plugin.
+ *
+ * Every QOpcUaProvider deletes the backend plugins it used, but the plugin object
+ * is one process-wide instance. The application owns a second provider in the OPC
+ * UA service, which is destroyed first at exit, so the scanner must not delete
+ * the plugin a second time.
+ */
+void NetworkScannerIntegrationTest::outlivesAnotherProviderOfTheSamePlugin()
+{
+    auto otherProvider = std::make_unique<QOpcUaProvider>();
+    std::unique_ptr<QOpcUaClient> otherClient(
+        otherProvider->createClient(QStringLiteral("open62541")));
+    QVERIFY(otherClient);
+    otherClient.reset();
+
+    auto scanner = std::make_unique<NetworkScanner>();
+    scanner->setOpcUaTimeoutMs(1500);
+    const auto results = scanLocalhost(*scanner, {kPort});
+    QCOMPARE(scanner->opcUaServers(), 1);
+    QCOMPARE(int(results.value(kPort).status), int(NetworkScanStatus::OpcUa));
+
+    // Same order as at application exit: the service's provider goes first.
+    otherProvider.reset();
+    scanner.reset();
 }
 
 void NetworkScannerIntegrationTest::cleanupTestCase()
