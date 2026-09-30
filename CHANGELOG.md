@@ -53,6 +53,12 @@ connections to remote servers that report their own host name.
   host-name case in Troubleshooting.
 - All new texts are translated into German, English (UK), French, Italian,
   Russian and Ukrainian.
+- Seven messages of the update dialog that were still shown in English in every
+  language are now translated.
+
+### Build and release
+- The CI and release workflows extract the Qt archives with 7-Zip, because the
+  current Python archive library rejects the Qt WebView package.
 
 ## [1.0.2] - 2026-09-30
 
