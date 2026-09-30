@@ -75,7 +75,7 @@ Rectangle {
     }
 
     /*!
-        Puts the scanned server  url into the discovery field and starts Find
+        Puts the scanned server \a url into the discovery field and starts Find
         Servers; Get Endpoints follows automatically when the server list arrives.
     */
     function useScannedServer(url) {
