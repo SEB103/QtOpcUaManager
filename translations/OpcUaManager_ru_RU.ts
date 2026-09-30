@@ -2418,22 +2418,22 @@
     <message>
         <location line="+34"/>
         <source>The update cannot be installed from this copy; download it from the release page instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>Обновление нельзя установить из этой копии; скачайте его со страницы релиза.</translation>
     </message>
     <message>
         <location line="+13"/>
         <source>Could not start the Maintenance Tool (%1).</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запустить Maintenance Tool (%1).</translation>
     </message>
     <message>
         <location line="+21"/>
         <source>The download page address is not a valid HTTPS link.</source>
-        <translation type="unfinished"></translation>
+        <translation>Адрес страницы загрузки не является допустимой HTTPS-ссылкой.</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Could not open the download page.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть страницу загрузки.</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -2471,12 +2471,12 @@
     <message>
         <location line="+27"/>
         <source>The application will close before the update is installed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Перед установкой обновления приложение будет закрыто.</translation>
     </message>
     <message>
         <location line="+8"/>
         <source>Download the new version from the release page and replace this copy manually.</source>
-        <translation type="unfinished"></translation>
+        <translation>Скачайте новую версию со страницы релиза и замените эту копию вручную.</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -2486,7 +2486,7 @@
     <message>
         <location line="+0"/>
         <source>Install update</source>
-        <translation type="unfinished"></translation>
+        <translation>Установить обновление</translation>
     </message>
     <message>
         <location line="+20"/>

@@ -2412,22 +2412,22 @@
     <message>
         <location line="+34"/>
         <source>The update cannot be installed from this copy; download it from the release page instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;aggiornamento non può essere installato da questa copia; scaricalo invece dalla pagina della release.</translation>
     </message>
     <message>
         <location line="+13"/>
         <source>Could not start the Maintenance Tool (%1).</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossibile avviare il Maintenance Tool (%1).</translation>
     </message>
     <message>
         <location line="+21"/>
         <source>The download page address is not a valid HTTPS link.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;indirizzo della pagina di download non è un link HTTPS valido.</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Could not open the download page.</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossibile aprire la pagina di download.</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -2465,12 +2465,12 @@
     <message>
         <location line="+27"/>
         <source>The application will close before the update is installed.</source>
-        <translation type="unfinished"></translation>
+        <translation>L&apos;applicazione verrà chiusa prima dell&apos;installazione dell&apos;aggiornamento.</translation>
     </message>
     <message>
         <location line="+8"/>
         <source>Download the new version from the release page and replace this copy manually.</source>
-        <translation type="unfinished"></translation>
+        <translation>Scarica la nuova versione dalla pagina della release e sostituisci manualmente questa copia.</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -2480,7 +2480,7 @@
     <message>
         <location line="+0"/>
         <source>Install update</source>
-        <translation type="unfinished"></translation>
+        <translation>Installa aggiornamento</translation>
     </message>
     <message>
         <location line="+20"/>

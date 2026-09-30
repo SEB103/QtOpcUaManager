@@ -2418,22 +2418,22 @@
     <message>
         <location line="+34"/>
         <source>The update cannot be installed from this copy; download it from the release page instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>Оновлення не можна встановити з цієї копії; завантажте його зі сторінки релізу.</translation>
     </message>
     <message>
         <location line="+13"/>
         <source>Could not start the Maintenance Tool (%1).</source>
-        <translation type="unfinished"></translation>
+        <translation>Не вдалося запустити Maintenance Tool (%1).</translation>
     </message>
     <message>
         <location line="+21"/>
         <source>The download page address is not a valid HTTPS link.</source>
-        <translation type="unfinished"></translation>
+        <translation>Адреса сторінки завантаження не є дійсним HTTPS-посиланням.</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Could not open the download page.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не вдалося відкрити сторінку завантаження.</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -2471,12 +2471,12 @@
     <message>
         <location line="+27"/>
         <source>The application will close before the update is installed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Перед встановленням оновлення застосунок буде закрито.</translation>
     </message>
     <message>
         <location line="+8"/>
         <source>Download the new version from the release page and replace this copy manually.</source>
-        <translation type="unfinished"></translation>
+        <translation>Завантажте нову версію зі сторінки релізу та замініть цю копію вручну.</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -2486,7 +2486,7 @@
     <message>
         <location line="+0"/>
         <source>Install update</source>
-        <translation type="unfinished"></translation>
+        <translation>Встановити оновлення</translation>
     </message>
     <message>
         <location line="+20"/>
