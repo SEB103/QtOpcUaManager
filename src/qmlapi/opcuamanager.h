@@ -88,6 +88,9 @@ class OpcUaManager : public QObject
     /** Whether a previously used connection is stored and can be reconnected to. */
     Q_PROPERTY(bool hasLastConnection READ hasLastConnection NOTIFY hasLastConnectionChanged)
 
+    /** The ten most recently connected discovery URLs, newest first. */
+    Q_PROPERTY(QStringList recentServerUrls READ recentServerUrls NOTIFY recentServerUrlsChanged)
+
     /** Data Access View table model exposed to QML; owned by this manager. */
     Q_PROPERTY(DataAccessModel *dataModel READ dataModel CONSTANT)
 
@@ -258,6 +261,9 @@ public:
 
     /** Returns whether a stored connection is available for reconnection. */
     bool hasLastConnection() const;
+
+    /** Returns the ten most recently connected discovery URLs, newest first. */
+    QStringList recentServerUrls() const;
 
     /**
      * Injects the INI settings store used to persist the last connection and the
@@ -576,6 +582,9 @@ signals:
     /** Emitted when the availability of a stored connection changes. */
     void hasLastConnectionChanged();
 
+    /** Emitted when the recent discovery URL list changes. */
+    void recentServerUrlsChanged();
+
     /**
      * Emitted when project-relevant runtime state changes through a user action
      * (monitored nodes, focus node, value format, or a new connection). The
@@ -742,6 +751,8 @@ private:
     void routeFetch(OpcUaModel *model, const QString &parentNodeId, quint64 modelRequestId);
     /** Recomputes hasLastConnection() from the active project connection. */
     void updateHasLastConnection();
+    /** Moves \a hostOrUrl, normalized, to the front of the recent URL list and persists it. */
+    void rememberRecentServerUrl(const QString &hostOrUrl);
     /** Seeds the reconnect state machine from \a config and starts connecting. */
     void connectUsingConfig(const ProjectConnectionConfig &config);
     /** Rebuilds m_connection from the live session and emits on a real change. */
@@ -830,6 +841,9 @@ private:
 
     /** Cached availability of a stored connection, mirrored to QML. */
     bool m_hasLastConnection {false};
+
+    /** Recent discovery URLs, newest first; persisted in QSettings. */
+    QStringList m_recentServerUrls;
 
     /** Active project's connection configuration; the source for reconnects and saves. */
     ProjectConnectionConfig m_connection;

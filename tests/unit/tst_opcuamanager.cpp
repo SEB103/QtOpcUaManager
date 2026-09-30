@@ -102,6 +102,9 @@ class OpcUaManagerTest : public QObject
     Q_OBJECT
 
 private slots:
+    /*! Isolates QSettings from the real application settings. */
+    void initTestCase();
+
     /*! Verifies that an update reaches both the table and the trend. */
     void updatesReachTheTableAndTheTrend();
 
@@ -119,7 +122,19 @@ private slots:
 
     /*! Verifies that a reconnect finds the stored endpoint when only its host changed. */
     void reconnectMatchesEndpointWithChangedHost();
+
+    /*! Verifies that successful connections are remembered as recent server URLs. */
+    void remembersRecentServerUrls();
 };
+
+/*!
+ * \brief Uses a dedicated QSettings scope so tests never touch real settings.
+ */
+void OpcUaManagerTest::initTestCase()
+{
+    QCoreApplication::setOrganizationName(QStringLiteral("OpcUaManagerTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("tst_opcuamanager"));
+}
 
 /*!
  * \brief Verifies that an update reaches both the table and the trend.
@@ -287,7 +302,7 @@ void OpcUaManagerTest::csvExportNeutralizesFormulaInjection()
 }
 
 /*!
- * rief Verifies that a reconnect finds the stored endpoint when only its host changed.
+ * \brief Verifies that a reconnect finds the stored endpoint when only its host changed.
  *
  * Endpoint URLs are redirected to the host that answered GetEndpoints, so a
  * project saved earlier may store the server's advertised host name while the
@@ -322,6 +337,52 @@ void OpcUaManagerTest::reconnectMatchesEndpointWithChangedHost()
 
     QCOMPARE(connectSpy.size(), 1);
     QCOMPARE(connectSpy.first().at(0).toInt(), 1);
+}
+
+/*!
+ * \brief Verifies that successful connections are remembered as recent server URLs.
+ *
+ * Only a successful connect records the discovery URL; the input is normalized
+ * so "10.10.1.2" and "opc.tcp://10.10.1.2:4840" count as one entry. The list
+ * holds at most ten entries, newest first, and survives a new manager.
+ */
+void OpcUaManagerTest::remembersRecentServerUrls()
+{
+    const QString key = QStringLiteral("connection/recentServerUrls");
+    QSettings().remove(key);
+
+    {
+        OpcUaManager manager;
+        QSignalSpy changedSpy(&manager, &OpcUaManager::recentServerUrlsChanged);
+
+        manager.discoverServers(QStringLiteral("10.10.1.2"));
+        QVERIFY(manager.recentServerUrls().isEmpty());
+        manager.applyConnected(true);
+        QCOMPARE(manager.recentServerUrls(),
+                 QStringList{QStringLiteral("opc.tcp://10.10.1.2:4840")});
+        QCOMPARE(changedSpy.size(), 1);
+        manager.applyConnected(false);
+
+        manager.discoverServers(QStringLiteral("OPC.TCP://10.10.1.2:4840"));
+        manager.applyConnected(true);
+        QCOMPARE(manager.recentServerUrls().size(), 1);
+        manager.applyConnected(false);
+
+        for (int i = 1; i <= 11; ++i) {
+            manager.discoverServers(QStringLiteral("192.168.0.%1").arg(i));
+            manager.applyConnected(true);
+            manager.applyConnected(false);
+        }
+        QCOMPARE(manager.recentServerUrls().size(), 10);
+        QCOMPARE(manager.recentServerUrls().first(), QStringLiteral("opc.tcp://192.168.0.11:4840"));
+        QVERIFY(!manager.recentServerUrls().contains(QStringLiteral("opc.tcp://10.10.1.2:4840")));
+    }
+
+    OpcUaManager reloaded;
+    QCOMPARE(reloaded.recentServerUrls().size(), 10);
+    QCOMPARE(reloaded.recentServerUrls().first(), QStringLiteral("opc.tcp://192.168.0.11:4840"));
+
+    QSettings().remove(key);
 }
 
 QTEST_MAIN(OpcUaManagerTest)

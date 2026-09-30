@@ -15,6 +15,7 @@
 #include <QtQuick/QQuickTextDocument>
 
 #include "core/apppaths.h"
+#include "core/opcuaendpointaddress.h"
 #include "core/opcuaaccesslevel.h"
 #include "core/opcuaservice.h"
 #include "core/opcuastatushint.h"
@@ -29,6 +30,18 @@ namespace {
  * \brief QSettings key storing the persisted structured-value output format.
  */
 constexpr auto kValueFormatSettingsKey = "view/valueFormat";
+
+/*!
+ * \internal
+ * \brief QSettings key storing the recently connected discovery URLs.
+ */
+constexpr auto kRecentServerUrlsSettingsKey = "connection/recentServerUrls";
+
+/*!
+ * \internal
+ * \brief Maximum number of remembered discovery URLs.
+ */
+constexpr int kMaxRecentServerUrls = 10;
 
 /*!
  * \internal
@@ -197,6 +210,8 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
     const int storedFormat =
         QSettings().value(QLatin1String(kValueFormatSettingsKey), FormatJson).toInt();
     m_valueFormat = storedFormat == FormatXml ? FormatXml : FormatJson;
+    m_recentServerUrls =
+        QSettings().value(QLatin1String(kRecentServerUrlsSettingsKey)).toStringList();
 }
 
 OpcUaManager::~OpcUaManager() = default;
@@ -310,6 +325,43 @@ QString OpcUaManager::focusNodeName() const
 bool OpcUaManager::hasLastConnection() const
 {
     return m_hasLastConnection;
+}
+
+/*!
+ * \brief Returns the ten most recently connected discovery URLs, newest first.
+ */
+QStringList OpcUaManager::recentServerUrls() const
+{
+    return m_recentServerUrls;
+}
+
+/*!
+ * \internal
+ * \brief Moves \a hostOrUrl, normalized, to the front of the recent URL list.
+ *
+ * Entries are compared case-insensitively so different spellings of the same
+ * server collapse into one entry. The list is capped and persisted in QSettings.
+ */
+void OpcUaManager::rememberRecentServerUrl(const QString &hostOrUrl)
+{
+    const QUrl url = OpcUaEndpointAddress::normalizeDiscoveryUrl(hostOrUrl);
+    if (!url.isValid())
+        return;
+    const QString entry = url.toString();
+
+    QStringList updated {entry};
+    for (const QString &existing : std::as_const(m_recentServerUrls)) {
+        if (existing.compare(entry, Qt::CaseInsensitive) != 0)
+            updated << existing;
+    }
+    while (updated.size() > kMaxRecentServerUrls)
+        updated.removeLast();
+    if (updated == m_recentServerUrls)
+        return;
+
+    m_recentServerUrls = updated;
+    QSettings().setValue(QLatin1String(kRecentServerUrlsSettingsKey), m_recentServerUrls);
+    emit recentServerUrlsChanged();
 }
 
 /*!
@@ -1842,6 +1894,7 @@ void OpcUaManager::applyConnected(bool connected)
         // Capture the parameters that produced this successful connection into the
         // active project's connection config and mark any reconnect as finished.
         updateConnectionFromLiveState();
+        rememberRecentServerUrl(m_lastDiscoveryUrl);
         m_reconnectStage = ReconnectStage::Idle;
 
         // Re-establish subscriptions for every persisted monitored node so the
