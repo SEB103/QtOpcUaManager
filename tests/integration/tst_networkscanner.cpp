@@ -28,6 +28,9 @@ private slots:
     /*! Verifies OPC UA, silent, and closed ports are classified correctly. */
     void classifiesServerSilentAndClosedPorts();
 
+    /*! Verifies a server is still found when a silent port is queried before it. */
+    void findsServerAfterSilentPort();
+
     /*! Verifies that cancelling stops the scan without further results. */
     void cancelStopsTheScan();
 
@@ -133,7 +136,42 @@ void NetworkScannerIntegrationTest::classifiesServerSilentAndClosedPorts()
 }
 
 /*!
+ * \brief Verifies a server is still found when a silent port is queried before it.
+ *
+ * A single parallel probe makes the silent port open, and be queried, first. Its
+ * request blocks the backend thread of that client for longer than the scanner
+ * timeout, so the server row is only correct if the scanner moves on to a fresh
+ * client after the timeout.
+ */
+void NetworkScannerIntegrationTest::findsServerAfterSilentPort()
+{
+    NetworkScanner scanner;
+    scanner.setOpcUaTimeoutMs(1500);
+    scanner.setMaxParallelProbes(1);
+    const quint16 silentPort = m_silentServer.serverPort();
+
+    const auto results = scanLocalhost(scanner, {silentPort, kPort});
+
+    QCOMPARE(int(scanner.state()), int(NetworkScanner::State::Finished));
+    QCOMPARE(scanner.openPorts(), 2);
+    QCOMPARE(scanner.opcUaServers(), 1);
+
+    QVERIFY(results.contains(silentPort));
+    QCOMPARE(int(results.value(silentPort).status), int(NetworkScanStatus::NoOpcUaResponse));
+
+    QVERIFY(results.contains(kPort));
+    const NetworkScanResult server = results.value(kPort);
+    QCOMPARE(int(server.status), int(NetworkScanStatus::OpcUa));
+    QVERIFY(!server.applicationName.isEmpty());
+    QVERIFY(server.securitySummary.contains(QStringLiteral("None")));
+    QVERIFY(server.authSummary.contains(QStringLiteral("Anonymous")));
+}
+
+/*!
  * \brief Verifies that cancelling stops the scan without further results.
+ *
+ * The wait after cancel() exceeds the backend's fixed discovery timeout, so the
+ * late reply of the retired client is delivered and must not produce a result.
  */
 void NetworkScannerIntegrationTest::cancelStopsTheScan()
 {
@@ -152,7 +190,7 @@ void NetworkScannerIntegrationTest::cancelStopsTheScan()
     cancelled = true;
 
     QCOMPARE(int(scanner.state()), int(NetworkScanner::State::Cancelled));
-    QTest::qWait(2500);
+    QTest::qWait(6500);
     QCOMPARE(resultsAfterCancel, 0);
     QCOMPARE(finishedSpy.size(), 0);
 }
