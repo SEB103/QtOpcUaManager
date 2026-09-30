@@ -176,7 +176,9 @@ Rectangle {
                 Layout.preferredWidth: 160
                 Layout.preferredHeight: 44
                 text: qsTr("Scan network…")
-                enabled: !cppManagerOpcUa.busy && !cppManagerOpcUa.connected
+                // Scanning uses its own OPC UA client, so it stays available while
+                // connected; the dialog blocks "Use" until the user disconnects.
+                enabled: !cppManagerOpcUa.busy
                 onClicked: scanDialog.open()
             }
 
