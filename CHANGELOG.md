@@ -17,6 +17,43 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.1.0] - 2026-09-30
+
+Feature release: finding OPC UA servers on the network, and reliable
+connections to remote servers that report their own host name.
+
+### Added
+- **Scan network…** in the connection form: scans the IPv4 subnets this PC is
+  connected to (or a range typed as `10.10.1.0/24`, `10.10.1.1-254`,
+  `10.10.1.5-10.10.1.40` or a single address) for OPC UA servers. Only port
+  `4840` is checked by default; further ports can be entered as a list or
+  range. One scan covers at most 1024 addresses and 16 ports.
+- The scan result table shows each server's name, security policies and
+  supported logins while the scan runs; open ports that do not answer as an
+  OPC UA server are shown dimmed. Double-clicking a server (or **Use**) puts
+  its address into the connection form and requests its endpoints
+  automatically.
+- Scanning is possible while a session is connected; using a scanned server
+  requires disconnecting first.
+- The **Discovery URL** field lists the ten most recently connected server
+  addresses (without user credentials).
+
+### Fixed
+- Connecting to remote servers that advertise their own host name (for
+  example a PLC panel reached at `opc.tcp://10.10.1.2:4840` that reports
+  `opc.tcp://AOPT690:4840`) failed with an empty endpoint list. The client now
+  keeps using the address it actually reached, lists duplicated endpoints
+  once, and explains when an entered host name cannot be resolved.
+- Reopening a project whose stored endpoint differs from the current list only
+  in the endpoint host now selects the same endpoint (security policy, mode
+  and login) instead of silently falling back to the first one.
+
+### Documentation and translations
+- The user manual (all languages) describes the network scanner and the
+  host-name case in Troubleshooting.
+- All new texts are translated into German, English (UK), French, Italian,
+  Russian and Ukrainian.
+
 ## [1.0.2] - 2026-09-30
 
 Bug-fix release for the menu icons introduced in 1.0.1.
@@ -113,6 +150,7 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.1.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.1.0
 [1.0.2]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.2
 [1.0.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.1
 [1.0.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.0
