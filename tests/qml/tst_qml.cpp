@@ -22,7 +22,10 @@ class MockOpcUaManager : public QObject
     Q_PROPERTY(QString backend READ backend WRITE setBackend NOTIFY backendChanged)
 
     /*! Mock discovered server display rows. */
-    Q_PROPERTY(QStringList servers READ servers CONSTANT)
+    Q_PROPERTY(QStringList servers READ servers NOTIFY serversChanged)
+
+    /*! Mock recently connected discovery URLs. */
+    Q_PROPERTY(QStringList recentServerUrls READ recentServerUrls CONSTANT)
 
     /*! Mock discovered endpoint display rows. */
     Q_PROPERTY(QStringList endpoints READ endpoints CONSTANT)
@@ -45,7 +48,7 @@ class MockOpcUaManager : public QObject
     Q_PROPERTY(QObject *treeModel READ treeModel CONSTANT)
 
     /*! Mock last error text. */
-    Q_PROPERTY(QString lastError READ lastError CONSTANT)
+    Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
     /*! Mock authentication mode. */
     Q_PROPERTY(int authMode READ authMode CONSTANT)
@@ -107,6 +110,9 @@ public:
 
     /*! Returns one mock server display row. */
     QStringList servers() const { return {QStringLiteral("Mock server | opc.tcp://127.0.0.1:4840 | Client")}; }
+
+    /*! Returns one mock recently connected discovery URL. */
+    QStringList recentServerUrls() const { return {QStringLiteral("opc.tcp://10.10.1.2:4840")}; }
 
     /*! Returns one mock endpoint display row. */
     QStringList endpoints() const { return {QStringLiteral("opc.tcp://127.0.0.1:4840 | None | None | auth:Anonymous")}; }
@@ -306,6 +312,12 @@ public:
     }
 
 signals:
+    /*! Emitted when the mock server list changes. */
+    void serversChanged();
+
+    /*! Emitted when the mock last error changes. */
+    void lastErrorChanged();
+
     /*! Emitted when the mock backend changes. */
     void backendChanged();
 
@@ -392,6 +404,61 @@ private:
     LogFilterModel m_logFilterModel;
 };
 
+/*! Mock QML-facing network scanner used by Quick Test components. */
+class MockNetworkScanner : public QObject
+{
+    Q_OBJECT
+
+    /*! Mock result model; the dialog accepts a null model. */
+    Q_PROPERTY(QObject *model READ model CONSTANT)
+    /*! Mock scan state (idle). */
+    Q_PROPERTY(int state READ state NOTIFY stateChanged)
+    /*! Mock progress counters. */
+    Q_PROPERTY(int totalTargets READ zero NOTIFY progressChanged)
+    Q_PROPERTY(int probedTargets READ zero NOTIFY progressChanged)
+    Q_PROPERTY(int openPorts READ zero NOTIFY progressChanged)
+    Q_PROPERTY(int opcUaServers READ zero NOTIFY progressChanged)
+    Q_PROPERTY(int elapsedMs READ zero NOTIFY progressChanged)
+    /*! Mock persisted input. */
+    Q_PROPERTY(QString lastRange READ lastRange NOTIFY lastInputChanged)
+    Q_PROPERTY(QString lastPorts READ lastPorts NOTIFY lastInputChanged)
+
+public:
+    QObject *model() const { return nullptr; }
+    int state() const { return m_state; }
+    int zero() const { return 0; }
+    QString lastRange() const { return QStringLiteral("10.10.1.0/24"); }
+    QString lastPorts() const { return QStringLiteral("4840"); }
+
+    /*! Returns one mock subnet label. */
+    Q_INVOKABLE QStringList localSubnets() const { return {QStringLiteral("10.10.1.0/24 (Ethernet 3)")}; }
+    /*! Accepts every range. */
+    Q_INVOKABLE QString validateRange(const QString &) const { return {}; }
+    /*! Accepts every port list. */
+    Q_INVOKABLE QString validatePorts(const QString &) const { return {}; }
+    /*! Records a start request. */
+    Q_INVOKABLE bool start(const QString &, const QString &)
+    {
+        m_state = 1;
+        emit stateChanged();
+        return true;
+    }
+    /*! Records a cancel request. */
+    Q_INVOKABLE void cancel()
+    {
+        m_state = 3;
+        emit stateChanged();
+    }
+
+signals:
+    void stateChanged();
+    void progressChanged();
+    void lastInputChanged();
+
+private:
+    int m_state = 0;
+};
+
 /*! Quick Test setup object that injects C++ context properties into each engine. */
 class QmlTestSetup : public QObject
 {
@@ -403,6 +470,7 @@ public slots:
     {
         engine->rootContext()->setContextProperty(QStringLiteral("cppManagerOpcUa"), &m_manager);
         engine->rootContext()->setContextProperty(QStringLiteral("cppAppEngine"), &m_appEngine);
+        engine->rootContext()->setContextProperty(QStringLiteral("cppNetworkScanner"), &m_scanner);
     }
 
 private:
@@ -411,6 +479,9 @@ private:
 
     /*! Mock engine exposing the log to the diagnostics panel. */
     MockAppEngine m_appEngine;
+
+    /*! Mock network scanner. */
+    MockNetworkScanner m_scanner;
 };
 
 QUICK_TEST_MAIN_WITH_SETUP(opcuamanager_qml, QmlTestSetup)

@@ -25,6 +25,12 @@ Item {
     }
 
     Component {
+        id: scanDialogComponent
+
+        BsNetworkScanDialog {}
+    }
+
+    Component {
         id: browserComponent
 
         BsOpcUaBrowser {
@@ -132,6 +138,20 @@ Item {
             verify(connectionForm !== null);
             compare(connectionForm.usernameRequired, false);
             verify(connectionForm.implicitWidth > 0);
+        }
+
+        /*! Verifies that BsNetworkScanDialog opens, fills its inputs, and starts and stops a scan. */
+        function test_networkScanDialog() {
+            const dialog = createTemporaryObject(scanDialogComponent, root);
+            verify(dialog !== null);
+            dialog.open();
+            tryCompare(dialog, "opened", true);
+            compare(dialog.scanning, false);
+            dialog.startScan();
+            compare(dialog.scanning, true);
+            dialog.close();
+            tryCompare(dialog, "visible", false);
+            compare(cppNetworkScanner.state, 3);
         }
 
         /*! Verifies that BsOpcUaBrowser can be created with an explicit size. */

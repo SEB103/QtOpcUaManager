@@ -10,6 +10,7 @@ qt_add_qml_module(Base
         BsLanguageSelector.qml
         BsLogPanel.qml
         BsMenuBar.qml
+        BsNetworkScanDialog.qml
         BsNodeAttributes.qml
         BsNodeDataView.qml
         BsNotificationBanner.qml

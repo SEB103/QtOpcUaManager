@@ -26,6 +26,12 @@ Rectangle {
     property bool usernameRequired: false
 
     /*!
+        Discovery URL chosen in the network scanner whose endpoints are requested
+        automatically once Find Servers returns; empty when nothing is pending.
+    */
+    property string pendingEndpointsUrl: ""
+
+    /*!
         Applies the currently selected authentication mode to \c cppManagerOpcUa.
         Returns \c true when the selected input is valid and the request was
         forwarded; otherwise stores a validation message and returns \c false.
@@ -66,6 +72,16 @@ Rectangle {
         default:
             return cppManagerOpcUa.connected ? qsTr("Connected") : qsTr("Disconnected");
         }
+    }
+
+    /*!
+        Puts the scanned server  url into the discovery field and starts Find
+        Servers; Get Endpoints follows automatically when the server list arrives.
+    */
+    function useScannedServer(url) {
+        hostField.editText = url;
+        root.pendingEndpointsUrl = url;
+        cppManagerOpcUa.discoverServers(url);
     }
 
     color: Material.background
@@ -128,13 +144,16 @@ Rectangle {
                 Layout.preferredWidth: 180
             }
 
-            TextField {
+            ComboBox {
                 id: hostField
 
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-                placeholderText: "opc.tcp://127.0.0.1:4840"
+                editable: true
+                model: cppManagerOpcUa.recentServerUrls
                 enabled: !cppManagerOpcUa.busy && !cppManagerOpcUa.connected
+                ToolTip.visible: hovered && editText.length === 0
+                ToolTip.text: qsTr("Host name, IP address, or opc.tcp:// URL")
             }
 
             Button {
@@ -142,7 +161,23 @@ Rectangle {
                 Layout.preferredHeight: 44
                 text: qsTr("Find Servers")
                 enabled: !cppManagerOpcUa.busy && !cppManagerOpcUa.connected
-                onClicked: cppManagerOpcUa.discoverServers(hostField.text)
+                onClicked: cppManagerOpcUa.discoverServers(hostField.editText)
+            }
+
+            Item {
+                Layout.preferredWidth: 180
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Button {
+                Layout.preferredWidth: 160
+                Layout.preferredHeight: 44
+                text: qsTr("Scan network…")
+                enabled: !cppManagerOpcUa.busy && !cppManagerOpcUa.connected
+                onClicked: scanDialog.open()
             }
 
             Label {
@@ -309,6 +344,40 @@ Rectangle {
             color: Material.color(Material.Red)
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
+        }
+    }
+
+    BsNetworkScanDialog {
+        id: scanDialog
+
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        onServerChosen: url => root.useScannedServer(url)
+    }
+
+    Connections {
+        target: cppManagerOpcUa
+
+        function onServersChanged() {
+            const servers = cppManagerOpcUa.servers;
+            if (root.pendingEndpointsUrl.length === 0 || servers.length === 0)
+                return;
+            let index = 0;
+            for (let i = 0; i < servers.length; ++i) {
+                if (servers[i].indexOf(root.pendingEndpointsUrl) >= 0) {
+                    index = i;
+                    break;
+                }
+            }
+            root.pendingEndpointsUrl = "";
+            serverComboBox.currentIndex = index;
+            if (root.applyAuthentication())
+                cppManagerOpcUa.requestEndpointsForServer(index);
+        }
+
+        function onLastErrorChanged() {
+            if (cppManagerOpcUa.lastError.length > 0)
+                root.pendingEndpointsUrl = "";
         }
     }
 }
