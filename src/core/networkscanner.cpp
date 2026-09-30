@@ -199,6 +199,7 @@ void NetworkScanner::launchProbes()
         Probe probe;
         probe.target = target;
         probe.timer.start();
+        probe.timeout = timeout;
         m_probes.insert(socket, probe);
         timeout->start(m_probeTimeoutMs);
         socket->connectToHost(target.address, target.port);
@@ -382,6 +383,11 @@ void NetworkScanner::completeQuery(NetworkScanStatus status, const QString &erro
  * runs FindServers and GetEndpoints synchronously on its own thread with a fixed
  * timeout that these settings do not change, so a silent port blocks the client
  * for longer than the scanner waits; retireClient() handles that case.
+ *
+ * Creating an open62541 client blocks the calling thread for several hundred
+ * milliseconds (the backend generates an RSA key to test SHA-1 support), which
+ * can exceed the probe timeout. The probes running meanwhile get their timeout
+ * restarted, so a port that connected during the stall is not reported closed.
  */
 bool NetworkScanner::ensureClient()
 {
@@ -408,7 +414,22 @@ bool NetworkScanner::ensureClient()
             &NetworkScanner::onFindServersFinished);
     connect(m_client, &QOpcUaClient::endpointsRequestFinished, this,
             &NetworkScanner::onEndpointsFinished);
+    restartProbeTimeouts();
     return true;
+}
+
+/*!
+ * \internal
+ * \brief Restarts the connect timeout of every running probe.
+ *
+ * Called after a synchronous stall of the GUI thread. A timeout that expired
+ * during the stall has not been delivered yet; restarting the timer drops it,
+ * so the pending connected() notification of the socket is handled first.
+ */
+void NetworkScanner::restartProbeTimeouts()
+{
+    for (const Probe &probe : std::as_const(m_probes))
+        probe.timeout->start(m_probeTimeoutMs);
 }
 
 /*!

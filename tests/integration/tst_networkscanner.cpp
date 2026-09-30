@@ -142,11 +142,17 @@ void NetworkScannerIntegrationTest::classifiesServerSilentAndClosedPorts()
  * request blocks the backend thread of that client for longer than the scanner
  * timeout, so the server row is only correct if the scanner moves on to a fresh
  * client after the timeout.
+ *
+ * The server port is probed while the first client is created, which blocks the
+ * thread for several hundred milliseconds. The short probe timeout makes that
+ * stall longer than the probe budget, so the server port only counts as open if
+ * the stall is not charged to the probe.
  */
 void NetworkScannerIntegrationTest::findsServerAfterSilentPort()
 {
     NetworkScanner scanner;
     scanner.setOpcUaTimeoutMs(1500);
+    scanner.setProbeTimeoutMs(200);
     scanner.setMaxParallelProbes(1);
     const quint16 silentPort = m_silentServer.serverPort();
 

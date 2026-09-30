@@ -90,6 +90,8 @@ private:
     {
         Target target;
         QElapsedTimer timer;
+        /** Single-shot connect timeout, owned by the probe's socket. */
+        QTimer *timeout = nullptr;
     };
 
     void launchProbes();
@@ -103,6 +105,8 @@ private:
     void onOpcUaTimeout();
     void completeQuery(NetworkScanStatus status, const QString &errorText);
     bool ensureClient();
+    /** Gives every running probe its full timeout again after a thread stall. */
+    void restartProbeTimeouts();
     void retireClient();
     void abortAll();
     void checkFinished();
