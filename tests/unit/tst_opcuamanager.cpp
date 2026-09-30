@@ -343,7 +343,8 @@ void OpcUaManagerTest::reconnectMatchesEndpointWithChangedHost()
  * \brief Verifies that successful connections are remembered as recent server URLs.
  *
  * Only a successful connect records the discovery URL; the input is normalized
- * so "10.10.1.2" and "opc.tcp://10.10.1.2:4840" count as one entry. The list
+ * so "10.10.1.2" and "opc.tcp://10.10.1.2:4840" count as one entry, and user
+ * info such as "user:pw@" is dropped before the URL is stored. The list
  * holds at most ten entries, newest first, and survives a new manager.
  */
 void OpcUaManagerTest::remembersRecentServerUrls()
@@ -366,6 +367,14 @@ void OpcUaManagerTest::remembersRecentServerUrls()
         manager.discoverServers(QStringLiteral("OPC.TCP://10.10.1.2:4840"));
         manager.applyConnected(true);
         QCOMPARE(manager.recentServerUrls().size(), 1);
+        manager.applyConnected(false);
+
+        // User info must never be persisted with the URL.
+        manager.discoverServers(QStringLiteral("opc.tcp://user:pw@10.9.9.9:4840"));
+        manager.applyConnected(true);
+        QCOMPARE(manager.recentServerUrls().first(), QStringLiteral("opc.tcp://10.9.9.9:4840"));
+        QVERIFY(!QSettings().value(key).toStringList().join(QLatin1Char(' ')).contains(
+            QStringLiteral("pw")));
         manager.applyConnected(false);
 
         for (int i = 1; i <= 11; ++i) {

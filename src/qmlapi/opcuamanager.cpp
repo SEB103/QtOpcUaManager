@@ -338,15 +338,19 @@ QStringList OpcUaManager::recentServerUrls() const
 /*!
  * \internal
  * \brief Moves \a hostOrUrl, normalized, to the front of the recent URL list.
+ * \param hostOrUrl Host name, address, or discovery URL of the connected server.
  *
  * Entries are compared case-insensitively so different spellings of the same
- * server collapse into one entry. The list is capped and persisted in QSettings.
+ * server collapse into one entry. User info is removed before storing. The list
+ * is capped and persisted in QSettings.
  */
 void OpcUaManager::rememberRecentServerUrl(const QString &hostOrUrl)
 {
-    const QUrl url = OpcUaEndpointAddress::normalizeDiscoveryUrl(hostOrUrl);
+    QUrl url = OpcUaEndpointAddress::normalizeDiscoveryUrl(hostOrUrl);
     if (!url.isValid())
         return;
+    // Credentials typed into the URL must not end up in the settings file.
+    url.setUserInfo(QString());
     const QString entry = url.toString();
 
     QStringList updated {entry};
