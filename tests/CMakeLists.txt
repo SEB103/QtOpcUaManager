@@ -452,6 +452,26 @@ add_dependencies(tst_serverenum OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerEnum.Integration COMMAND tst_serverenum)
 
+# Integration test for the two-stage network scanner against the headless runtime,
+# a silent TCP listener, and a closed port on 127.0.0.1.
+qt_add_executable(tst_networkscanner
+    integration/tst_networkscanner.cpp
+)
+
+target_link_libraries(tst_networkscanner
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+target_compile_definitions(tst_networkscanner
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_networkscanner OpcUaServerRuntime)
+
+add_test(NAME NetworkScanner.Integration COMMAND tst_networkscanner)
+
 qt_add_executable(tst_qml
     qml/tst_qml.cpp
 )

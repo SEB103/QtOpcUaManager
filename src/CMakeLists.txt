@@ -10,6 +10,8 @@ target_sources(OpcUaCore
         core/diagnosticslevel.h
         core/iprange.cpp
         core/iprange.h
+        core/networkscanner.cpp
+        core/networkscanner.h
         core/networkscanresult.h
         core/opcuaaccesslevel.h
         core/opcuaendpointaddress.cpp

@@ -67,6 +67,9 @@ private slots:
 
     /*! Verifies host literal detection used for the resolution hint. */
     void hostLiteralDetection();
+
+    /*! Verifies discovery URL normalization shared by the service and the scanner. */
+    void normalizesDiscoveryUrls();
 };
 
 /*!
@@ -174,6 +177,18 @@ void OpcUaEndpointAddressTest::hostLiteralDetection()
     QVERIFY(!OpcUaEndpointAddress::isHostName(QStringLiteral("::1")));
     QVERIFY(!OpcUaEndpointAddress::isHostName(QStringLiteral("localhost")));
     QVERIFY(!OpcUaEndpointAddress::isHostName(QString()));
+}
+
+/*!
+ * \brief Verifies discovery URL normalization shared by the service and the scanner.
+ */
+void OpcUaEndpointAddressTest::normalizesDiscoveryUrls()
+{
+    QCOMPARE(OpcUaEndpointAddress::normalizeDiscoveryUrl(QStringLiteral(" 10.10.1.2 ")),
+             QUrl(QStringLiteral("opc.tcp://10.10.1.2:4840")));
+    QCOMPARE(OpcUaEndpointAddress::normalizeDiscoveryUrl(QStringLiteral("opc.tcp://plc:48010")),
+             QUrl(QStringLiteral("opc.tcp://plc:48010")));
+    QVERIFY(!OpcUaEndpointAddress::normalizeDiscoveryUrl(QString()).isValid());
 }
 
 QTEST_GUILESS_MAIN(OpcUaEndpointAddressTest)

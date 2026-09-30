@@ -1553,17 +1553,7 @@ OpcUaValueUpdate OpcUaService::buildValueUpdate(const QString &nodeId, QOpcUaNod
  */
 QUrl OpcUaService::normalizeDiscoveryUrl(const QString &hostOrUrl)
 {
-    QString s = hostOrUrl.trimmed();
-    if (s.isEmpty())
-        return {};
-    if (!s.contains("://"_L1))
-        s.prepend("opc.tcp://"_L1);
-    QUrl url(s);
-    if (!url.isValid())
-        return {};
-    if (url.port() == -1)
-        url.setPort(4840);
-    return url;
+    return OpcUaEndpointAddress::normalizeDiscoveryUrl(hostOrUrl);
 }
 
 /*!

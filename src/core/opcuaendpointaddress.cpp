@@ -39,6 +39,28 @@ QString endpointKey(const QOpcUaEndpointDescription &endpoint)
 namespace OpcUaEndpointAddress {
 
 /*!
+ * \brief Normalizes \a hostOrUrl into an opc.tcp discovery URL.
+ * \param hostOrUrl A host, an IP address, or a URL typed by the user.
+ *
+ * Missing schemes are treated as \c opc.tcp and missing ports default to
+ * \c 4840, the standard OPC UA port.
+ */
+QUrl normalizeDiscoveryUrl(const QString &hostOrUrl)
+{
+    QString text = hostOrUrl.trimmed();
+    if (text.isEmpty())
+        return {};
+    if (!text.contains(QLatin1String("://")))
+        text.prepend(QLatin1String("opc.tcp://"));
+    QUrl url(text);
+    if (!url.isValid())
+        return {};
+    if (url.port() == -1)
+        url.setPort(4840);
+    return url;
+}
+
+/*!
  * \brief Returns \a advertised with its host replaced by the host of \a reached.
  * \param advertised The URL reported by the server in FindServers or GetEndpoints.
  * \param reached The URL the client successfully sent its request to.

@@ -18,6 +18,14 @@
 namespace OpcUaEndpointAddress {
 
 /**
+ * Normalizes a host or URL input into an opc.tcp discovery URL.
+ *
+ * Missing schemes become \c opc.tcp and missing ports \c 4840. Returns an
+ * invalid URL for empty or malformed input.
+ */
+QUrl normalizeDiscoveryUrl(const QString &hostOrUrl);
+
+/**
  * Returns \a advertised with its host replaced by the host of \a reached.
  *
  * Port and path of \a advertised are kept. Returns \a advertised unchanged when
