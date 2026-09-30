@@ -12,6 +12,9 @@ namespace {
  *
  * Only the four-part form is accepted; QHostAddress alone would also accept
  * shortened forms such as "10.1".
+ * \param text The candidate address text.
+ * \param value Receives the address as a host-order integer on success.
+ * \return \c true when \a text is a valid dotted-quad IPv4 address.
  */
 bool parseIpv4(const QString &text, quint32 *value)
 {
@@ -29,6 +32,8 @@ bool parseIpv4(const QString &text, quint32 *value)
 /*!
  * \internal
  * \brief Returns the IPv4 network mask for \a prefixLength (0-32).
+ * \param prefixLength The network prefix length, 0 to 32.
+ * \return The mask as a host-order integer.
  */
 quint32 maskFor(int prefixLength)
 {
@@ -41,6 +46,9 @@ quint32 maskFor(int prefixLength)
  *
  * The count is checked before any address is created, so a /0 subnet costs
  * nothing and yields the limit error.
+ * \param first The first address as a host-order integer.
+ * \param last The last address as a host-order integer; not less than \a first.
+ * \return The addresses, or an empty list with an error text when over the limit.
  */
 IpRange::AddressList expand(quint32 first, quint32 last)
 {
@@ -161,6 +169,16 @@ PortList parsePorts(const QString &text)
         if (!firstOk || !lastOk || first < 1 || last > 65535 || last < first) {
             result.ports.clear();
             result.error = QCoreApplication::translate("IpRange", "Not a valid port: %1").arg(part);
+            return result;
+        }
+        // Reject oversized ranges before expanding them: the input is validated per keystroke.
+        const uint count = last - first + 1;
+        if (count > uint(kMaxPorts)) {
+            result.ports.clear();
+            result.error = QCoreApplication::translate("IpRange",
+                                                       "Too many ports (%1); the maximum is %2.")
+                               .arg(count)
+                               .arg(kMaxPorts);
             return result;
         }
         for (uint port = first; port <= last; ++port) {

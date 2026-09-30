@@ -139,6 +139,11 @@ void IpRangeTest::parsesPorts()
     QCOMPARE(list.ports, (QList<quint16>{4840, 4841, 48010, 48011, 48012}));
 
     QCOMPARE(IpRange::parsePorts(QStringLiteral("4840,4840")).ports, QList<quint16>{4840});
+
+    // Exactly kMaxPorts ports is still accepted.
+    const IpRange::PortList limit = IpRange::parsePorts(QStringLiteral("4840-4855"));
+    QVERIFY(limit.error.isEmpty());
+    QCOMPARE(limit.ports.size(), 16);
 }
 
 void IpRangeTest::rejectsInvalidPorts_data()
@@ -150,6 +155,8 @@ void IpRangeTest::rejectsInvalidPorts_data()
     QTest::newRow("text") << QStringLiteral("opc");
     QTest::newRow("reversed") << QStringLiteral("10-5");
     QTest::newRow("too many") << QStringLiteral("4840-4900");
+    QTest::newRow("full range") << QStringLiteral("1-65535");
+    QTest::newRow("seventeen ports") << QStringLiteral("4840-4856");
 }
 
 /*!
