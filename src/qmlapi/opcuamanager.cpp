@@ -1781,8 +1781,25 @@ void OpcUaManager::applyEndpoints(const QStringList &endpoints)
     if (endpoints.isEmpty())
         return;
 
-    // Pick the stored endpoint by exact display match, else the first endpoint.
+    // Pick the stored endpoint by exact display match, then by security policy,
+    // mode, and authentication with the URL ignored, else the first endpoint.
+    // The URL part may differ from a stored project because endpoint URLs are
+    // redirected to the host that answered GetEndpoints.
     int index = endpoints.indexOf(m_reconnectEndpoint);
+    if (index < 0) {
+        const QString separator = QStringLiteral(" | ");
+        const qsizetype storedSplit = m_reconnectEndpoint.indexOf(separator);
+        if (storedSplit >= 0) {
+            const QStringView storedTail = QStringView(m_reconnectEndpoint).mid(storedSplit);
+            for (int i = 0; i < endpoints.size(); ++i) {
+                const qsizetype split = endpoints.at(i).indexOf(separator);
+                if (split >= 0 && QStringView(endpoints.at(i)).mid(split) == storedTail) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+    }
     if (index < 0 && !endpoints.isEmpty())
         index = 0;
     if (index < 0) {

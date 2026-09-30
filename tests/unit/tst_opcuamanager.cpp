@@ -116,6 +116,9 @@ private slots:
 
     /*! Verifies that an exported CSV cell cannot become a spreadsheet formula. */
     void csvExportNeutralizesFormulaInjection();
+
+    /*! Verifies that a reconnect finds the stored endpoint when only its host changed. */
+    void reconnectMatchesEndpointWithChangedHost();
 };
 
 /*!
@@ -281,6 +284,44 @@ void OpcUaManagerTest::csvExportNeutralizesFormulaInjection()
         // The value itself is preserved, only made inert.
         QVERIFY(field.contains(payload));
     }
+}
+
+/*!
+ * rief Verifies that a reconnect finds the stored endpoint when only its host changed.
+ *
+ * Endpoint URLs are redirected to the host that answered GetEndpoints, so a
+ * project saved earlier may store the server's advertised host name while the
+ * list now shows the reached address. The stored security policy, mode, and
+ * authentication must still select the same endpoint instead of the first one.
+ */
+void OpcUaManagerTest::reconnectMatchesEndpointWithChangedHost()
+{
+    const QString policyNone = QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#None");
+    const QString policySecure =
+        QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256");
+
+    ProjectData data;
+    data.connection.discoveryUrl = QStringLiteral("opc.tcp://127.0.0.1:4850");
+    data.connection.backend = QStringLiteral("open62541");
+    data.connection.server = QStringLiteral("srv");
+    data.connection.endpoint = QStringLiteral("opc.tcp://SEB-HOME-PC:4850 | %1 | SignAndEncrypt"
+                                              " | auth:Anonymous")
+                                   .arg(policySecure);
+
+    OpcUaManager manager;
+    manager.applyProject(data);
+    QSignalSpy connectSpy(&manager, &OpcUaManager::connectToEndpointRequested);
+    manager.connectToProjectConnection();
+
+    manager.applyServers({QStringLiteral("srv | opc.tcp://127.0.0.1:4850 | Server")});
+    manager.applyEndpoints({
+        QStringLiteral("opc.tcp://127.0.0.1:4850 | %1 | None | auth:Anonymous").arg(policyNone),
+        QStringLiteral("opc.tcp://127.0.0.1:4850 | %1 | SignAndEncrypt | auth:Anonymous")
+            .arg(policySecure),
+    });
+
+    QCOMPARE(connectSpy.size(), 1);
+    QCOMPARE(connectSpy.first().at(0).toInt(), 1);
 }
 
 QTEST_MAIN(OpcUaManagerTest)
