@@ -14,6 +14,12 @@ env:
   # is only on master, so install-qt-action is pointed at a pinned commit.
   # Drop AQTINSTALL_SOURCE once a release newer than 3.3.0 is published.
   AQTINSTALL_SOURCE: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
+  # The pinned aqtinstall requires py7zr >= 1.1.3, which rejects the qtwebview
+  # archive ("Bad7zFile: Specified path is bad: plugins/webview"). Extract with
+  # the runner's 7-Zip instead of py7zr. The cache key prefix changes with the
+  # extraction method so a cached Qt from the old method is not reused.
+  AQT_EXTRA_ARGS: '--external 7z'
+  QT_CACHE_KEY_PREFIX: 'install-qt-action-7z'
 
 jobs:
   windows-msvc2022:
@@ -37,7 +43,9 @@ jobs:
           # built from source below.
           modules: 'qtwebview'
           aqtsource: ${{ env.AQTINSTALL_SOURCE }}
+          extra: ${{ env.AQT_EXTRA_ARGS }}
           cache: true
+          cache-key-prefix: ${{ env.QT_CACHE_KEY_PREFIX }}
 
       - name: Set up MSVC and Ninja
         uses: ./.github/actions/setup-msvc
