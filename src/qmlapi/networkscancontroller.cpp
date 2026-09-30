@@ -24,6 +24,7 @@ constexpr auto kPortsSettingsKey = "scanner/ports";
 
 /*!
  * \brief Creates the controller, its scanner, and its model, owned by \a parent.
+ * \param parent The owning QObject, or null.
  */
 NetworkScanController::NetworkScanController(QObject *parent)
     : QObject(parent)
@@ -95,6 +96,7 @@ QStringList NetworkScanController::localSubnets() const
 
 /*!
  * \brief Returns an error text for the range \a text, or an empty string when valid.
+ * \param text Range input as accepted by IpRange::parseRange().
  */
 QString NetworkScanController::validateRange(const QString &text) const
 {
@@ -103,6 +105,7 @@ QString NetworkScanController::validateRange(const QString &text) const
 
 /*!
  * \brief Returns an error text for the ports \a text, or an empty string when valid.
+ * \param text Port input as accepted by IpRange::parsePorts().
  */
 QString NetworkScanController::validatePorts(const QString &text) const
 {

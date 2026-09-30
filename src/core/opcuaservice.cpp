@@ -165,6 +165,7 @@ static QString formatTimestamp(const QDateTime &dateTime)
 /*!
  * \internal
  * \brief Returns an error suffix suggesting the IP address when \a url uses a host name.
+ * \param url The URL of the failed request.
  *
  * An unresolvable host name surfaces from the backend only as a generic
  * connection failure such as \c BadConnectionClosed. Returns an empty string

@@ -16,6 +16,7 @@ namespace {
 /*!
  * \internal
  * \brief Returns the distinct security policy names of \a endpoints, e.g. "None, Basic256Sha256".
+ * \param endpoints The endpoints returned by GetEndpoints.
  */
 QString securitySummary(const QList<QOpcUaEndpointDescription> &endpoints)
 {
@@ -31,6 +32,7 @@ QString securitySummary(const QList<QOpcUaEndpointDescription> &endpoints)
 /*!
  * \internal
  * \brief Returns the distinct user token types of \a endpoints, e.g. "Anonymous, Username".
+ * \param endpoints The endpoints returned by GetEndpoints.
  */
 QString authSummary(const QList<QOpcUaEndpointDescription> &endpoints)
 {
@@ -63,6 +65,7 @@ QString authSummary(const QList<QOpcUaEndpointDescription> &endpoints)
 
 /*!
  * \brief Creates an idle scanner owned by \a parent.
+ * \param parent The owning QObject, or null.
  */
 NetworkScanner::NetworkScanner(QObject *parent)
     : QObject(parent)
@@ -222,6 +225,7 @@ void NetworkScanner::launchProbes()
 /*!
  * \internal
  * \brief Records an open port and queues it for the OPC UA stage.
+ * \param socket The probe socket that reported connected().
  */
 void NetworkScanner::onProbeConnected(QTcpSocket *socket)
 {
@@ -245,6 +249,7 @@ void NetworkScanner::onProbeConnected(QTcpSocket *socket)
 /*!
  * \internal
  * \brief Ends the probe on \a socket and starts the next one.
+ * \param socket The probe socket; ignored when its probe has already ended.
  *
  * Signals are disconnected before aborting so the abort cannot report the same
  * probe a second time.
@@ -292,6 +297,9 @@ void NetworkScanner::queryNext()
 /*!
  * \internal
  * \brief Takes the server description and requests the endpoints.
+ * \param servers The application descriptions returned by FindServers.
+ * \param statusCode The service result of the request.
+ * \param requestUrl The URL the request was sent to; stale replies are ignored.
  *
  * GetEndpoints goes to the advertised discovery URL redirected to the address
  * that answered, so a server advertising an unresolvable host name still works.
@@ -332,6 +340,9 @@ void NetworkScanner::onFindServersFinished(const QList<QOpcUaApplicationDescript
 /*!
  * \internal
  * \brief Summarizes security and login options and completes the current query.
+ * \param endpoints The endpoints returned by GetEndpoints.
+ * \param statusCode The service result of the request.
+ * \param requestUrl The URL the request was sent to; stale replies are ignored.
  */
 void NetworkScanner::onEndpointsFinished(const QList<QOpcUaEndpointDescription> &endpoints,
                                          QOpcUa::UaStatusCode statusCode,
@@ -369,6 +380,8 @@ void NetworkScanner::onOpcUaTimeout()
 /*!
  * \internal
  * \brief Reports the current row with \a status and \a errorText and moves on.
+ * \param status The final classification of the row.
+ * \param errorText A short error code, or an empty string on success.
  */
 void NetworkScanner::completeQuery(NetworkScanStatus status, const QString &errorText)
 {
@@ -509,6 +522,7 @@ void NetworkScanner::checkFinished()
 /*!
  * \internal
  * \brief Stores \a state and emits stateChanged() on a change.
+ * \param state The new scan state.
  */
 void NetworkScanner::setState(State state)
 {

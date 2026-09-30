@@ -9,6 +9,7 @@ namespace {
 /*!
  * \internal
  * \brief Returns the key that orders rows by numeric IPv4 address, then port.
+ * \param result The row to compute the key for.
  */
 quint64 sortKey(const NetworkScanResult &result)
 {
@@ -19,6 +20,7 @@ quint64 sortKey(const NetworkScanResult &result)
 
 /*!
  * \brief Creates an empty model owned by \a parent.
+ * \param parent The owning QObject, or null.
  */
 NetworkScanModel::NetworkScanModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -27,6 +29,7 @@ NetworkScanModel::NetworkScanModel(QObject *parent)
 
 /*!
  * \brief Returns the number of result rows; \a parent must be invalid for a list model.
+ * \param parent The parent index; a valid index has no children.
  */
 int NetworkScanModel::rowCount(const QModelIndex &parent) const
 {
@@ -35,6 +38,8 @@ int NetworkScanModel::rowCount(const QModelIndex &parent) const
 
 /*!
  * \brief Returns the value of \a role for the row at \a index.
+ * \param index The row to read; an invalid or out-of-range index yields no value.
+ * \param role One of the model roles or Qt::DisplayRole.
  */
 QVariant NetworkScanModel::data(const QModelIndex &index, int role) const
 {
@@ -114,6 +119,7 @@ void NetworkScanModel::clear()
 
 /*!
  * \brief Inserts \a result in order, or updates the row with the same address and port.
+ * \param result The new or updated scan result.
  *
  * The scanner reports a row first as an open port and later with its OPC UA
  * details, so an update must keep the row's position and emit dataChanged().
@@ -141,6 +147,7 @@ void NetworkScanModel::upsert(const NetworkScanResult &result)
 
 /*!
  * \brief Returns the result at \a row, or a default result when \a row is out of range.
+ * \param row The row index.
  */
 NetworkScanResult NetworkScanModel::resultAt(int row) const
 {

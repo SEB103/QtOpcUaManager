@@ -11,6 +11,7 @@ namespace {
 /*!
  * \internal
  * \brief Returns a key that identifies an endpoint by URL, security, and token types.
+ * \param endpoint The endpoint to identify.
  *
  * Two endpoints with the same key offer the same connection to the client, so
  * only one of them has to be shown. Token types are sorted so that their order
