@@ -143,6 +143,18 @@ target_link_libraries(tst_opcuaendpointaddress
 
 add_test(NAME OpcUaEndpointAddress.Unit COMMAND tst_opcuaendpointaddress)
 
+qt_add_executable(tst_iprange
+    unit/tst_iprange.cpp
+)
+
+target_link_libraries(tst_iprange
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME IpRange.Unit COMMAND tst_iprange)
+
 qt_add_executable(tst_trendmodel
     unit/tst_trendmodel.cpp
 )
