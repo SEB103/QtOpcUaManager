@@ -131,6 +131,18 @@ target_link_libraries(tst_opcuastatushint
 
 add_test(NAME OpcUaStatusHint.Unit COMMAND tst_opcuastatushint)
 
+qt_add_executable(tst_opcuaendpointaddress
+    unit/tst_opcuaendpointaddress.cpp
+)
+
+target_link_libraries(tst_opcuaendpointaddress
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME OpcUaEndpointAddress.Unit COMMAND tst_opcuaendpointaddress)
+
 qt_add_executable(tst_trendmodel
     unit/tst_trendmodel.cpp
 )

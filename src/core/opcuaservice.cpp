@@ -2,6 +2,7 @@
 
 #include "apppaths.h"
 #include "clonebrowser.h"
+#include "opcuaendpointaddress.h"
 #include "structurednodereader.h"
 
 #include <QCoreApplication>
@@ -159,6 +160,23 @@ static QString formatOpcUaValue(const QVariant &value)
 static QString formatTimestamp(const QDateTime &dateTime)
 {
     return dateTime.isValid() ? dateTime.toString(Qt::ISODateWithMs) : QString();
+}
+
+/*!
+ * \internal
+ * \brief Returns an error suffix suggesting the IP address when \a url uses a host name.
+ *
+ * An unresolvable host name surfaces from the backend only as a generic
+ * connection failure such as \c BadConnectionClosed. Returns an empty string
+ * for IP address literals and \c localhost.
+ */
+static QString hostNameResolutionHint(const QUrl &url)
+{
+    if (!OpcUaEndpointAddress::isHostName(url.host()))
+        return {};
+    return QStringLiteral(". The host name '%1' may not be resolvable from this PC;"
+                          " enter the server IP address instead.")
+        .arg(url.host());
 }
 
 /*!
@@ -1707,7 +1725,7 @@ QString OpcUaService::serverUrlAt(int index) const
     for (const auto &u : server.discoveryUrls()) {
         const QUrl url = normalizeDiscoveryUrl(u);
         if (url.isValid())
-            return url.toString();
+            return OpcUaEndpointAddress::reachableUrl(url, m_lastFindServersRequestUrl).toString();
     }
     return m_lastFindServersRequestUrl.isValid() ? m_lastFindServersRequestUrl.toString() : QString{};
 }
@@ -2032,7 +2050,9 @@ void OpcUaService::createClient()
 /*!
  * \brief Applies the asynchronous FindServers result.
  * Server descriptions are converted into display rows and matching
- * candidate URLs. Stale callbacks are ignored, and failed or empty results
+ * candidate URLs. Candidate URLs keep the host that answered the request,
+ * because remote servers often advertise a host name the client cannot
+ * resolve. Stale callbacks are ignored, and failed or empty results
  * leave the server list empty so endpoint lookup stays disabled.
  */
 void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription> &servers, QOpcUa::UaStatusCode statusCode, const QUrl &requestUrl)
@@ -2059,7 +2079,9 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
     setOperationState(OperationState::Idle);
 
     if (statusCode != QOpcUa::UaStatusCode::Good) {
-        setLastError(QStringLiteral("FindServers failed: %1").arg(QOpcUa::statusToString(statusCode)));
+        setLastError(QStringLiteral("FindServers failed: %1%2")
+                         .arg(QOpcUa::statusToString(statusCode),
+                              hostNameResolutionHint(effectiveRequestUrl)));
         return;
     }
 
@@ -2075,11 +2097,19 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
     QList<QOpcUaApplicationDescription> discoveredServers;
     QStringList discoveredCandidateUrls;
     for (const auto &server : servers) {
+        // Servers advertise their own host name, which remote clients often cannot
+        // resolve. Keep using the host that answered FindServers instead.
         QStringList validUrls;
+        QStringList advertisedElsewhere;
         for (const auto &u : server.discoveryUrls()) {
             const QUrl normalized = normalizeDiscoveryUrl(u);
-            if (normalized.isValid())
-                validUrls << normalized.toString();
+            if (!normalized.isValid())
+                continue;
+            const QUrl reachable = OpcUaEndpointAddress::reachableUrl(normalized, effectiveRequestUrl);
+            if (reachable != normalized)
+                advertisedElsewhere << normalized.toString();
+            if (!validUrls.contains(reachable.toString()))
+                validUrls << reachable.toString();
         }
         const QString appName = server.applicationName().text().trimmed();
         const QString appUri = server.applicationUri().trimmed();
@@ -2092,6 +2122,8 @@ void OpcUaService::findServersComplete(const QList<QOpcUaApplicationDescription>
             line += QStringLiteral(" | appUri:%1").arg(appUri);
         if (validUrls.isEmpty())
             line += QStringLiteral(" | discoveryUrls:<empty, fallback=requestUrl>");
+        if (!advertisedElsewhere.isEmpty())
+            line += QStringLiteral(" | advertised:%1").arg(advertisedElsewhere.join(QLatin1Char(',')));
         display << line;
         discoveredServers.push_back(server);
         discoveredCandidateUrls << primaryUrl;
@@ -2146,8 +2178,9 @@ void OpcUaService::getEndpointsComplete(const QList<QOpcUaEndpointDescription> &
         emit endpointsChanged(m_endpointsDisplay);
     }
     if (statusCode != QOpcUa::UaStatusCode::Good) {
-        setLastError(QStringLiteral("GetEndpoints failed: %1")
-                         .arg(QOpcUa::statusToString(statusCode)));
+        setLastError(QStringLiteral("GetEndpoints failed: %1%2")
+                         .arg(QOpcUa::statusToString(statusCode),
+                              hostNameResolutionHint(requestUrl)));
         return;
     }
     if (endpoints.isEmpty()) {
@@ -2156,9 +2189,11 @@ void OpcUaService::getEndpointsComplete(const QList<QOpcUaEndpointDescription> &
         return;
     }
 
+    // Endpoints advertised under the server's own host name are moved to the host
+    // that answered GetEndpoints, so connecting does not depend on name resolution.
     QList<QOpcUaEndpointDescription> displayEndpoints;
     displayEndpoints.reserve(endpoints.size());
-    for (const auto &endpoint : endpoints)
+    for (const auto &endpoint : OpcUaEndpointAddress::reachableEndpoints(endpoints, requestUrl))
         displayEndpoints << patchEndpointForDiscoveryUrl(endpoint, requestUrl);
 
     std::stable_sort(displayEndpoints.begin(),

@@ -9,6 +9,8 @@ target_sources(OpcUaCore
         core/clonebrowser.h
         core/diagnosticslevel.h
         core/opcuaaccesslevel.h
+        core/opcuaendpointaddress.cpp
+        core/opcuaendpointaddress.h
         core/opcuanodedata.h
         core/opcuaservice.cpp
         core/opcuaservice.h
