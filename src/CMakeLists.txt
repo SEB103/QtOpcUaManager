@@ -99,6 +99,8 @@ qt_add_library(OpcUaQmlApi STATIC)
 
 target_sources(OpcUaQmlApi
     PRIVATE
+        qmlapi/networkscancontroller.cpp
+        qmlapi/networkscancontroller.h
         qmlapi/opcuamanager.cpp
         qmlapi/opcuamanager.h
         qmlapi/projectmanager.cpp

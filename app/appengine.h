@@ -10,6 +10,7 @@ class AppInfo;
 class LicenseModel;
 class LocaleController;
 class LogModel;
+class NetworkScanController;
 class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
@@ -84,6 +85,9 @@ private:
 
     /** Server Studio facade exposed to QML as \c cppServerStudio; owned by this engine. */
     ServerStudio* m_serverStudio = nullptr;
+
+    /** Network scanner facade exposed to QML as \c cppNetworkScanner; owned by this engine. */
+    NetworkScanController* m_networkScanController = nullptr;
 
     /** Application/build metadata exposed to QML as \c cppAppInfo; owned by this engine. */
     AppInfo* m_appInfo = nullptr;

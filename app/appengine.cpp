@@ -22,6 +22,7 @@
 #include "licensemodel.h"
 #include "localecontroller.h"
 #include "updatecontroller.h"
+#include "qmlapi/networkscancontroller.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
 #include "qmlapi/servernodemodel.h"
@@ -31,6 +32,7 @@
 #include "models/dataaccessmodel.h"
 #include "models/logfiltermodel.h"
 #include "models/logmodel.h"
+#include "models/networkscanmodel.h"
 #include "models/opcuamodel.h"
 #include "core/apppaths.h"
 #include "core/opcuaservice.h"
@@ -269,6 +271,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
     , m_projectManager(new ProjectManager(this))
     , m_serverStudio(new ServerStudio(this))
+    , m_networkScanController(new NetworkScanController(this))
     , m_appInfo(new AppInfo(this))
     , m_licenseModel(new LicenseModel(this))
     , m_logModel(new LogModel(2000, this))
@@ -309,6 +312,11 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<ServerNodeModel>("Cpp.ServerStudio", 1, 0, "ServerNodeModel", QStringLiteral("ServerNodeModel is exposed by ServerStudio::nodeModel."));
     m_serverStudio->setOpcUaManager(m_opcUaManager);
     rootContext()->setContextProperty("cppServerStudio", m_serverStudio);
+
+    // Network scanner behind the connection form's "Scan network..." dialog.
+    qmlRegisterUncreatableType<NetworkScanController>("Cpp.NetworkScanner", 1, 0, "NetworkScanController", QStringLiteral("NetworkScanController should not be created in QML."));
+    qmlRegisterUncreatableType<NetworkScanModel>("Cpp.NetworkScanner", 1, 0, "NetworkScanModel", QStringLiteral("NetworkScanModel is exposed by NetworkScanController::model."));
+    rootContext()->setContextProperty("cppNetworkScanner", m_networkScanController);
 
     // Application/build metadata and the bundled license documents shown by the
     // Help > About dialog. The license texts are embedded as resources under

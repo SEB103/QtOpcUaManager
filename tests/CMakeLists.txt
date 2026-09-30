@@ -167,6 +167,18 @@ target_link_libraries(tst_networkscanmodel
 
 add_test(NAME NetworkScanModel.Unit COMMAND tst_networkscanmodel)
 
+qt_add_executable(tst_networkscancontroller
+    unit/tst_networkscancontroller.cpp
+)
+
+target_link_libraries(tst_networkscancontroller
+    PRIVATE
+        OpcUaQmlApi
+        Qt6::Test
+)
+
+add_test(NAME NetworkScanController.Unit COMMAND tst_networkscancontroller)
+
 qt_add_executable(tst_trendmodel
     unit/tst_trendmodel.cpp
 )
