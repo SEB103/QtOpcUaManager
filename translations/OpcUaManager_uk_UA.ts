@@ -376,12 +376,12 @@
         <translation>&amp;Вхід</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+9"/>
         <source>OPC UA</source>
         <translation>OPC UA</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Disconnect</source>
         <translation>Відключитися</translation>
     </message>
@@ -391,32 +391,32 @@
         <translation>Підключитися</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>Connect to Last Server</source>
         <translation>Підключитися до останнього сервера</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+10"/>
         <source>Sta&amp;rt/Stop</source>
         <translation>Ста&amp;рт/Стоп</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Server &amp;Manager</source>
         <translation>&amp;Менеджер сервера</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Settings…</source>
         <translation>&amp;Налаштування…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Quit</source>
         <translation>&amp;Вийти</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+7"/>
         <source>Project</source>
         <translation>Проект</translation>
     </message>
@@ -426,37 +426,37 @@
         <translation>&amp;Новий проект…</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>&amp;Open Project…</source>
         <translation>&amp;Відкрити проект…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Open &amp;Recent</source>
         <translation>Відкрити &amp;нещодавні</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+28"/>
         <source>&amp;Save</source>
         <translation>&amp;Зберегти</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+7"/>
         <source>Save &amp;As…</source>
         <translation>Зберегти &amp;як…</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>&amp;Close Project</source>
         <translation>За&amp;крити проект</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>Клонувати в Server Studio</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>View</source>
         <translation>Вигляд</translation>
     </message>
@@ -471,7 +471,7 @@
         <translation>Перемкнути на &amp;темну тему</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+7"/>
         <source>Hide &amp;Trend Panel</source>
         <translation>Сховати панель &amp;трендів</translation>
     </message>
@@ -481,7 +481,7 @@
         <translation>Показати панель &amp;трендів</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Hide &amp;Log Panel</source>
         <translation>Сховати панель &amp;журналу</translation>
     </message>
@@ -491,12 +491,12 @@
         <translation>Показати панель &amp;журналу</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Value Format</source>
         <translation>Формат &amp;значень</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>JSON</source>
         <translation>JSON</translation>
     </message>
@@ -511,7 +511,7 @@
         <translation>&amp;Панелі інструментів</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+7"/>
         <source>&amp;Main Toolbar</source>
         <translation>&amp;Головна панель</translation>
     </message>
@@ -526,14 +526,122 @@
         <translation>&amp;Документація</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>&amp;Check for updates…</source>
         <translation>&amp;Перевірити оновлення…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;About OpcUaManager…</source>
         <translation>&amp;Про OpcUaManager…</translation>
+    </message>
+</context>
+<context>
+    <name>BsNetworkScanDialog</name>
+    <message>
+        <location filename="../qml/Base/BsNetworkScanDialog.qml" line="+69"/>
+        <source>OPC UA server</source>
+        <translation>Сервер OPC UA</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Port open, no OPC UA response</source>
+        <translation>Порт відкритий, OPC UA не відповів</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Port open, querying…</source>
+        <translation>Порт відкритий, триває опитування…</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Probed %1/%2 · found %3</source>
+        <translation>Перевірено %1/%2 · знайдено %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Done: %1 checks in %2 s, OPC UA servers: %3</source>
+        <translation>Готово: %1 перевірок за %2 с, серверів OPC UA: %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Scan stopped.</source>
+        <translation>Сканування зупинено.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Scan network</source>
+        <translation>Сканування мережі</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Range:</source>
+        <translation>Діапазон:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Ports:</source>
+        <translation>Порти:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Stop</source>
+        <translation>Стоп</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Scan</source>
+        <translation>Сканувати</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>No network interface found; enter a range manually, e.g. 10.10.1.0/24.</source>
+        <translation>Мережеві інтерфейси не знайдено; введіть діапазон вручну, наприклад 10.10.1.0/24.</translation>
+    </message>
+    <message>
+        <location line="+43"/>
+        <source>Address</source>
+        <translation>Адреса</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Port</source>
+        <translation>Порт</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Server</source>
+        <translation>Сервер</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Security</source>
+        <translation>Безпека</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Login</source>
+        <translation>Вхід</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>ms</source>
+        <translation>мс</translation>
+    </message>
+    <message>
+        <location line="+76"/>
+        <source>Disconnect first to use a scanned server.</source>
+        <translation>Спершу від&apos;єднайтеся, щоб використати знайдений сервер.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Use</source>
+        <translation>Використати</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Close</source>
+        <translation>Закрити</translation>
     </message>
 </context>
 <context>
@@ -754,12 +862,12 @@
 <context>
     <name>BsOpcUaConnectionForm</name>
     <message>
-        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+307"/>
+        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+342"/>
         <source>Enter a username before requesting endpoints or connecting.</source>
         <translation>Введіть ім’я користувача, перш ніж запитувати кінцеві точки або підключатися.</translation>
     </message>
     <message>
-        <location line="-248"/>
+        <location line="-277"/>
         <source>Discovering servers…</source>
         <translation>Пошук серверів…</translation>
     </message>
@@ -789,7 +897,7 @@
         <translation>Відключено</translation>
     </message>
     <message>
-        <location line="+39"/>
+        <location line="+49"/>
         <source>OPC UA backend:</source>
         <translation>Бекенд OPC UA:</translation>
     </message>
@@ -799,9 +907,19 @@
         <translation>URL виявлення:</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+13"/>
+        <source>Host name, IP address, or opc.tcp:// URL</source>
+        <translation>Ім&apos;я хоста, IP-адреса або URL opc.tcp://</translation>
+    </message>
+    <message>
+        <location line="+6"/>
         <source>Find Servers</source>
         <translation>Знайти сервери</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Scan network…</source>
+        <translation>Сканувати мережу…</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -1158,6 +1276,45 @@
     </message>
 </context>
 <context>
+    <name>IpRange</name>
+    <message>
+        <location filename="../src/core/iprange.cpp" line="+58"/>
+        <source>The range contains %1 addresses; the maximum is %2.</source>
+        <translation>Діапазон містить %1 адрес; максимум — %2.</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Enter an IPv4 range, e.g. 10.10.1.0/24.</source>
+        <translation>Введіть діапазон IPv4, наприклад 10.10.1.0/24.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Not a valid IPv4 range: %1</source>
+        <translation>Неприпустимий діапазон IPv4: %1</translation>
+    </message>
+    <message>
+        <location line="+42"/>
+        <source>The range end is before its start.</source>
+        <translation>Кінець діапазону менший за його початок.</translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Not a valid port: %1</source>
+        <translation>Неприпустимий порт: %1</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <location line="+15"/>
+        <source>Too many ports (%1); the maximum is %2.</source>
+        <translation>Забагато портів (%1); максимум — %2.</translation>
+    </message>
+    <message>
+        <location line="-2"/>
+        <source>Enter at least one port.</source>
+        <translation>Вкажіть хоча б один порт.</translation>
+    </message>
+</context>
+<context>
     <name>LauncherScreen</name>
     <message>
         <location filename="../qml/LauncherScreen.qml" line="+89"/>
@@ -1387,7 +1544,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+711"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+763"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>До подання даних додано %n вузол.</numerusform>
@@ -1466,7 +1623,7 @@
         <translation>Збережений сервер не знайдено під час виявлення.</translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+55"/>
         <source>The stored endpoint was not found.</source>
         <translation>Збережену кінцеву точку не знайдено.</translation>
     </message>
@@ -1481,7 +1638,7 @@
         <translation>Відключено від сервера.</translation>
     </message>
     <message>
-        <location line="+260"/>
+        <location line="+261"/>
         <source>Wrote the value of %1.</source>
         <translation>Значення %1 записано.</translation>
     </message>
@@ -2249,22 +2406,42 @@
 <context>
     <name>UpdateController</name>
     <message>
-        <location filename="../app/updatecontroller.cpp" line="+154"/>
+        <location filename="../app/updatecontroller.cpp" line="+224"/>
         <source>Update checking is not yet available.</source>
         <translation>Перевірка оновлень поки недоступна.</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Checking for updates…</source>
         <translation>Перевірка оновлень…</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+34"/>
+        <source>The update cannot be installed from this copy; download it from the release page instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Could not start the Maintenance Tool (%1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>The download page address is not a valid HTTPS link.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Could not open the download page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+24"/>
         <source>Could not check for updates: %1</source>
         <translation>Не вдалося перевірити оновлення: %1</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+23"/>
         <source>Could not read the latest version.</source>
         <translation>Не вдалося визначити останню версію.</translation>
     </message>
@@ -2282,7 +2459,7 @@
 <context>
     <name>UpdateDialog</name>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="+28"/>
+        <location filename="../qml/UpdateDialog.qml" line="+37"/>
         <source>Check for updates</source>
         <translation>Перевірка оновлень</translation>
     </message>
@@ -2292,12 +2469,27 @@
         <translation>Поточна версія: %1</translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+27"/>
+        <source>The application will close before the update is installed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Download the new version from the release page and replace this copy manually.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Open download page</source>
         <translation>Відкрити сторінку завантаження</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+0"/>
+        <source>Install update</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
         <source>Check again</source>
         <translation>Перевірити знову</translation>
     </message>

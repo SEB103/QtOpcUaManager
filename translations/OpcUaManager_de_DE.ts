@@ -374,12 +374,12 @@
         <translation>&amp;Anmelden</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+9"/>
         <source>OPC UA</source>
         <translation>OPC UA</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+6"/>
         <source>Disconnect</source>
         <translation>Trennen</translation>
     </message>
@@ -389,32 +389,32 @@
         <translation>Verbinden</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>Connect to Last Server</source>
         <translation>Mit letztem Server verbinden</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+10"/>
         <source>Sta&amp;rt/Stop</source>
         <translation>Sta&amp;rt/Stopp</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Server &amp;Manager</source>
         <translation>Server-&amp;Manager</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Settings…</source>
         <translation>&amp;Einstellungen…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Quit</source>
         <translation>&amp;Beenden</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+7"/>
         <source>Project</source>
         <translation>Projekt</translation>
     </message>
@@ -424,37 +424,37 @@
         <translation>&amp;Neues Projekt…</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>&amp;Open Project…</source>
         <translation>Projekt &amp;öffnen…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Open &amp;Recent</source>
         <translation>&amp;Zuletzt verwendet öffnen</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+28"/>
         <source>&amp;Save</source>
         <translation>&amp;Speichern</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+7"/>
         <source>Save &amp;As…</source>
         <translation>Speichern &amp;unter…</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>&amp;Close Project</source>
         <translation>Projekt &amp;schließen</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>In Server Studio klonen</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>View</source>
         <translation>Ansicht</translation>
     </message>
@@ -469,7 +469,7 @@
         <translation>Zum &amp;dunklen Design wechseln</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+7"/>
         <source>Hide &amp;Trend Panel</source>
         <translation>&amp;Trendbereich ausblenden</translation>
     </message>
@@ -479,7 +479,7 @@
         <translation>&amp;Trendbereich anzeigen</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Hide &amp;Log Panel</source>
         <translation>&amp;Protokollbereich ausblenden</translation>
     </message>
@@ -489,12 +489,12 @@
         <translation>&amp;Protokollbereich anzeigen</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;Value Format</source>
         <translation>&amp;Wertformat</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>JSON</source>
         <translation>JSON</translation>
     </message>
@@ -509,7 +509,7 @@
         <translation>&amp;Werkzeugleisten</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+7"/>
         <source>&amp;Main Toolbar</source>
         <translation>&amp;Haupt-Werkzeugleiste</translation>
     </message>
@@ -524,14 +524,122 @@
         <translation>&amp;Dokumentation</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>&amp;Check for updates…</source>
         <translation>Nach &amp;Updates suchen…</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>&amp;About OpcUaManager…</source>
         <translation>Ü&amp;ber OpcUaManager…</translation>
+    </message>
+</context>
+<context>
+    <name>BsNetworkScanDialog</name>
+    <message>
+        <location filename="../qml/Base/BsNetworkScanDialog.qml" line="+69"/>
+        <source>OPC UA server</source>
+        <translation>OPC-UA-Server</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Port open, no OPC UA response</source>
+        <translation>Port offen, keine OPC-UA-Antwort</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Port open, querying…</source>
+        <translation>Port offen, Abfrage läuft…</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Probed %1/%2 · found %3</source>
+        <translation>Geprüft %1/%2 · gefunden %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Done: %1 checks in %2 s, OPC UA servers: %3</source>
+        <translation>Fertig: %1 Prüfungen in %2 s, OPC-UA-Server: %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Scan stopped.</source>
+        <translation>Scan angehalten.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Scan network</source>
+        <translation>Netzwerk scannen</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Range:</source>
+        <translation>Bereich:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Ports:</source>
+        <translation>Ports:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Stop</source>
+        <translation>Stopp</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Scan</source>
+        <translation>Scannen</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>No network interface found; enter a range manually, e.g. 10.10.1.0/24.</source>
+        <translation>Keine Netzwerkschnittstelle gefunden; geben Sie einen Bereich manuell ein, z. B. 10.10.1.0/24.</translation>
+    </message>
+    <message>
+        <location line="+43"/>
+        <source>Address</source>
+        <translation>Adresse</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Port</source>
+        <translation>Port</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Server</source>
+        <translation>Server</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Security</source>
+        <translation>Sicherheit</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Login</source>
+        <translation>Anmeldung</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
+        <location line="+76"/>
+        <source>Disconnect first to use a scanned server.</source>
+        <translation>Trennen Sie zuerst die Verbindung, um einen gefundenen Server zu verwenden.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Use</source>
+        <translation>Verwenden</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Close</source>
+        <translation>Schließen</translation>
     </message>
 </context>
 <context>
@@ -752,12 +860,12 @@
 <context>
     <name>BsOpcUaConnectionForm</name>
     <message>
-        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+307"/>
+        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+342"/>
         <source>Enter a username before requesting endpoints or connecting.</source>
         <translation>Geben Sie einen Benutzernamen ein, bevor Sie Endpunkte anfordern oder eine Verbindung herstellen.</translation>
     </message>
     <message>
-        <location line="-248"/>
+        <location line="-277"/>
         <source>Discovering servers…</source>
         <translation>Server werden gesucht…</translation>
     </message>
@@ -787,7 +895,7 @@
         <translation>Getrennt</translation>
     </message>
     <message>
-        <location line="+39"/>
+        <location line="+49"/>
         <source>OPC UA backend:</source>
         <translation>OPC-UA-Backend:</translation>
     </message>
@@ -797,9 +905,19 @@
         <translation>Discovery-URL:</translation>
     </message>
     <message>
-        <location line="+16"/>
+        <location line="+13"/>
+        <source>Host name, IP address, or opc.tcp:// URL</source>
+        <translation>Hostname, IP-Adresse oder opc.tcp://-URL</translation>
+    </message>
+    <message>
+        <location line="+6"/>
         <source>Find Servers</source>
         <translation>Server suchen</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Scan network…</source>
+        <translation>Netzwerk scannen…</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -1154,6 +1272,45 @@
     </message>
 </context>
 <context>
+    <name>IpRange</name>
+    <message>
+        <location filename="../src/core/iprange.cpp" line="+58"/>
+        <source>The range contains %1 addresses; the maximum is %2.</source>
+        <translation>Der Bereich enthält %1 Adressen; das Maximum ist %2.</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Enter an IPv4 range, e.g. 10.10.1.0/24.</source>
+        <translation>Geben Sie einen IPv4-Bereich ein, z. B. 10.10.1.0/24.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Not a valid IPv4 range: %1</source>
+        <translation>Kein gültiger IPv4-Bereich: %1</translation>
+    </message>
+    <message>
+        <location line="+42"/>
+        <source>The range end is before its start.</source>
+        <translation>Das Ende des Bereichs liegt vor seinem Anfang.</translation>
+    </message>
+    <message>
+        <location line="+37"/>
+        <source>Not a valid port: %1</source>
+        <translation>Kein gültiger Port: %1</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <location line="+15"/>
+        <source>Too many ports (%1); the maximum is %2.</source>
+        <translation>Zu viele Ports (%1); das Maximum ist %2.</translation>
+    </message>
+    <message>
+        <location line="-2"/>
+        <source>Enter at least one port.</source>
+        <translation>Geben Sie mindestens einen Port ein.</translation>
+    </message>
+</context>
+<context>
     <name>LauncherScreen</name>
     <message>
         <location filename="../qml/LauncherScreen.qml" line="+89"/>
@@ -1383,7 +1540,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+711"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+763"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n Knoten zur Datenansicht hinzugefügt.</numerusform>
@@ -1460,7 +1617,7 @@
         <translation>Der gespeicherte Server wurde bei der Suche nicht gefunden.</translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+55"/>
         <source>The stored endpoint was not found.</source>
         <translation>Der gespeicherte Endpunkt wurde nicht gefunden.</translation>
     </message>
@@ -1475,7 +1632,7 @@
         <translation>Vom Server getrennt.</translation>
     </message>
     <message>
-        <location line="+260"/>
+        <location line="+261"/>
         <source>Wrote the value of %1.</source>
         <translation>Wert von %1 geschrieben.</translation>
     </message>
@@ -2243,22 +2400,42 @@
 <context>
     <name>UpdateController</name>
     <message>
-        <location filename="../app/updatecontroller.cpp" line="+154"/>
+        <location filename="../app/updatecontroller.cpp" line="+224"/>
         <source>Update checking is not yet available.</source>
         <translation>Die Update-Prüfung ist noch nicht verfügbar.</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+8"/>
         <source>Checking for updates…</source>
         <translation>Suche nach Updates…</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+34"/>
+        <source>The update cannot be installed from this copy; download it from the release page instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>Could not start the Maintenance Tool (%1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>The download page address is not a valid HTTPS link.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Could not open the download page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+24"/>
         <source>Could not check for updates: %1</source>
         <translation>Updates konnten nicht geprüft werden: %1</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+23"/>
         <source>Could not read the latest version.</source>
         <translation>Die neueste Version konnte nicht ermittelt werden.</translation>
     </message>
@@ -2276,7 +2453,7 @@
 <context>
     <name>UpdateDialog</name>
     <message>
-        <location filename="../qml/UpdateDialog.qml" line="+28"/>
+        <location filename="../qml/UpdateDialog.qml" line="+37"/>
         <source>Check for updates</source>
         <translation>Nach Updates suchen</translation>
     </message>
@@ -2286,12 +2463,27 @@
         <translation>Aktuelle Version: %1</translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+27"/>
+        <source>The application will close before the update is installed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Download the new version from the release page and replace this copy manually.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Open download page</source>
         <translation>Download-Seite öffnen</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+0"/>
+        <source>Install update</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+20"/>
         <source>Check again</source>
         <translation>Erneut prüfen</translation>
     </message>
