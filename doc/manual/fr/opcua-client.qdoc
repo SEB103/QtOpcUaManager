@@ -27,6 +27,31 @@
     Pendant et après la connexion, l’état est affiché dans la zone d’état et consigné dans
     le panneau de journal.
 
+    Le champ \b{URL de découverte} liste les dix derniers serveurs auxquels vous vous êtes
+    connecté ; vous pouvez aussi saisir un nom d’hôte, une adresse IP ou une URL
+    \c {opc.tcp://}.
+
+    \section1 Trouver des serveurs sur le réseau
+
+    Si vous ne connaissez pas l’adresse d’un serveur, cliquez sur \b{Analyser le réseau…}
+    dans le formulaire de connexion. L’analyseur propose les sous-réseaux IPv4 auxquels ce PC
+    est connecté, par exemple \c {10.10.1.0/24 (Ethernet 3)}. Vous pouvez aussi saisir une
+    plage telle que \c {10.10.1.1-254} ou \c {10.10.1.5-10.10.1.40}, ou une adresse unique.
+    Seul le port \c {4840}, le port OPC UA standard, est vérifié par défaut ; saisissez
+    d’autres ports sous forme de liste ou de plage, par exemple \c {4840, 48010-48012}.
+
+    Une analyse couvre au plus 1024 adresses et 16 ports. L’analyseur vérifie d’abord quelles
+    adresses acceptent une connexion TCP, puis demande à chacune sa description de serveur
+    OPC UA et ses points de terminaison. Les lignes apparaissent pendant l’analyse : un
+    serveur OPC UA affiche son nom, ses politiques de sécurité et les connexions prises en
+    charge ; un port qui accepte les connexions mais ne répond pas comme un serveur OPC UA est
+    affiché en grisé.
+
+    Double-cliquez sur un serveur, ou sélectionnez-le et cliquez sur \b{Utiliser}, pour copier
+    son adresse dans le champ \b{URL de découverte}. Le client trouve alors le serveur et
+    demande automatiquement ses points de terminaison ; choisissez l’authentification et
+    cliquez sur \b{Connecter}.
+
     \section1 Parcourir l’espace d’adressage
 
     Une fois connecté, l’espace d’adressage du serveur est présenté sous forme d’arbre de

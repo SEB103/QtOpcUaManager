@@ -25,6 +25,30 @@
     Sicherheit nutzt den PKI-Speicher der Anwendung (siehe \l {Konfiguration}). Während und
     nach dem Verbinden wird der Zustand im Statusbereich angezeigt und im Log-Panel protokolliert.
 
+    Das Feld \b{Discovery-URL} listet die zehn zuletzt verbundenen Server auf; Sie können
+    auch einen Host, eine IP-Adresse oder eine \c {opc.tcp://}-URL eingeben.
+
+    \section1 Server im Netzwerk finden
+
+    Wenn Sie die Adresse eines Servers nicht kennen, klicken Sie im Verbindungsformular auf
+    \b{Netzwerk scannen…}. Der Scanner schlägt die IPv4-Subnetze vor, mit denen dieser PC
+    verbunden ist, zum Beispiel \c {10.10.1.0/24 (Ethernet 3)}. Sie können auch einen Bereich
+    wie \c {10.10.1.1-254}, \c {10.10.1.5-10.10.1.40} oder eine einzelne Adresse eingeben.
+    Standardmäßig wird nur Port \c {4840}, der Standard-OPC-UA-Port, geprüft; weitere Ports
+    geben Sie als Liste oder Bereich an, zum Beispiel \c {4840, 48010-48012}.
+
+    Ein Scan umfasst höchstens 1024 Adressen und 16 Ports. Der Scanner prüft zunächst, welche
+    Adressen eine TCP-Verbindung annehmen, und fragt dann bei jeder von ihnen die
+    OPC-UA-Serverbeschreibung und die Endpunkte ab. Zeilen erscheinen, während der Scan läuft:
+    Ein OPC-UA-Server zeigt seinen Namen, seine Sicherheitsrichtlinien und die unterstützten
+    Anmeldungen; ein Port, der Verbindungen annimmt, aber nicht als OPC-UA-Server antwortet,
+    wird abgeblendet dargestellt.
+
+    Doppelklicken Sie auf einen Server oder wählen Sie ihn aus und klicken Sie auf
+    \b{Verwenden}, um seine Adresse in das Feld \b{Discovery-URL} zu übernehmen. Der Client
+    findet den Server dann und fordert seine Endpunkte automatisch an; wählen Sie die
+    Authentifizierung und klicken Sie auf \b{Verbinden}.
+
     \section1 Adressraum durchsuchen
 
     Nach dem Verbinden wird der Adressraum des Servers als Baum aus \e Knoten angezeigt, der

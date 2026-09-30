@@ -25,6 +25,12 @@
             d’utilisateur/mot de passe est peut-être incorrect.
     \endlist
 
+    De nombreux serveurs, par exemple les panneaux d’automates, signalent leur propre nom
+    d’hôte, tel que \c {opc.tcp://AOPT690:4840}. Le client continue toujours d’utiliser
+    l’adresse qu’il a réellement atteinte ; saisir l’adresse IP suffit donc. Si vous saisissez
+    un nom d’hôte que ce PC ne sait pas résoudre, le message d’erreur l’indique ; saisissez
+    plutôt l’adresse IP du serveur ou utilisez \b{Analyser le réseau…}.
+
     \section1 Les valeurs ne se mettent pas à jour
 
     \list

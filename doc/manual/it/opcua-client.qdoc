@@ -25,6 +25,30 @@
     l’archivio PKI dell’applicazione (vedi \l {Configurazione}). Durante e dopo la
     connessione, lo stato è mostrato nell’area di stato e registrato nel pannello log.
 
+    Il campo \b{URL di discovery} elenca i dieci server a cui ti sei connesso più di
+    recente; puoi anche digitare un host, un indirizzo IP o un URL \c {opc.tcp://}.
+
+    \section1 Trovare i server nella rete
+
+    Se non conosci l’indirizzo di un server, fai clic su \b{Scansiona rete…} nel modulo di
+    connessione. Lo scanner propone le sottoreti IPv4 a cui questo PC è connesso, ad esempio
+    \c {10.10.1.0/24 (Ethernet 3)}. Puoi anche inserire un intervallo come
+    \c {10.10.1.1-254} o \c {10.10.1.5-10.10.1.40}, oppure un singolo indirizzo. Per
+    impostazione predefinita viene controllata solo la porta \c {4840}, la porta OPC UA
+    standard; inserisci altre porte come elenco o intervallo, ad esempio
+    \c {4840, 48010-48012}.
+
+    Una scansione copre al massimo 1024 indirizzi e 16 porte. Lo scanner verifica prima quali
+    indirizzi accettano una connessione TCP e poi chiede a ciascuno la descrizione del server
+    OPC UA e i suoi endpoint. Le righe compaiono mentre la scansione è in corso: un server
+    OPC UA mostra il proprio nome, le politiche di sicurezza e gli accessi supportati; una
+    porta che accetta connessioni ma non risponde come server OPC UA è mostrata in grigio
+    attenuato.
+
+    Fai doppio clic su un server, oppure selezionalo e fai clic su \b{Usa}, per copiarne
+    l’indirizzo nel campo \b{URL di discovery}. Il client trova quindi il server e richiede
+    automaticamente i suoi endpoint; scegli l’autenticazione e fai clic su \b{Connetti}.
+
     \section1 Esplorare lo spazio degli indirizzi
 
     Una volta connesso, lo spazio degli indirizzi del server è mostrato come un albero di

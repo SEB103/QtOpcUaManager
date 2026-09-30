@@ -21,6 +21,12 @@
             username/password may be wrong.
     \endlist
 
+    Many servers, for example PLC panels, report their own host name such as
+    \c {opc.tcp://AOPT690:4840}. The client always keeps using the address it actually
+    reached, so entering the IP address is enough. If you enter a host name that this PC
+    cannot resolve, the error message says so; enter the server's IP address instead or
+    use \b{Scan network…}.
+
     \section1 Values do not update
 
     \list

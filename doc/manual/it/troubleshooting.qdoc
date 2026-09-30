@@ -23,6 +23,12 @@
             nome utente/password potrebbe essere errato.
     \endlist
 
+    Molti server, ad esempio i pannelli PLC, riportano un proprio nome host come
+    \c {opc.tcp://AOPT690:4840}. Il client continua sempre a usare l’indirizzo che ha
+    effettivamente raggiunto, quindi è sufficiente inserire l’indirizzo IP. Se inserisci un
+    nome host che questo PC non riesce a risolvere, il messaggio di errore lo segnala;
+    inserisci invece l’indirizzo IP del server oppure usa \b{Scansiona rete…}.
+
     \section1 I valori non si aggiornano
 
     \list

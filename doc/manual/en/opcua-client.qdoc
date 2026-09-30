@@ -25,6 +25,28 @@
     application's PKI store (see \l {Configuration}). While connecting and after
     connecting, the state is shown in the status area and logged in the log panel.
 
+    The \b{Discovery URL} field lists the ten most recently connected servers; you can
+    also type a host, an IP address, or an \c {opc.tcp://} URL.
+
+    \section1 Finding servers on the network
+
+    If you do not know the address of a server, click \b{Scan network…} in the
+    connection form. The scanner suggests the IPv4 subnets this PC is connected to, for
+    example \c {10.10.1.0/24 (Ethernet 3)}. You can also enter a range such as
+    \c {10.10.1.1-254}, \c {10.10.1.5-10.10.1.40}, or a single address. Only port
+    \c {4840}, the standard OPC UA port, is checked by default; enter further ports as a
+    list or range, for example \c {4840, 48010-48012}.
+
+    One scan covers at most 1024 addresses and 16 ports. The scanner first checks which
+    addresses accept a TCP connection and then asks each of them for its OPC UA server
+    description and endpoints. Rows appear while the scan runs: an OPC UA server shows
+    its name, security policies, and supported logins; a port that accepts connections
+    but does not answer as an OPC UA server is shown dimmed.
+
+    Double-click a server, or select it and click \b{Use}, to copy its address into the
+    \b{Discovery URL} field. The client then finds the server and requests its endpoints
+    automatically; choose the authentication and click \b{Connect}.
+
     \section1 Browsing the address space
 
     Once connected, the server's address space is shown as a tree of \e nodes, fetched
