@@ -155,6 +155,18 @@ target_link_libraries(tst_iprange
 
 add_test(NAME IpRange.Unit COMMAND tst_iprange)
 
+qt_add_executable(tst_networkscanmodel
+    unit/tst_networkscanmodel.cpp
+)
+
+target_link_libraries(tst_networkscanmodel
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME NetworkScanModel.Unit COMMAND tst_networkscanmodel)
+
 qt_add_executable(tst_trendmodel
     unit/tst_trendmodel.cpp
 )

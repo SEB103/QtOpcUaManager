@@ -10,6 +10,7 @@ target_sources(OpcUaCore
         core/diagnosticslevel.h
         core/iprange.cpp
         core/iprange.h
+        core/networkscanresult.h
         core/opcuaaccesslevel.h
         core/opcuaendpointaddress.cpp
         core/opcuaendpointaddress.h
@@ -32,6 +33,8 @@ target_sources(OpcUaCore
         models/logfiltermodel.h
         models/logmodel.cpp
         models/logmodel.h
+        models/networkscanmodel.cpp
+        models/networkscanmodel.h
         models/opcuamodel.cpp
         models/opcuamodel.h
         models/structuredvalueformatter.cpp
