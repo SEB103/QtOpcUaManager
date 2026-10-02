@@ -490,6 +490,7 @@ qt_add_executable(tst_qml
 
 target_sources(tst_qml
     PRIVATE
+        qml/tst_attributes.qml
         qml/tst_dataview.qml
         qml/tst_diagnostics.qml
         qml/tst_trend.qml

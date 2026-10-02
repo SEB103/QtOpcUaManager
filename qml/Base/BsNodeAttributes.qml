@@ -13,6 +13,10 @@ import QtQuick.Layouts
     attribute/value pairs, mirroring the UaExpert Attributes view. The bottom
     section renders the decoded structured value (\c cppManagerOpcUa.structuredValueText)
     as JSON or XML, following the format chosen in the View menu.
+
+    Attribute names, attribute values, and the structured value are read-only
+    but can be selected with the mouse and copied with the standard Copy
+    shortcut (Ctrl+C); Select All (Ctrl+A) selects the whole focused field.
 */
 Rectangle {
     id: root
@@ -20,10 +24,46 @@ Rectangle {
     /*! Height of a single attribute row. */
     property int rowHeight: 28
 
+    /*! Read-only, mouse-selectable single-line text used for attribute rows. */
+    component SelectableText: TextInput {
+        readOnly: true
+        selectByMouse: true
+        clip: true
+        // Plain TextInput uses the application font, while Label follows the
+        // Controls theme font; match the Label rows this component replaces.
+        font.family: labelFontReference.font.family
+        font.pixelSize: labelFontReference.font.pixelSize
+        color: Material.foreground
+        selectionColor: Material.textSelectionColor
+        selectedTextColor: Material.foreground
+
+        // Invisible font source carrying the theme font of a Label.
+        Label {
+            id: labelFontReference
+
+            visible: false
+        }
+    }
+
     color: Material.background
     border.color: Material.dividerColor
     border.width: 1
     clip: true
+
+    // Read-only TextInput/TextEdit ignore ShortcutOverride, so the window-wide Copy
+    // shortcut of BsAddressSpaceTreePane would win and copy the selected node id
+    // instead of the selected text. The ignored event propagates up from the focused
+    // field to this panel; claiming it here lets that field handle the key press
+    // itself. Ctrl+C without a selection still falls through to the tree shortcut.
+    Keys.onShortcutOverride: (event) => {
+        const input = root.Window.activeFocusItem as TextInput
+        const edit = root.Window.activeFocusItem as TextEdit
+        if (!input && !edit)
+            return
+        const selection = input ? input.selectedText : edit.selectedText
+        event.accepted = (event.matches(StandardKey.Copy) && selection.length > 0)
+                         || event.matches(StandardKey.SelectAll)
+    }
 
     SplitView {
         anchors.fill: parent
@@ -81,6 +121,7 @@ Rectangle {
                     ListView {
                         id: attributesView
 
+                        objectName: "attributesView"
                         anchors.fill: parent
                         anchors.margins: 4
                         clip: true
@@ -108,21 +149,19 @@ Rectangle {
                                 anchors.rightMargin: 8
                                 spacing: 8
 
-                                Label {
+                                SelectableText {
+                                    objectName: "attributeNameText"
                                     Layout.preferredWidth: parent.width * 0.4
                                     Layout.alignment: Qt.AlignVCenter
                                     text: attributeDelegate.attribute
                                     font.bold: true
-                                    elide: Text.ElideRight
-                                    color: Material.foreground
                                 }
 
-                                Label {
+                                SelectableText {
+                                    objectName: "attributeValueText"
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
                                     text: attributeDelegate.value
-                                    elide: Text.ElideRight
-                                    color: Material.foreground
                                 }
                             }
                         }

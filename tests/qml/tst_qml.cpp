@@ -2,8 +2,11 @@
 #include <QQmlEngine>
 #include <QVariantMap>
 #include <QtQuickTest/quicktest.h>
+#include <qopcuatype.h>
 
 #include "core/diagnosticslevel.h"
+#include "core/opcuavaluedata.h"
+#include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/dataviewfiltermodel.h"
 #include "models/logfiltermodel.h"
@@ -62,6 +65,9 @@ class MockOpcUaManager : public QObject
     /*! Real trend history so the plot is exercised against genuine geometry. */
     Q_PROPERTY(TrendModel *trendModel READ trendModel CONSTANT)
 
+    /*! Real Attributes panel model filled with one variable node snapshot. */
+    Q_PROPERTY(QObject *attributesModel READ attributesModel CONSTANT)
+
     /*! Mock focus-segment model object; null because smoke tests do not inspect rows. */
     Q_PROPERTY(QObject *focusModel READ focusModel CONSTANT)
 
@@ -100,6 +106,16 @@ public:
         : QObject(parent)
     {
         m_dataViewModel.setSourceModel(&m_dataModel);
+
+        OpcUaAttributeData attributes;
+        attributes.nodeId = QStringLiteral("ns=2;s=Temp");
+        attributes.nodeClass = int(QOpcUa::NodeClass::Variable);
+        attributes.nodeClassName = QStringLiteral("Variable");
+        attributes.browseName = QStringLiteral("Temp");
+        attributes.displayName = QStringLiteral("Temperature");
+        attributes.value = QStringLiteral("21.5");
+        attributes.dataType = QStringLiteral("Double");
+        m_attributesModel.setAttributes(attributes);
     }
 
     /*! Returns one mock backend name. */
@@ -146,6 +162,9 @@ public:
 
     /*! Returns the real trend history shown by the trend panel. */
     TrendModel *trendModel() { return &m_trendModel; }
+
+    /*! Returns the real Attributes panel model. */
+    QObject *attributesModel() { return &m_attributesModel; }
 
     /*! Returns no focus model because QML smoke tests only create components. */
     QObject *focusModel() const { return nullptr; }
@@ -357,6 +376,9 @@ private:
 
     /*! Real trend history backing the plot under test. */
     TrendModel m_trendModel;
+
+    /*! Real attribute rows backing the Attributes panel under test. */
+    AttributesModel m_attributesModel;
 
     /*! Number of writes the mock has received. */
     int m_writeCount {0};
