@@ -22,6 +22,8 @@ target_sources(OpcUaCore
         core/opcuastatushint.cpp
         core/opcuastatushint.h
         core/opcuavaluedata.h
+        core/opcuavaluetext.cpp
+        core/opcuavaluetext.h
         core/opcuavaluetree.h
         core/structurednodereader.cpp
         core/structurednodereader.h
@@ -45,6 +47,8 @@ target_sources(OpcUaCore
         models/trendmodel.h
         models/treeitem.cpp
         models/treeitem.h
+        models/valuehighlight.cpp
+        models/valuehighlight.h
         persistence/nodedatabase.cpp
         persistence/nodedatabase.h
         project/projectdata.h

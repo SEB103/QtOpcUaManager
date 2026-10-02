@@ -3,6 +3,7 @@
 
 #include "core/opcuaaccesslevel.h"
 #include "models/dataaccessmodel.h"
+#include "models/valuehighlight.h"
 
 /*!
  * \internal
@@ -17,6 +18,41 @@ static MonitoredNodeRecord makeRecord(const QString &nodeId)
     record.displayName = nodeId;
     record.dataType = QStringLiteral("String");
     return record;
+}
+
+/*!
+ * \internal
+ * \brief Applies a value of \a kind with \a text and \a elements to node \a nodeId.
+ */
+static void applyValue(DataAccessModel &model, const QString &nodeId, const QString &text,
+                       OpcUaValueKind kind, const QStringList &elements = {})
+{
+    OpcUaValueUpdate update;
+    update.nodeId = nodeId;
+    update.value = text;
+    update.valueKind = kind;
+    update.arrayElements = elements;
+    model.updateValue(update);
+}
+
+/*!
+ * \internal
+ * \brief Returns the value markup of \a row in \a model.
+ */
+static QString markupAt(const DataAccessModel &model, int row)
+{
+    return model.data(model.index(row, DataAccessModel::ValueColumn),
+                      DataAccessModel::ValueMarkupRole).toString();
+}
+
+/*!
+ * \internal
+ * \brief Returns \a text wrapped in a font tag of the \a token color.
+ */
+static QString fontRun(const QString &text, ValueHighlightToken token, bool dark)
+{
+    return QStringLiteral("<font color=\"%1\">%2</font>")
+        .arg(valueHighlightColorName(token, dark), text);
 }
 
 /*! Verifies DataAccessModel row management and live value updates. */
@@ -63,6 +99,18 @@ private slots:
 
     /*! Verifies that the access level decides whether a row can be written. */
     void accessLevelDecidesWritability();
+
+    /*! Verifies that the value markup colors scalars by kind in both palettes. */
+    void valueMarkupColorsScalarsByKind();
+
+    /*! Verifies that the value markup escapes text and keeps its whitespace. */
+    void valueMarkupEscapesText();
+
+    /*! Verifies that the value markup colors array elements and separators. */
+    void valueMarkupColorsArrayElements();
+
+    /*! Verifies that switching the palette refreshes only the value markup. */
+    void darkThemeRefreshesValueMarkup();
 };
 
 /*!
@@ -412,6 +460,141 @@ void DataAccessModelTest::accessLevelDecidesWritability()
     QCOMPARE(model.displayNameAt(0), QStringLiteral("ns=1;s=A"));
     QVERIFY(model.dataTypeAt(9).isEmpty());
     QVERIFY(model.displayNameAt(9).isEmpty());
+}
+
+/*!
+ * \brief Verifies that the value markup colors scalars by kind in both palettes.
+ *
+ * The colors are the ones the structured Value panel uses for JSON: numbers in
+ * the number color, booleans as keywords, everything else as strings. A value
+ * of the Empty kind carries no color so the view's base color applies.
+ */
+void DataAccessModelTest::valueMarkupColorsScalarsByKind()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=N")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=B")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=S")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=E")));
+
+    // A row without a value has no markup at all.
+    QVERIFY(markupAt(model, 0).isEmpty());
+
+    applyValue(model, QStringLiteral("ns=1;s=N"), QStringLiteral("42"), OpcUaValueKind::Number);
+    applyValue(model, QStringLiteral("ns=1;s=B"), QStringLiteral("true"),
+               OpcUaValueKind::Boolean);
+    applyValue(model, QStringLiteral("ns=1;s=S"), QStringLiteral("RUNNING"),
+               OpcUaValueKind::Text);
+    applyValue(model, QStringLiteral("ns=1;s=E"), QStringLiteral("raw"), OpcUaValueKind::Empty);
+
+    QVERIFY(model.darkTheme());
+    QCOMPARE(markupAt(model, 0), fontRun(QStringLiteral("42"), ValueHighlightToken::Number, true));
+    QCOMPARE(markupAt(model, 1),
+             fontRun(QStringLiteral("true"), ValueHighlightToken::Keyword, true));
+    QCOMPARE(markupAt(model, 2),
+             fontRun(QStringLiteral("RUNNING"), ValueHighlightToken::String, true));
+    QCOMPARE(markupAt(model, 3), QStringLiteral("raw"));
+
+    model.setDarkTheme(false);
+    QCOMPARE(markupAt(model, 0), QStringLiteral("<font color=\"#098658\">42</font>"));
+
+    // The plain display text is untouched by the markup.
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ValueColumn), Qt::DisplayRole)
+                 .toString(),
+             QStringLiteral("42"));
+
+    // Clearing the values clears the markup as well.
+    model.clearValues();
+    QVERIFY(markupAt(model, 0).isEmpty());
+}
+
+/*!
+ * \brief Verifies that the value markup escapes text and keeps its whitespace.
+ *
+ * A string value is arbitrary server data, so it must not be interpreted as
+ * markup, and StyledText would otherwise collapse its spaces.
+ */
+void DataAccessModelTest::valueMarkupEscapesText()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=S")));
+
+    applyValue(model, QStringLiteral("ns=1;s=S"), QStringLiteral("<b>a&b</b>  \"x\"\ny"),
+               OpcUaValueKind::Text);
+
+    QCOMPARE(markupAt(model, 0),
+             fontRun(QStringLiteral("&lt;b&gt;a&amp;b&lt;/b&gt;&nbsp;&nbsp;&quot;x&quot;<br>y"),
+                     ValueHighlightToken::String, true));
+}
+
+/*!
+ * \brief Verifies that the value markup colors array elements and separators.
+ *
+ * Each element is colored by the array's kind and the separators use the
+ * punctuation color, as in the JSON panel. Long arrays are cut after
+ * valueHighlightMaxArrayElements elements and end in an ellipsis.
+ */
+void DataAccessModelTest::valueMarkupColorsArrayElements()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=L")));
+
+    applyValue(model, QStringLiteral("ns=1;s=A"), QStringLiteral("1, 2"), OpcUaValueKind::Number,
+               {QStringLiteral("1"), QStringLiteral("2")});
+
+    const QString separator =
+        fontRun(QStringLiteral(",&nbsp;"), ValueHighlightToken::Punctuation, true);
+    QCOMPARE(markupAt(model, 0),
+             fontRun(QStringLiteral("1"), ValueHighlightToken::Number, true) + separator
+                 + fontRun(QStringLiteral("2"), ValueHighlightToken::Number, true));
+
+    QStringList elements;
+    for (int i = 0; i < valueHighlightMaxArrayElements + 5; ++i)
+        elements.append(QString::number(i));
+    applyValue(model, QStringLiteral("ns=1;s=L"), elements.join(QStringLiteral(", ")),
+               OpcUaValueKind::Number, elements);
+
+    const QString markup = markupAt(model, 1);
+    const QString numberColor = valueHighlightColorName(ValueHighlightToken::Number, true);
+    QCOMPARE(markup.count(numberColor), valueHighlightMaxArrayElements);
+    QVERIFY(markup.endsWith(
+        fontRun(QStringLiteral(",&nbsp;…"), ValueHighlightToken::Punctuation, true)));
+}
+
+/*!
+ * \brief Verifies that switching the palette refreshes only the value markup.
+ */
+void DataAccessModelTest::darkThemeRefreshesValueMarkup()
+{
+    DataAccessModel model;
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=A")));
+    model.addRow(makeRecord(QStringLiteral("ns=1;s=B")));
+
+    QSignalSpy themeSpy(&model, &DataAccessModel::darkThemeChanged);
+    QSignalSpy changedSpy(&model, &QAbstractItemModel::dataChanged);
+
+    // Setting the current palette again changes nothing.
+    model.setDarkTheme(true);
+    QCOMPARE(themeSpy.count(), 0);
+    QCOMPARE(changedSpy.count(), 0);
+
+    model.setDarkTheme(false);
+    QCOMPARE(themeSpy.count(), 1);
+    QCOMPARE(changedSpy.count(), 1);
+
+    const QList<QVariant> arguments = changedSpy.takeFirst();
+    const QModelIndex topLeft = arguments.at(0).value<QModelIndex>();
+    const QModelIndex bottomRight = arguments.at(1).value<QModelIndex>();
+    QCOMPARE(topLeft.row(), 0);
+    QCOMPARE(bottomRight.row(), 1);
+    QCOMPARE(topLeft.column(), int(DataAccessModel::ValueColumn));
+    QCOMPARE(bottomRight.column(), int(DataAccessModel::ValueColumn));
+    QCOMPARE(arguments.at(2).value<QList<int>>(), QList<int>{DataAccessModel::ValueMarkupRole});
+
+    // The QML delegate reads the role by name.
+    QCOMPARE(model.roleNames().value(DataAccessModel::ValueMarkupRole),
+             QByteArray("valueMarkup"));
 }
 
 QTEST_MAIN(DataAccessModelTest)

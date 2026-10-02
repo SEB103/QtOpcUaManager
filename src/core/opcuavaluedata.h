@@ -5,6 +5,25 @@
 #include <QMetaType>
 #include <QPair>
 #include <QString>
+#include <QStringList>
+
+/**
+ * Coarse JSON-like kind of an OPC UA value, used to color it in value views.
+ *
+ * The classification mirrors how the structured Value panel serializes a
+ * scalar to JSON: booleans become JSON literals, numbers stay numbers, and any
+ * other non-empty value is written as a string.
+ */
+enum class OpcUaValueKind {
+    /** No value, or a value without a textual form. */
+    Empty,
+    /** Any non-empty value that is neither a boolean nor a number. */
+    Text,
+    /** A boolean value. */
+    Boolean,
+    /** An integer or floating-point value. */
+    Number
+};
 
 /**
  * Immutable snapshot of a single OPC UA value-attribute update.
@@ -32,6 +51,12 @@ struct OpcUaValueUpdate
 
     /** Status code text reported for the value attribute. */
     QString statusCode;
+
+    /** Kind of the value, or of its elements for an array value. */
+    OpcUaValueKind valueKind {OpcUaValueKind::Empty};
+
+    /** Per-element texts of an array value; empty for a scalar value. */
+    QStringList arrayElements;
 };
 
 /**

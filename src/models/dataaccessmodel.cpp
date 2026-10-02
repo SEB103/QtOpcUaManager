@@ -1,6 +1,7 @@
 #include <QDateTime>
 
 #include "dataaccessmodel.h"
+#include "valuehighlight.h"
 
 namespace {
 
@@ -121,6 +122,8 @@ void DataAccessModel::updateValue(const OpcUaValueUpdate &update)
     target.sourceTimestamp = update.sourceTimestamp;
     target.serverTimestamp = update.serverTimestamp;
     target.statusCode = update.statusCode;
+    target.valueKind = update.valueKind;
+    target.arrayElements = update.arrayElements;
     target.lastUpdateMs = QDateTime::currentMSecsSinceEpoch();
     if (!update.dataType.isEmpty())
         target.record.dataType = update.dataType;
@@ -131,7 +134,7 @@ void DataAccessModel::updateValue(const OpcUaValueUpdate &update)
     emit dataChanged(left, right,
                      {Qt::DisplayRole, ValueRole, DataTypeRole, SourceTimestampRole,
                       ServerTimestampRole, StatusCodeRole, StatusSeverityRole,
-                      LastUpdateMsRole, SortValueRole});
+                      LastUpdateMsRole, SortValueRole, ValueMarkupRole});
 }
 
 /*!
@@ -151,13 +154,16 @@ void DataAccessModel::clearValues()
         row.serverTimestamp.clear();
         row.statusCode.clear();
         row.lastUpdateMs = 0;
+        row.valueKind = OpcUaValueKind::Empty;
+        row.arrayElements.clear();
     }
 
     const QModelIndex left = index(0, 0);
     const QModelIndex right = index(m_rows.size() - 1, ColumnCount - 1);
     emit dataChanged(left, right,
                      {Qt::DisplayRole, ValueRole, SourceTimestampRole, ServerTimestampRole,
-                      StatusCodeRole, StatusSeverityRole, LastUpdateMsRole, SortValueRole});
+                      StatusCodeRole, StatusSeverityRole, LastUpdateMsRole, SortValueRole,
+                      ValueMarkupRole});
 }
 
 /*!
@@ -344,6 +350,34 @@ QString DataAccessModel::columnTitle(int column) const
 }
 
 /*!
+ * \brief Returns whether value markup uses the dark highlight palette.
+ */
+bool DataAccessModel::darkTheme() const
+{
+    return m_darkTheme;
+}
+
+/*!
+ * \brief Selects the dark (\a dark true) or light highlight palette for value markup.
+ *
+ * The view binds this to the application theme. Only the value markup depends
+ * on the palette, so a change refreshes just that role of the value column.
+ */
+void DataAccessModel::setDarkTheme(bool dark)
+{
+    if (m_darkTheme == dark)
+        return;
+
+    m_darkTheme = dark;
+    emit darkThemeChanged();
+
+    if (!m_rows.isEmpty()) {
+        emit dataChanged(index(0, ValueColumn), index(int(m_rows.size()) - 1, ValueColumn),
+                         {ValueMarkupRole});
+    }
+}
+
+/*!
  * \brief Re-emits header and cell changes so the view re-reads translated text.
  *
  * The column titles are the model's only translated strings; the header refresh
@@ -454,6 +488,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     case LastUpdateMsRole: return row.lastUpdateMs;
     case AccessLevelRole: return row.accessLevel;
     case WritabilityRole: return writabilityAt(index.row());
+    case ValueMarkupRole:
+        return valueHighlightMarkup(row.value, row.arrayElements, row.valueKind, m_darkTheme);
     default: return {};
     }
 }
@@ -511,6 +547,7 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
         {LastUpdateMsRole, "lastUpdateMs"},
         {SortValueRole, "sortValue"},
         {AccessLevelRole, "accessLevel"},
-        {WritabilityRole, "writability"}
+        {WritabilityRole, "writability"},
+        {ValueMarkupRole, "valueMarkup"}
     };
 }

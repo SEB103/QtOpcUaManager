@@ -1,5 +1,7 @@
 #include "structuredvaluehighlighter.h"
 
+#include "models/valuehighlight.h"
+
 #include <QColor>
 #include <QList>
 #include <QPair>
@@ -89,29 +91,25 @@ void StructuredValueHighlighter::setDarkTheme(bool dark)
 /*!
  * \brief Assigns the token format colors from the active dark/light palette.
  *
- * The dark palette approximates the Visual Studio Code dark theme; the light
- * palette approximates the Visual Studio Code Light+ theme so the tokens stay
- * readable on the light Material background.
+ * The colors come from valueHighlightColorName(), the palette shared with the
+ * Data Access View, so a value looks the same in both views. The dark palette
+ * approximates the Visual Studio Code dark theme; the light palette approximates
+ * the Visual Studio Code Light+ theme so the tokens stay readable on the light
+ * Material background.
  */
 void StructuredValueHighlighter::applyPalette()
 {
-    if (m_darkTheme) {
-        m_keyFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
-        m_stringFormat.setForeground(QColor(0xCE, 0x91, 0x78));
-        m_numberFormat.setForeground(QColor(0xB5, 0xCE, 0xA8));
-        m_keywordFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
-        m_punctuationFormat.setForeground(QColor(0xD4, 0xD4, 0xD4));
-        m_tagFormat.setForeground(QColor(0x56, 0x9C, 0xD6));
-        m_attributeFormat.setForeground(QColor(0x9C, 0xDC, 0xFE));
-    } else {
-        m_keyFormat.setForeground(QColor(0x04, 0x51, 0xA5));
-        m_stringFormat.setForeground(QColor(0xA3, 0x15, 0x15));
-        m_numberFormat.setForeground(QColor(0x09, 0x86, 0x58));
-        m_keywordFormat.setForeground(QColor(0x00, 0x00, 0xFF));
-        m_punctuationFormat.setForeground(QColor(0x00, 0x00, 0x00));
-        m_tagFormat.setForeground(QColor(0x80, 0x00, 0x00));
-        m_attributeFormat.setForeground(QColor(0x04, 0x51, 0xA5));
-    }
+    const auto color = [this](ValueHighlightToken token) {
+        return QColor::fromString(valueHighlightColorName(token, m_darkTheme));
+    };
+
+    m_keyFormat.setForeground(color(ValueHighlightToken::Key));
+    m_stringFormat.setForeground(color(ValueHighlightToken::String));
+    m_numberFormat.setForeground(color(ValueHighlightToken::Number));
+    m_keywordFormat.setForeground(color(ValueHighlightToken::Keyword));
+    m_punctuationFormat.setForeground(color(ValueHighlightToken::Punctuation));
+    m_tagFormat.setForeground(color(ValueHighlightToken::Tag));
+    m_attributeFormat.setForeground(color(ValueHighlightToken::Attribute));
 }
 
 /*!

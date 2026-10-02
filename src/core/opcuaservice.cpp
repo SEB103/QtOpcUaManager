@@ -3,6 +3,7 @@
 #include "apppaths.h"
 #include "clonebrowser.h"
 #include "opcuaendpointaddress.h"
+#include "opcuavaluetext.h"
 #include "structurednodereader.h"
 
 #include <QCoreApplication>
@@ -139,16 +140,9 @@ static QString formatOpcUaValue(const QVariant &value)
     if (!value.isValid())
         return {};
 
-    if (value.typeId() != QMetaType::QString && value.canConvert<QVariantList>()) {
-        const QVariantList list = value.toList();
-        if (!list.isEmpty()) {
-            QStringList parts;
-            parts.reserve(list.size());
-            for (const QVariant &element : list)
-                parts.push_back(element.toString());
-            return parts.join(QStringLiteral(", "));
-        }
-    }
+    const QStringList parts = opcUaArrayElementTexts(value);
+    if (!parts.isEmpty())
+        return parts.join(QStringLiteral(", "));
 
     return value.toString();
 }
@@ -1540,6 +1534,8 @@ OpcUaValueUpdate OpcUaService::buildValueUpdate(const QString &nodeId, QOpcUaNod
 
     const QVariant value = node->attribute(QOpcUa::NodeAttribute::Value);
     update.value = formatOpcUaValue(value);
+    update.valueKind = opcUaValueKind(value);
+    update.arrayElements = opcUaArrayElementTexts(value);
     update.dataType = opcUaValueTypeName(value);
     update.sourceTimestamp = formatTimestamp(node->sourceTimestamp(QOpcUa::NodeAttribute::Value));
     update.serverTimestamp = formatTimestamp(node->serverTimestamp(QOpcUa::NodeAttribute::Value));

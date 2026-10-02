@@ -26,6 +26,9 @@ class DataAccessModel : public QAbstractTableModel
 {
     Q_OBJECT
 
+    /** Whether value markup uses the dark highlight palette; follows the application theme. */
+    Q_PROPERTY(bool darkTheme READ darkTheme WRITE setDarkTheme NOTIFY darkThemeChanged)
+
 public:
     /** Table columns in fixed logical order. */
     enum Column {
@@ -125,7 +128,9 @@ public:
         /** OPC UA AccessLevel bit mask of the row's node; -1 while unknown. */
         AccessLevelRole,
         /** Whether the row can be written, as a Writability value. */
-        WritabilityRole
+        WritabilityRole,
+        /** Current value as StyledText colored with the value highlight palette. */
+        ValueMarkupRole
     };
     Q_ENUM(Role)
 
@@ -220,6 +225,12 @@ public:
     /** Returns the translated header title of \a column. */
     Q_INVOKABLE QString columnTitle(int column) const;
 
+    /** Returns whether value markup uses the dark highlight palette. */
+    bool darkTheme() const;
+
+    /** Selects the dark (\a dark true) or light highlight palette for value markup. */
+    void setDarkTheme(bool dark);
+
     /** Re-emits header and cell changes so the view re-reads translated text. */
     void retranslate();
 
@@ -233,6 +244,10 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     /** Returns role names exposed to QML. */
     QHash<int, QByteArray> roleNames() const override;
+
+signals:
+    /** Emitted when the highlight palette of the value markup changes. */
+    void darkThemeChanged();
 
 private:
     /** One monitored-node row combining persistent metadata and live value data. */
@@ -252,6 +267,10 @@ private:
         qint64 lastUpdateMs {0};
         /** OPC UA AccessLevel of the node; -1 while the server has not said. */
         int accessLevel {OpcUaAccessLevel::Unknown};
+        /** Kind of the current value, deciding its highlight color. */
+        OpcUaValueKind valueKind {OpcUaValueKind::Empty};
+        /** Per-element texts of an array value; empty for a scalar. */
+        QStringList arrayElements;
     };
 
     /** Returns the row index for \a nodeId, or -1 when not present. */
@@ -270,6 +289,9 @@ private:
 
     /** Owned rows in display order. */
     QList<Row> m_rows;
+
+    /** Whether value markup uses the dark highlight palette. */
+    bool m_darkTheme {true};
 };
 
 #endif // DATAACCESSMODEL_H

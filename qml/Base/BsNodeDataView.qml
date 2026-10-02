@@ -446,6 +446,14 @@ Rectangle {
         }
     }
 
+    // The value markup is colored in C++, so the model needs to know which
+    // highlight palette matches the current application theme.
+    Binding {
+        target: cppManagerOpcUa.dataModel
+        property: "darkTheme"
+        value: Material.theme === Material.Dark
+    }
+
     ItemSelectionModel {
         id: tableSelection
 
@@ -753,6 +761,7 @@ Rectangle {
                     required property int column
                     required property bool selected
                     required property string display
+                    required property string valueMarkup
                     required property string nodeId
                     required property int statusSeverity
                     required property var lastUpdateMs
@@ -788,7 +797,15 @@ Rectangle {
                         horizontalAlignment: cellDelegate.column === 0
                                              ? Text.AlignRight
                                              : Text.AlignLeft
-                        text: cellDelegate.display
+                        // The value cell shows the model's StyledText, colored with
+                        // the same palette as the structured Value panel; every other
+                        // cell stays plain text.
+                        textFormat: cellDelegate.column === root.valueColumn
+                                    ? Text.StyledText
+                                    : Text.PlainText
+                        text: cellDelegate.column === root.valueColumn
+                              ? cellDelegate.valueMarkup
+                              : cellDelegate.display
                         font.bold: cellDelegate.selected
                         elide: Text.ElideRight
                         color: {
