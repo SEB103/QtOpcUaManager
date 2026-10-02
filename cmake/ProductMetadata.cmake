@@ -20,6 +20,10 @@ endif()
 
 file(READ "${PRODUCT_METADATA_FILE}" _opcua_product_json)
 
+# Re-run CMake when the metadata changes; otherwise an incremental build keeps
+# the version and names baked into the previously generated .rc/header files.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${PRODUCT_METADATA_FILE}")
+
 # Read one string field from the JSON into the named parent-scope variable.
 function(_opcua_json_get out_var)
     string(JSON _value ERROR_VARIABLE _err GET "${_opcua_product_json}" ${ARGN})
