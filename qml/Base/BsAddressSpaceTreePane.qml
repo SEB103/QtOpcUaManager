@@ -14,7 +14,8 @@ import QtQuick.Layouts
     the Data Access View, and pins or clears the focus segment. When \l
     searchEnabled is set, the header offers an incremental search that highlights
     matching nodes and steps through them. The same pane is reused for the full
-    address space and for the focus segment.
+    address space and for the focus segment. When deep branches or long display
+    names make the rows wider than the pane, the tree scrolls horizontally.
 */
 Rectangle {
     id: root
@@ -227,6 +228,31 @@ Rectangle {
     border.color: Material.dividerColor
     border.width: 1
     clip: true
+
+    // Slim, fully rounded scroll bar used instead of the wide Material default.
+    // The handle fades in only while the bar is active.
+    component SlimScrollBar: ScrollBar {
+        id: slimBar
+
+        implicitWidth: slimBar.orientation === Qt.Vertical ? 8 : 0
+        implicitHeight: slimBar.orientation === Qt.Horizontal ? 8 : 0
+
+        contentItem: Rectangle {
+            implicitWidth: 6
+            implicitHeight: 6
+            radius: Math.min(width, height) / 2
+            color: slimBar.pressed
+                   ? Material.accent
+                   : Qt.rgba(Material.foreground.r,
+                             Material.foreground.g,
+                             Material.foreground.b, 0.4)
+            opacity: slimBar.active ? 1.0 : 0.0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+        }
+    }
 
     // Completes an asynchronous requestRevealPath() once the target is loaded.
     Connections {
@@ -517,33 +543,30 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
 
                 // The tree model exposes four logical columns (Name/Value/Type/
-                // NodeId). The address space only needs the name column, so give
-                // column 0 the full width and hide the rest by returning 0.
+                // NodeId). The address space only needs the name column, so hide
+                // the rest by returning 0. Column 0 fills the view but grows to
+                // the widest loaded row (indentation included), which makes the
+                // tree scroll horizontally instead of eliding long names.
                 columnWidthProvider: function (column) {
-                    return column === 0 ? width : 0
+                    return column === 0 ? Math.max(width, implicitColumnWidth(0)) : 0
                 }
+
+                // TableView keeps column widths while rows load, so re-measure
+                // the name column whenever the visible content may have changed.
                 onWidthChanged: Qt.callLater(forceLayout)
+                onRowsChanged: Qt.callLater(forceLayout)
+                onContentYChanged: relayoutTimer.restart()
 
-                // Slim, fully rounded handle instead of the wide Material default.
-                ScrollBar.vertical: ScrollBar {
-                    id: vScrollBar
+                ScrollBar.vertical: SlimScrollBar {}
+                ScrollBar.horizontal: SlimScrollBar {}
 
-                    implicitWidth: 8
+                // Re-measures once vertical scrolling settles, so rows scrolled
+                // into view widen the column without a relayout on every frame.
+                Timer {
+                    id: relayoutTimer
 
-                    contentItem: Rectangle {
-                        implicitWidth: 6
-                        radius: width / 2
-                        color: vScrollBar.pressed
-                               ? Material.accent
-                               : Qt.rgba(Material.foreground.r,
-                                         Material.foreground.g,
-                                         Material.foreground.b, 0.4)
-                        opacity: vScrollBar.active ? 1.0 : 0.0
-
-                        Behavior on opacity {
-                            NumberAnimation { duration: 150 }
-                        }
-                    }
+                    interval: 150
+                    onTriggered: treeView.forceLayout()
                 }
 
                 delegate: TreeViewDelegate {
