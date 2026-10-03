@@ -117,15 +117,15 @@ Rectangle {
                                                 0.45)
 
     /*!
-        Background of a selected row: a faint accent tint blended over the
-        surface. A plain Qt.lighter() of the background has no visible effect on
-        the white light-theme surface, so the tint keeps the selection readable
-        in both themes while staying lighter than the surrounding rows.
+        Background of the highlighted row, identical to the selected node in the
+        address-space tree so both panels match.
+
+        The dark theme lightens the background. Lightening has no effect on the
+        near-white light-theme background, so there a factor below 1 shades the
+        row slightly instead.
     */
     readonly property color selectedRowColor:
-        Qt.tint(Material.background,
-                Qt.rgba(Material.accent.r, Material.accent.g, Material.accent.b,
-                        Material.theme === Material.Dark ? 0.18 : 0.12))
+        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
 
     /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
     signal nodeSelected(string nodeId, string nodePath)
@@ -804,9 +804,7 @@ Rectangle {
                             return Qt.rgba(Material.color(Material.Red).r,
                                            Material.color(Material.Red).g,
                                            Material.color(Material.Red).b, 0.12)
-                        return cellDelegate.row % 2 === 0
-                               ? "transparent"
-                               : Qt.darker(Material.background, 1.05)
+                        return "transparent"
                     }
 
                     Label {
@@ -826,7 +824,7 @@ Rectangle {
                         text: cellDelegate.column === root.valueColumn
                               ? cellDelegate.valueMarkup
                               : cellDelegate.display
-                        font.bold: cellDelegate.selected
+                        font.bold: cellDelegate.highlighted
                         elide: Text.ElideRight
                         color: {
                             if (cellDelegate.column === root.statusColumn) {

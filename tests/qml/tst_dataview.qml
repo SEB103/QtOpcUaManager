@@ -41,6 +41,35 @@ Item {
         }
     }
 
+    // The table next to the address-space tree under one themed parent, as in
+    // the browser layout, to compare their selection colors.
+    Component {
+        id: tableAndTreeComponent
+
+        Item {
+            property alias table: themedTable
+            property alias tree: themedTree
+
+            width: 800
+            height: 400
+
+            BsNodeDataView {
+                id: themedTable
+
+                width: 400
+                height: 400
+            }
+
+            BsAddressSpaceTreePane {
+                id: themedTree
+
+                x: 400
+                width: 400
+                height: 400
+            }
+        }
+    }
+
     TestCase {
         id: testCase
 
@@ -337,6 +366,55 @@ Item {
 
             host.Material.theme = Material.Dark;
             tryCompare(model, "darkTheme", true);
+        }
+
+        /*!
+            Verifies that unselected rows are not striped.
+
+            Alternating row shading was removed on purpose: every unselected row,
+            even or odd, shows the plain panel background in both themes.
+        */
+        function test_unselectedRowsAreNotStriped() {
+            cppManagerOpcUa.clearMockNodes();
+            cppManagerOpcUa.addMockNode("ns=1;s=A", "First", "DINT", 3);
+            cppManagerOpcUa.addMockNode("ns=1;s=B", "Second", "DINT", 3);
+            cppManagerOpcUa.addMockNode("ns=1;s=C", "Third", "DINT", 3);
+
+            const host = createTemporaryObject(themedDataViewComponent, root);
+            verify(host !== null);
+            const table = findChild(host, "dataTable");
+            verify(table !== null);
+
+            const themes = [Material.Dark, Material.Light];
+            for (let t = 0; t < themes.length; ++t) {
+                host.Material.theme = themes[t];
+                waitForRendering(host);
+                for (let row = 0; row < 3; ++row) {
+                    const cell = table.itemAtCell(Qt.point(1, row));
+                    verify(cell !== null);
+                    verify(!cell.highlighted);
+                    compare(cell.color.a, 0, "row " + row + " is shaded");
+                }
+            }
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
+        /*!
+            Verifies that a selected table row looks like the selected tree node.
+
+            The Data Access View and the address-space tree sit side by side, so
+            their selection backgrounds must be identical in both themes.
+        */
+        function test_selectedRowMatchesTheTreeInBothThemes() {
+            const host = createTemporaryObject(tableAndTreeComponent, root);
+            verify(host !== null);
+
+            host.Material.theme = Material.Dark;
+            verify(Qt.colorEqual(host.table.selectedRowColor, host.tree.selectedRowColor));
+
+            host.Material.theme = Material.Light;
+            verify(Qt.colorEqual(host.table.selectedRowColor, host.tree.selectedRowColor));
         }
     }
 }
