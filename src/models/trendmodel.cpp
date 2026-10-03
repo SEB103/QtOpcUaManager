@@ -115,7 +115,7 @@ void TrendModel::appendSample(const QString &nodeId, qint64 timeMs, double value
  */
 void TrendModel::dropNode(const QString &nodeId)
 {
-    if (m_series.remove(nodeId) > 0)
+    if (m_series.remove(nodeId))
         emit seriesChanged();
 }
 
