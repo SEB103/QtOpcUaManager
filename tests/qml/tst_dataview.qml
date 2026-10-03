@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Material
 import QtTest
 import Base
 
@@ -22,6 +23,21 @@ Item {
         BsNodeDataView {
             width: 800
             height: 400
+        }
+    }
+
+    // A parent item that carries the Material theme, as the application window
+    // does, so the table inherits the theme instead of setting it itself.
+    Component {
+        id: themedDataViewComponent
+
+        Item {
+            width: 800
+            height: 400
+
+            BsNodeDataView {
+                anchors.fill: parent
+            }
         }
     }
 
@@ -298,6 +314,29 @@ Item {
             compare(cppManagerOpcUa.dataViewState.visible[view.statusColumn], false);
 
             cppManagerOpcUa.dataViewState = {};
+        }
+
+        /*!
+            Verifies that the value highlight palette follows the inherited theme.
+
+            The window sets the Material theme and the table inherits it, so the
+            theme is switched on a parent item here. The model must receive the
+            matching palette in both directions; otherwise the value colors keep
+            the dark palette, which is too pale on the light background.
+        */
+        function test_valuePaletteFollowsTheInheritedTheme() {
+            const host = createTemporaryObject(themedDataViewComponent, root);
+            verify(host !== null);
+            const model = cppManagerOpcUa.dataModel;
+
+            host.Material.theme = Material.Dark;
+            tryCompare(model, "darkTheme", true);
+
+            host.Material.theme = Material.Light;
+            tryCompare(model, "darkTheme", false);
+
+            host.Material.theme = Material.Dark;
+            tryCompare(model, "darkTheme", true);
         }
     }
 }

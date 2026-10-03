@@ -117,15 +117,15 @@ Rectangle {
                                                 0.45)
 
     /*!
-        Background of the highlighted row, identical to the selected node in the
-        address-space tree so both panels match.
-
-        The dark theme lightens the background. Lightening has no effect on the
-        near-white light-theme background, so there a factor below 1 shades the
-        row slightly instead.
+        Background of a selected row: a faint accent tint blended over the
+        surface. A plain Qt.lighter() of the background has no visible effect on
+        the white light-theme surface, so the tint keeps the selection readable
+        in both themes while staying lighter than the surrounding rows.
     */
     readonly property color selectedRowColor:
-        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+        Qt.tint(Material.background,
+                Qt.rgba(Material.accent.r, Material.accent.g, Material.accent.b,
+                        Material.theme === Material.Dark ? 0.18 : 0.12))
 
     /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
     signal nodeSelected(string nodeId, string nodePath)
@@ -458,11 +458,13 @@ Rectangle {
     }
 
     // The value markup is colored in C++, so the model needs to know which
-    // highlight palette matches the current application theme.
+    // highlight palette matches the current application theme. The theme is
+    // read from root: an unqualified Material.theme here would attach to the
+    // Binding, which is not an Item and therefore never inherits the window theme.
     Binding {
         target: cppManagerOpcUa.dataModel
         property: "darkTheme"
-        value: Material.theme === Material.Dark
+        value: root.Material.theme === Material.Dark
     }
 
     ItemSelectionModel {
@@ -802,7 +804,9 @@ Rectangle {
                             return Qt.rgba(Material.color(Material.Red).r,
                                            Material.color(Material.Red).g,
                                            Material.color(Material.Red).b, 0.12)
-                        return "transparent"
+                        return cellDelegate.row % 2 === 0
+                               ? "transparent"
+                               : Qt.darker(Material.background, 1.05)
                     }
 
                     Label {
@@ -822,7 +826,7 @@ Rectangle {
                         text: cellDelegate.column === root.valueColumn
                               ? cellDelegate.valueMarkup
                               : cellDelegate.display
-                        font.bold: cellDelegate.highlighted
+                        font.bold: cellDelegate.selected
                         elide: Text.ElideRight
                         color: {
                             if (cellDelegate.column === root.statusColumn) {
