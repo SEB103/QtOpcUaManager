@@ -59,6 +59,9 @@
     \l OpcUaModel). La sélection d’un nœud affiche ses \e attributs — identifiant de nœud,
     classe de nœud, type de données, niveau d’accès, valeur, etc. (\l AttributesModel).
 
+    Les noms et les valeurs des attributs peuvent être sélectionnés à la souris et copiés
+    avec \c {Ctrl+C} ; \c {Ctrl+A} sélectionne un champ entier.
+
     Les nœuds variable dont les valeurs sont structurées (par exemple des structures
     CODESYS qui ne publient pas de définition de type complète) sont décodés en parcourant
     leur sous-arbre d’instance, de sorte que vous voyez les champs individuels plutôt qu’un
@@ -76,6 +79,18 @@
             direct, l’état et l’horodatage, et peut être triée et filtrée
             (\l DataViewFilterModel).
     \endlist
+
+    Pour ajouter une variable à la vue \e{Data Access}, cochez sa case dans l’arbre de
+    l’espace d’adressage, ou faites glisser le nœud depuis l’espace d’adressage, ou depuis
+    un segment ouvert avec \b{Ouvrir comme segment}, et déposez-le sur le panneau
+    \b{VUE DE DONNÉES}. Pendant le glissement, un aperçu avec l’icône et le nom du nœud suit
+    le pointeur. Sur un écran tactile, maintenez le doigt sur le nœud jusqu’à ce que sa
+    ligne soit mise en évidence, puis faites-le glisser ; un simple balayage continue de
+    faire défiler l’arbre. Un nœud déjà présent dans la vue n’est pas ajouté une seconde
+    fois.
+
+    Décocher la case retire la variable de la vue. Retirer une ligne de la vue décoche aussi
+    la case dans l’arbre, de sorte que le nœud peut être ajouté de nouveau plus tard.
 
     Les variables surveillées peuvent être conservées afin d’être restaurées lors de la
     prochaine connexion (voir \l {Configuration}).

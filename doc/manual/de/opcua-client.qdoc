@@ -56,6 +56,9 @@
     eines Knotens zeigt seine \e Attribute — Knoten-ID, Knotenklasse, Datentyp, Zugriffsebene,
     Wert usw. (\l AttributesModel).
 
+    Attributnamen und -werte lassen sich mit der Maus markieren und mit \c {Strg+C}
+    kopieren; \c {Strg+A} markiert ein ganzes Feld.
+
     Variablenknoten mit strukturierten Werten (zum Beispiel CODESYS-Strukturen ohne
     vollständige Typdefinition) werden durch Durchsuchen ihres Instanz-Teilbaums dekodiert,
     sodass Sie die einzelnen Felder statt eines undurchsichtigen Blocks sehen.
@@ -71,6 +74,18 @@
             \e{Data Access} (\l DataAccessModel), die Live-Wert, Status und Zeitstempel zeigt
             und sortiert und gefiltert werden kann (\l DataViewFilterModel).
     \endlist
+
+    Um eine Variable zur Ansicht \e{Data Access} hinzuzufügen, aktivieren Sie ihr
+    Kontrollkästchen im Adressraum-Baum oder ziehen den Knoten aus dem Adressraum bzw. aus
+    einem mit \b{Als Segment öffnen} geöffneten Segment auf das Panel \b{DATENANSICHT}.
+    Während des Ziehens folgt eine Vorschau mit Symbol und Namen des Knotens dem Mauszeiger.
+    Auf einem Touchscreen halten Sie den Knoten gedrückt, bis seine Zeile hervorgehoben ist,
+    und ziehen ihn dann; eine normale Wischbewegung scrollt weiterhin den Baum. Ein Knoten,
+    der bereits in der Ansicht ist, wird nicht erneut hinzugefügt.
+
+    Wenn Sie das Kontrollkästchen deaktivieren, wird die Variable aus der Ansicht entfernt.
+    Wird eine Zeile aus der Ansicht entfernt, wird auch das Kontrollkästchen im Baum
+    zurückgesetzt, sodass der Knoten später erneut hinzugefügt werden kann.
 
     Überwachte Variablen können gespeichert werden, sodass sie bei der nächsten Verbindung
     wiederhergestellt werden (siehe \l {Konfiguration}).

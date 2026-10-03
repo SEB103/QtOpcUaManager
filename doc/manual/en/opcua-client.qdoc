@@ -54,6 +54,9 @@
     \e attributes — node id, node class, data type, access level, value, and so on
     (\l AttributesModel).
 
+    Attribute names and values can be selected with the mouse and copied with \c {Ctrl+C};
+    \c {Ctrl+A} selects a whole field.
+
     Variable nodes whose values are structured (for example CODESYS structures that do
     not publish a full type definition) are decoded by browsing their instance subtree,
     so you see the individual fields rather than an opaque blob.
@@ -69,6 +72,16 @@
             (\l DataAccessModel), which shows live value, status, and timestamp, and can
             be sorted and filtered (\l DataViewFilterModel).
     \endlist
+
+    To add a variable to the \e{Data Access} view, tick its check box in the address space
+    tree, or drag the node from the address space, or from a segment opened with
+    \b{Open as segment}, and drop it onto the \b{DATA VIEW} panel. While you drag, a preview
+    with the node's icon and name follows the pointer. On a touch screen, press and hold the
+    node until its row is highlighted, then drag it; a plain swipe keeps scrolling the tree.
+    A node that is already in the view is not added again.
+
+    Unticking the check box removes the variable from the view. Removing a row from the view
+    also clears the check box in the tree, so the node can be added again later.
 
     Monitored variables can be persisted so they are restored on the next connection
     (see \l {Configuration}).

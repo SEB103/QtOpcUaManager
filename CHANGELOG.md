@@ -17,6 +17,60 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.2.0] - 2026-10-03
+
+Feature release for working with monitored values: highlighted values,
+drag and drop into the Data View, copyable attributes, and a refreshed look
+with the teal accent in both themes.
+
+### Added
+- The **Value** column of the Data View is colored like the structured Value
+  panel: strings, booleans and numbers each in their own color, following the
+  light or dark theme. Array elements are colored one by one. The displayed
+  text, tooltip, copy, CSV export and sorting still use the plain value.
+- Nodes can be dragged from the address space and from segment trees into the
+  Data View. A preview with the node icon and name follows the pointer. On a
+  touch screen a long press starts the drag, while a plain swipe still scrolls
+  the tree. Nodes already in the Data View are refused.
+- Attribute names and values in the **Attributes** panel can be selected with
+  the mouse and copied with `Ctrl+C`; `Ctrl+A` selects a whole field.
+- The address space and segment trees scroll horizontally, so deep branches
+  and long display names are no longer cut off.
+
+### Changed
+- The interface uses the teal accent sparingly in both themes. Pane headers,
+  the menu bar and dividers get teal-tinted neutral colors instead of plain
+  white in the light theme, and pane titles have stronger contrast.
+- The status bar shows the connection state: a teal line and tint when
+  connected, amber while connecting, neutral when offline.
+- The open menu title, highlighted menu items, the selected tree node, the
+  highlighted Data View row and the Server Studio selection share one teal
+  highlight. Split handles turn teal while hovered.
+- The Data View and the Attributes panel no longer shade every other row.
+
+### Fixed
+- Dragging a node into the Data View did nothing; the drop was never
+  delivered.
+- Removing rows from the Data View left the matching tree checkboxes checked,
+  so a removed node could not be added again by drag and drop.
+- Clicking a row in the Data View did not highlight it.
+- After switching to the light theme the Value column kept the pale
+  dark-theme colors.
+- `Ctrl+C` in the Attributes panel and in the structured value view copied the
+  node id instead of the selected text.
+
+### Documentation
+- The user manual (all languages) explains how to add variables to the Data
+  View: with the tree check box or by drag and drop, including the long press
+  on touch screens, and what happens to duplicates and removed rows. It also
+  mentions copying text from the Attributes panel.
+
+### Build and release
+- Changing the version in `packaging/product.json` now triggers a CMake
+  reconfigure, so an incremental build no longer keeps the old version in the
+  executable metadata.
+- Fixed MSVC warning C4804 in the trend model.
+
 ## [1.1.0] - 2026-09-30
 
 Feature release: finding OPC UA servers on the network, and reliable
@@ -156,6 +210,7 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.2.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.2.0
 [1.1.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.1.0
 [1.0.2]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.2
 [1.0.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.1

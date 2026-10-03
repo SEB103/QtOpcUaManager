@@ -56,6 +56,9 @@
     selezione di un nodo ne mostra gli \e attributi — id del nodo, classe del nodo, tipo di
     dati, livello di accesso, valore e così via (\l AttributesModel).
 
+    I nomi e i valori degli attributi possono essere selezionati con il mouse e copiati con
+    \c {Ctrl+C}; \c {Ctrl+A} seleziona un intero campo.
+
     I nodi variabile i cui valori sono strutturati (ad esempio strutture CODESYS che non
     pubblicano una definizione di tipo completa) vengono decodificati esplorando il loro
     sottoalbero di istanza, così da vedere i singoli campi anziché un blocco opaco.
@@ -71,6 +74,19 @@
             \e{Data Access} (\l DataAccessModel), che mostra valore in tempo reale, stato e
             timestamp e può essere ordinata e filtrata (\l DataViewFilterModel).
     \endlist
+
+    Per aggiungere una variabile alla vista \e{Data Access}, seleziona la sua casella di
+    controllo nell’albero dello spazio degli indirizzi, oppure trascina il nodo dallo spazio
+    degli indirizzi, o da un segmento aperto con \b{Apri come segmento}, e rilascialo sul
+    pannello \b{VISTA DATI}. Durante il trascinamento, un’anteprima con l’icona e il nome
+    del nodo segue il puntatore. Su uno schermo touch, tieni premuto il nodo finché la sua
+    riga non viene evidenziata, quindi trascinalo; un semplice scorrimento continua a far
+    scorrere l’albero. Un nodo già presente nella vista non viene aggiunto una seconda
+    volta.
+
+    Deselezionando la casella la variabile viene rimossa dalla vista. Rimuovendo una riga
+    dalla vista viene deselezionata anche la casella nell’albero, così il nodo può essere
+    aggiunto di nuovo in seguito.
 
     Le variabili monitorate possono essere conservate per essere ripristinate alla
     connessione successiva (vedi \l {Configurazione}).
