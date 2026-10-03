@@ -130,7 +130,7 @@ Pane {
                 Layout.fillWidth: true
                 Layout.topMargin: 8
                 Layout.preferredHeight: 34
-                color: Qt.lighter(Material.background, 1.3)
+                color: Base.BsTheme.headerColor
 
                 Label {
                     anchors.left: parent.left
@@ -140,14 +140,14 @@ Pane {
                     font.pixelSize: 12
                     font.bold: true
                     font.letterSpacing: 1.2
-                    color: Material.accent
+                    color: Base.BsTheme.accentTextColor
                 }
 
                 Rectangle {
                     anchors.bottom: parent.bottom
                     width: parent.width
                     height: 1
-                    color: Material.dividerColor
+                    color: Base.BsTheme.dividerColor
                 }
             }
 

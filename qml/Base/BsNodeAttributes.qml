@@ -46,7 +46,7 @@ Rectangle {
     }
 
     color: Material.background
-    border.color: Material.dividerColor
+    border.color: BsTheme.dividerColor
     border.width: 1
     clip: true
 
@@ -81,7 +81,7 @@ Rectangle {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 34
-                    color: Qt.lighter(Material.background, 1.3)
+                    color: BsTheme.headerColor
 
                     Label {
                         anchors.left: parent.left
@@ -91,7 +91,7 @@ Rectangle {
                         font.pixelSize: 12
                         font.bold: true
                         font.letterSpacing: 1.2
-                        color: Material.accent
+                        color: BsTheme.accentTextColor
                     }
 
                     Rectangle {
@@ -99,7 +99,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         height: 1
-                        color: Material.dividerColor
+                        color: BsTheme.dividerColor
                     }
                 }
 
@@ -178,7 +178,7 @@ Rectangle {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 34
-                    color: Qt.lighter(Material.background, 1.3)
+                    color: BsTheme.headerColor
 
                     RowLayout {
                         anchors.fill: parent
@@ -195,7 +195,7 @@ Rectangle {
                             font.pixelSize: 12
                             font.bold: true
                             font.letterSpacing: 1.2
-                            color: Material.accent
+                            color: BsTheme.accentTextColor
                         }
 
                         Item { Layout.fillWidth: true }
@@ -213,7 +213,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         height: 1
-                        color: Material.dividerColor
+                        color: BsTheme.dividerColor
                     }
                 }
 

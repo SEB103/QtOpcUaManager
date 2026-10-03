@@ -85,7 +85,7 @@ Rectangle {
     }
 
     color: Material.background
-    border.color: Material.dividerColor
+    border.color: BsTheme.dividerColor
     border.width: 1
 
     ColumnLayout {

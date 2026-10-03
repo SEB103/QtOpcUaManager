@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import Base as Base
 
 /*!
     \qmltype ServerStudioScreen
@@ -40,13 +41,8 @@ Pane {
     /*!
         Background of the selected tree node, matching the client's address
         space and Data Access View highlight.
-
-        The dark theme lightens the background. Lightening has no effect on the
-        near-white light-theme background, so there a factor below 1 shades the
-        row slightly instead.
     */
-    readonly property color selectedRowColor:
-        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+    readonly property color selectedRowColor: Base.BsTheme.selectedRowColor
 
     /*!
         Runs \a action now, or, when the project has unsaved changes, defers it

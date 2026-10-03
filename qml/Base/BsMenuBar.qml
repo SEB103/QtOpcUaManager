@@ -147,10 +147,41 @@ MenuBar {
     */
     signal cloneToServerStudioRequested()
 
+    background: Rectangle {
+        implicitHeight: 40
+        color: BsTheme.menuBandColor
+    }
+
+    // A highlighted title gets a light accent fill; the title whose menu is open
+    // also gets a thin accent underline.
+    delegate: MenuBarItem {
+        id: menuBarItem
+
+        background: Rectangle {
+            implicitWidth: 40
+            implicitHeight: 40
+            color: menuBarItem.highlighted ? BsTheme.menuHighlightColor : "transparent"
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
+                height: 2
+                radius: 1
+                color: BsTheme.accentLineColor
+                visible: menuBarItem.menu !== null && menuBarItem.menu.visible
+            }
+        }
+    }
+
     Menu {
         title: qsTr("Application")
+        // The entries of submenus are created from this delegate.
+        delegate: BsMenuItem {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Login")
             icon.source: "qrc:/images/svg/login.svg"
             enabled: false
@@ -165,7 +196,7 @@ MenuBar {
             icon.width: 24
             icon.height: 24
 
-            MenuItem {
+            BsMenuItem {
                 text: cppManagerOpcUa.connected ? qsTr("Disconnect") : qsTr("Connect")
                 icon.source: cppManagerOpcUa.connected ? "qrc:/images/svg/link_off.svg"
                                                        : "qrc:/images/svg/link.svg"
@@ -173,7 +204,7 @@ MenuBar {
                 onTriggered: appMenuBar.apiServerConnectionRequested()
             }
 
-            MenuItem {
+            BsMenuItem {
                 text: qsTr("Connect to Last Server")
                 icon.source: "qrc:/images/svg/replay.svg"
                 enabled: !cppManagerOpcUa.busy
@@ -183,7 +214,7 @@ MenuBar {
             }
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Sta&rt/Stop")
             icon.source: "qrc:/images/svg/power_settings_new.svg"
             enabled: false
@@ -191,7 +222,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Server &Manager")
             icon.source: "qrc:/images/svg/dns.svg"
             onTriggered: appMenuBar.serverManagerRequested()
@@ -199,7 +230,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Settings…")
             icon.source: "qrc:/images/svg/settings.svg"
             onTriggered: appMenuBar.settingsRequested()
@@ -207,7 +238,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Quit")
             icon.source: "qrc:/images/svg/exit_to_app.svg"
             onTriggered: appMenuBar.quitRequested()
@@ -216,14 +247,16 @@ MenuBar {
 
     Menu {
         title: qsTr("Project")
+        // The entries of submenus are created from this delegate.
+        delegate: BsMenuItem {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&New Project…")
             icon.source: "qrc:/images/svg/note_add.svg"
             onTriggered: appMenuBar.newProjectRequested()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Open Project…")
             icon.source: "qrc:/images/svg/folder_open.svg"
             onTriggered: appMenuBar.openProjectRequested()
@@ -241,7 +274,7 @@ MenuBar {
             Instantiator {
                 model: cppProjectManager.recentProjects
 
-                delegate: MenuItem {
+                delegate: BsMenuItem {
                     required property int index
                     required property var modelData
 
@@ -259,14 +292,14 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Save")
             icon.source: "qrc:/images/svg/save.svg"
             enabled: cppProjectManager.hasActiveProject && cppProjectManager.dirty
             onTriggered: appMenuBar.saveProjectRequested()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Save &As…")
             icon.source: "qrc:/images/svg/save_as.svg"
             enabled: cppProjectManager.hasActiveProject
@@ -275,7 +308,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Close Project")
             icon.source: "qrc:/images/svg/close.svg"
             enabled: cppProjectManager.hasActiveProject
@@ -284,7 +317,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Clone to Server Studio")
             icon.source: "qrc:/images/svg/content_copy.svg"
             enabled: cppManagerOpcUa.connected
@@ -294,8 +327,10 @@ MenuBar {
 
     Menu {
         title: qsTr("View")
+        // The entries of submenus are created from this delegate.
+        delegate: BsMenuItem {}
 
-        MenuItem {
+        BsMenuItem {
             text: appMenuBar.darkTheme
                   ? qsTr("Switch to &Light Theme")
                   : qsTr("Switch to &Dark Theme")
@@ -304,14 +339,14 @@ MenuBar {
             onTriggered: appMenuBar.themeToggleRequested()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: appMenuBar.trendPanelVisible ? qsTr("Hide &Trend Panel")
                                                : qsTr("Show &Trend Panel")
             icon.source: "qrc:/images/svg/show_chart.svg"
             onTriggered: appMenuBar.trendPanelToggleRequested()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: appMenuBar.logPanelVisible ? qsTr("Hide &Log Panel")
                                              : qsTr("Show &Log Panel")
             icon.source: "qrc:/images/svg/article.svg"
@@ -332,7 +367,7 @@ MenuBar {
             }
 
             // Values mirror OpcUaManager::ValueFormat (FormatJson = 0, FormatXml = 1).
-            MenuItem {
+            BsMenuItem {
                 text: qsTr("JSON")
                 checkable: true
                 ActionGroup.group: valueFormatGroup
@@ -340,7 +375,7 @@ MenuBar {
                 onTriggered: cppManagerOpcUa.valueFormat = 0
             }
 
-            MenuItem {
+            BsMenuItem {
                 text: qsTr("XML")
                 checkable: true
                 ActionGroup.group: valueFormatGroup
@@ -358,7 +393,7 @@ MenuBar {
             icon.height: 24
             enabled: false
 
-            MenuItem {
+            BsMenuItem {
                 text: qsTr("&Main Toolbar")
                 checkable: true
             }
@@ -368,13 +403,13 @@ MenuBar {
     Menu {
         title: qsTr("Info")
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Documentation")
             icon.source: "qrc:/images/svg/menu_book.svg"
             onTriggered: appMenuBar.helpRequested()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&Check for updates…")
             icon.source: "qrc:/images/svg/update.svg"
             onTriggered: appMenuBar.checkForUpdatesRequested()
@@ -382,7 +417,7 @@ MenuBar {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("&About OpcUaManager…")
             icon.source: "qrc:/images/svg/info.svg"
             onTriggered: appMenuBar.aboutRequested()

@@ -55,26 +55,43 @@ Pane {
 
         // Single top row: menu titles on the left, connection indicator and quick
         // actions on the right. Keeping both in one row leaves the browser area intact.
-        RowLayout {
-            id: topBar
-
+        // Both share one tinted band that ends in a divider line.
+        Rectangle {
             Layout.fillWidth: true
-            spacing: 0
+            implicitHeight: topBar.implicitHeight + 1
+            color: Base.BsTheme.menuBandColor
 
-            Base.BsMenuBar {
-                id: menuBar
+            RowLayout {
+                id: topBar
 
-                Layout.fillWidth: true
-                darkTheme: main.darkTheme
-                logPanelVisible: main.logPanelVisible
-                trendPanelVisible: main.trendPanelVisible
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: 0
+
+                Base.BsMenuBar {
+                    id: menuBar
+
+                    Layout.fillWidth: true
+                    darkTheme: main.darkTheme
+                    logPanelVisible: main.logPanelVisible
+                    trendPanelVisible: main.trendPanelVisible
+                }
+
+                Base.BsTopBarActions {
+                    id: topActions
+
+                    Layout.alignment: Qt.AlignVCenter
+                    darkTheme: main.darkTheme
+                }
             }
 
-            Base.BsTopBarActions {
-                id: topActions
-
-                Layout.alignment: Qt.AlignVCenter
-                darkTheme: main.darkTheme
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: Base.BsTheme.dividerColor
             }
         }
 

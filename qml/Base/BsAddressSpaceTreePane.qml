@@ -103,12 +103,10 @@ Rectangle {
     /*!
         Background of the selected node, shared with the Data Access View rows.
 
-        The dark theme lightens the background. Lightening has no effect on the
-        near-white light-theme background, so there a factor below 1 shades the
-        row slightly instead.
+        The tint comes from the shared chrome palette, so the address space, the
+        Data Access View, and Server Studio highlight rows identically.
     */
-    readonly property color selectedRowColor:
-        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+    readonly property color selectedRowColor: BsTheme.selectedRowColor
 
     /*!
         Returns the icon resource for the model \a key (the \c iconName role).
@@ -289,7 +287,7 @@ Rectangle {
     }
 
     color: Material.background
-    border.color: Material.dividerColor
+    border.color: BsTheme.dividerColor
     border.width: 1
     clip: true
 
@@ -422,20 +420,20 @@ Rectangle {
     Menu {
         id: nodeContextMenu
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Copy Node Id")
             enabled: root.contextNodeId.length > 0
             onTriggered: cppManagerOpcUa.copyToClipboard(root.contextNodeId)
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Copy Browse Path")
             enabled: root.contextIndex !== null && root.contextIndex.valid
             onTriggered: cppManagerOpcUa.copyToClipboard(
                              cppManagerOpcUa.browsePathAt(root.contextIndex))
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Copy Display Name")
             enabled: root.contextDisplayName.length > 0
             onTriggered: cppManagerOpcUa.copyToClipboard(root.contextDisplayName)
@@ -443,7 +441,7 @@ Rectangle {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: root.contextMonitored ? qsTr("Remove from Data View")
                                         : qsTr("Add to Data View")
             enabled: root.contextCanMonitor
@@ -454,7 +452,7 @@ Rectangle {
             }
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Add All Child Variables")
             enabled: root.contextIndex !== null && root.contextIndex.valid
             onTriggered: cppManagerOpcUa.monitorChildVariables(root.contextIndex)
@@ -462,7 +460,7 @@ Rectangle {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Open as segment")
             onTriggered: {
                 if (root.contextIndex && root.contextIndex.valid)
@@ -470,7 +468,7 @@ Rectangle {
             }
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Clear segment")
             visible: root.showClearAction
             height: visible ? implicitHeight : 0
@@ -485,7 +483,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            color: Qt.lighter(Material.background, 1.3)
+            color: BsTheme.headerColor
 
             RowLayout {
                 anchors.fill: parent
@@ -499,7 +497,7 @@ Rectangle {
                     font.pixelSize: 12
                     font.bold: true
                     font.letterSpacing: 1.2
-                    color: Material.accent
+                    color: BsTheme.accentTextColor
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -526,7 +524,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 1
-                color: Material.dividerColor
+                color: BsTheme.dividerColor
             }
         }
 
@@ -621,7 +619,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 1
-                color: Material.dividerColor
+                color: BsTheme.dividerColor
             }
         }
 
@@ -700,8 +698,8 @@ Rectangle {
 
                     // Plain panel background instead of the Material default. A row
                     // armed for a touch drag gets a strong accent wash; the
-                    // currently selected node (shared across panels) gets a
-                    // lightened highlight; search matches get an accent wash, with
+                    // currently selected node (shared across panels) gets the
+                    // selection tint; search matches get an accent wash, with
                     // a stronger one on the match the user stepped to.
                     background: Rectangle {
                         color: treeDelegate.touchDragArmed

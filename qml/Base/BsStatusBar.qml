@@ -50,14 +50,16 @@ Rectangle {
     }
 
     implicitHeight: 28
-    color: Qt.lighter(Material.background, 1.3)
+    // The bar carries the connection state: a teal tint and line when connected,
+    // amber while connecting, and the neutral band with a plain divider offline.
+    color: BsTheme.statusBarColor(cppManagerOpcUa.connected, root.connecting)
 
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 1
-        color: Material.dividerColor
+        height: BsTheme.statusLineWidth(cppManagerOpcUa.connected || root.connecting)
+        color: BsTheme.statusLineColor(cppManagerOpcUa.connected, root.connecting)
     }
 
     RowLayout {
@@ -84,7 +86,9 @@ Rectangle {
                   ? qsTr("Connected")
                   : (root.connecting ? qsTr("Connecting…") : qsTr("Offline"))
             font.pixelSize: 12
-            color: Material.foreground
+            font.weight: cppManagerOpcUa.connected || root.connecting ? Font.DemiBold
+                                                                      : Font.Normal
+            color: BsTheme.statusTextColor(cppManagerOpcUa.connected, Material.foreground)
         }
 
         Label {

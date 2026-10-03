@@ -160,6 +160,14 @@ ApplicationWindow {
     Material.accent: Material.Teal
     Material.primary: Material.BlueGrey
 
+    // The shared chrome palette follows the window theme, including the View
+    // menu switch.
+    Binding {
+        target: Base.BsTheme
+        property: "dark"
+        value: mainWindow.darkTheme
+    }
+
     // The workspace is present but hidden until a project is active, so its menu
     // and browser bindings stay wired across project open/close.
     MainScreen {

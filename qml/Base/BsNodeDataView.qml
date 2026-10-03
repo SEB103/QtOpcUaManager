@@ -120,12 +120,10 @@ Rectangle {
         Background of the highlighted row, identical to the selected node in the
         address-space tree so both panels match.
 
-        The dark theme lightens the background. Lightening has no effect on the
-        near-white light-theme background, so there a factor below 1 shades the
-        row slightly instead.
+        The tint comes from the shared chrome palette, so the address space, the
+        Data Access View, and Server Studio highlight rows identically.
     */
-    readonly property color selectedRowColor:
-        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+    readonly property color selectedRowColor: BsTheme.selectedRowColor
 
     /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
     signal nodeSelected(string nodeId, string nodePath)
@@ -168,7 +166,7 @@ Rectangle {
     }
 
     color: Material.background
-    border.color: Material.dividerColor
+    border.color: BsTheme.dividerColor
     border.width: 1
     clip: true
 
@@ -491,7 +489,7 @@ Rectangle {
 
             model: root.columnCount
 
-            MenuItem {
+            BsMenuItem {
                 required property int index
 
                 checkable: true
@@ -509,12 +507,12 @@ Rectangle {
         /*! View row the menu was opened on; -1 when none. */
         property int viewRow: -1
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Copy Selected Rows")
             onTriggered: root.copySelectedRows()
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Copy Node Id")
             onTriggered: {
                 const row = root.sourceRow(rowMenu.viewRow)
@@ -525,7 +523,7 @@ Rectangle {
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Write Value…")
             enabled: {
                 const row = root.sourceRow(rowMenu.viewRow)
@@ -536,14 +534,14 @@ Rectangle {
             onTriggered: root.editValue(rowMenu.viewRow)
         }
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Set Sampling Interval…")
             onTriggered: root.editInterval(rowMenu.viewRow)
         }
 
         MenuSeparator {}
 
-        MenuItem {
+        BsMenuItem {
             text: qsTr("Remove Selected Rows")
             onTriggered: root.removeSelectedRows()
         }
@@ -556,7 +554,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 34
-            color: Qt.lighter(Material.background, 1.3)
+            color: BsTheme.headerColor
 
             RowLayout {
                 anchors.fill: parent
@@ -569,7 +567,7 @@ Rectangle {
                     font.pixelSize: 12
                     font.bold: true
                     font.letterSpacing: 1.2
-                    color: Material.accent
+                    color: BsTheme.accentTextColor
                     verticalAlignment: Text.AlignVCenter
                 }
 
@@ -648,7 +646,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 1
-                color: Material.dividerColor
+                color: BsTheme.dividerColor
             }
         }
 
@@ -674,7 +672,7 @@ Rectangle {
                     && cppManagerOpcUa.dataViewModel.sortColumn === headerCell.column
 
                 implicitHeight: root.rowHeight
-                color: Qt.darker(Material.background, 1.1)
+                color: BsTheme.tableHeaderColor
 
                 Label {
                     anchors.fill: parent
@@ -695,7 +693,7 @@ Rectangle {
                     font.bold: true
                     font.pixelSize: 12
                     elide: Text.ElideRight
-                    color: Material.accent
+                    color: BsTheme.accentTextColor
                 }
 
                 TapHandler {
@@ -713,7 +711,7 @@ Rectangle {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: 1
-                    color: Material.dividerColor
+                    color: BsTheme.dividerColor
                 }
             }
         }
@@ -904,7 +902,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         height: 1
-                        color: Material.dividerColor
+                        color: BsTheme.dividerColor
                         opacity: 0.4
                     }
                 }

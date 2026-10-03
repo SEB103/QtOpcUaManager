@@ -44,8 +44,8 @@ Item {
                 color: SplitHandle.pressed
                        ? Material.accent
                        : SplitHandle.hovered
-                         ? Qt.lighter(Material.dividerColor, 1.6)
-                         : Material.dividerColor
+                         ? BsTheme.splitHandleHoverColor
+                         : BsTheme.dividerColor
             }
         }
 
