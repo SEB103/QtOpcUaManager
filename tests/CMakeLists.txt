@@ -506,6 +506,7 @@ target_sources(tst_qml
         qml/tst_dataview.qml
         qml/tst_diagnostics.qml
         qml/tst_trend.qml
+        qml/tst_treedrag.qml
         qml/tst_menubar.qml
         qml/README.md
 )

@@ -1,5 +1,6 @@
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QStandardItemModel>
 #include <QVariantMap>
 #include <QtQuickTest/quicktest.h>
 #include <qopcuatype.h>
@@ -13,10 +14,113 @@
 #include "models/logmodel.h"
 #include "models/trendmodel.h"
 
+/*!
+ * Flat stand-in for the address-space tree model.
+ *
+ * Exposes the roles and the search API the address-space pane reads, so the
+ * pane can be exercised without a server. Rows are plain nodes without children.
+ */
+class MockTreeModel : public QStandardItemModel
+{
+    Q_OBJECT
+
+    /*! Search query; the mock never matches anything. */
+    Q_PROPERTY(QString searchQuery READ searchQuery WRITE setSearchQuery NOTIFY searchQueryChanged)
+
+    /*! Number of search matches; always zero in the mock. */
+    Q_PROPERTY(int searchMatchCount READ searchMatchCount NOTIFY searchMatchesChanged)
+
+public:
+    /*! Roles mirroring the subset of OpcUaModel roles read by the pane. */
+    enum Role {
+        NodeIdRole = Qt::UserRole + 1,
+        DisplayNameRole,
+        IconNameRole,
+        CanMonitorRole,
+        MonitoringEnabledRole,
+        SearchMatchRole
+    };
+
+    /*! Creates an empty mock tree model. */
+    explicit MockTreeModel(QObject *parent = nullptr)
+        : QStandardItemModel(parent)
+    {
+        setItemRoleNames({{NodeIdRole, "nodeId"},
+                          {DisplayNameRole, "displayName"},
+                          {IconNameRole, "iconName"},
+                          {CanMonitorRole, "canMonitor"},
+                          {MonitoringEnabledRole, "monitoringEnabled"},
+                          {SearchMatchRole, "searchMatch"}});
+    }
+
+    /*! Returns the current search query. */
+    QString searchQuery() const { return m_searchQuery; }
+
+    /*! Stores \a query without matching anything. */
+    void setSearchQuery(const QString &query)
+    {
+        if (m_searchQuery == query)
+            return;
+        m_searchQuery = query;
+        emit searchQueryChanged();
+    }
+
+    /*! Returns no search matches. */
+    int searchMatchCount() const { return 0; }
+
+    /*! Returns the node id stored at \a index. */
+    Q_INVOKABLE QString nodeIdAt(const QModelIndex &index) const
+    {
+        return index.data(NodeIdRole).toString();
+    }
+
+    /*! Returns the row holding \a nodeId, or an invalid index. */
+    Q_INVOKABLE QModelIndex indexForNodeId(const QString &nodeId) const
+    {
+        for (int row = 0; row < rowCount(); ++row) {
+            const QModelIndex idx = index(row, 0);
+            if (nodeIdAt(idx) == nodeId)
+                return idx;
+        }
+        return {};
+    }
+
+    /*! Appends a node row with the given identity and monitoring flags. */
+    void appendNode(const QString &nodeId, const QString &displayName, bool canMonitor)
+    {
+        auto *item = new QStandardItem(displayName);
+        item->setData(nodeId, NodeIdRole);
+        item->setData(displayName, DisplayNameRole);
+        item->setData(canMonitor ? QStringLiteral("var-real") : QStringLiteral("folder"),
+                      IconNameRole);
+        item->setData(canMonitor, CanMonitorRole);
+        item->setData(false, MonitoringEnabledRole);
+        item->setData(false, SearchMatchRole);
+        appendRow(item);
+    }
+
+signals:
+    /*! Emitted when the search query changes. */
+    void searchQueryChanged();
+
+    /*! Emitted when the search matches change; never emitted by the mock. */
+    void searchMatchesChanged();
+
+    /*! Emitted when a reveal completes; never emitted by the mock. */
+    void revealPathReady(const QModelIndex &index);
+
+private:
+    /*! Current search query. */
+    QString m_searchQuery;
+};
+
 /*! Mock QML-facing OPC UA manager used by Quick Test components. */
 class MockOpcUaManager : public QObject
 {
     Q_OBJECT
+
+    /*! Mock address-space tree used by the drag-and-drop tests. */
+    Q_PROPERTY(QObject *dragTreeModel READ dragTreeModel CONSTANT)
 
     /*! Mock available backend plugin names. */
     Q_PROPERTY(QStringList opcUaBackend READ opcUaBackend CONSTANT)
@@ -291,8 +395,50 @@ public:
         return false;
     }
 
-    /*! Mock drop handler that never adds a node. */
-    Q_INVOKABLE bool monitorNodeById(const QString &) { return false; }
+    /*! Returns the mock address-space tree used by the drag-and-drop tests. */
+    QObject *dragTreeModel() { return &m_dragTreeModel; }
+
+    /*!
+     * Adds the mock tree node \a nodeId to the Data Access View, as the real
+     * manager does: the row is appended and the node's checkbox flag is set.
+     * Returns \c false for unknown, unmonitorable, or already monitored nodes.
+     */
+    Q_INVOKABLE bool monitorNodeById(const QString &nodeId)
+    {
+        const QModelIndex index = m_dragTreeModel.indexForNodeId(nodeId);
+        if (!index.isValid() || !index.data(MockTreeModel::CanMonitorRole).toBool()
+            || index.data(MockTreeModel::MonitoringEnabledRole).toBool()) {
+            return false;
+        }
+        m_dragTreeModel.setData(index, true, MockTreeModel::MonitoringEnabledRole);
+        addMockNode(nodeId, index.data(MockTreeModel::DisplayNameRole).toString(),
+                    QStringLiteral("Double"), 3);
+        return true;
+    }
+
+    /*! Mirrors a checkbox toggle onto the mock tree row at \a index. */
+    Q_INVOKABLE void setNodeMonitored(const QModelIndex &index, bool on)
+    {
+        m_dragTreeModel.setData(index, on, MockTreeModel::MonitoringEnabledRole);
+    }
+
+    /*! Mock no-op for attribute requests issued by a tree row click. */
+    Q_INVOKABLE void requestAttributes(const QModelIndex &) {}
+
+    /*!
+     * Fills the mock address-space tree with two monitorable variables and one
+     * folder, none of them monitored.
+     */
+    Q_INVOKABLE void resetMockTree()
+    {
+        m_dragTreeModel.clear();
+        m_dragTreeModel.appendNode(QStringLiteral("ns=2;s=Temperature"),
+                                   QStringLiteral("Temperature"), true);
+        m_dragTreeModel.appendNode(QStringLiteral("ns=2;s=Folder"),
+                                   QStringLiteral("Folder"), false);
+        m_dragTreeModel.appendNode(QStringLiteral("ns=2;s=Pressure"),
+                                   QStringLiteral("Pressure"), true);
+    }
 
     /*!
      * Adds a row to the mock Data Access View so the table can be exercised
@@ -379,6 +525,9 @@ private:
 
     /*! Real attribute rows backing the Attributes panel under test. */
     AttributesModel m_attributesModel;
+
+    /*! Mock address-space tree backing the drag-and-drop tests. */
+    MockTreeModel m_dragTreeModel;
 
     /*! Number of writes the mock has received. */
     int m_writeCount {0};

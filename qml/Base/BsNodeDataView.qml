@@ -910,10 +910,22 @@ Rectangle {
                 }
             }
 
-            // Nodes dragged out of the address-space tree are added here.
+            // Nodes dragged out of the address-space or segment tree are added
+            // here. A successful drop ticks the node's tree checkbox, because both
+            // paths end in the same monitoring call.
             DropArea {
+                objectName: "dataTableDropArea"
                 anchors.fill: parent
                 keys: ["application/x-opcua-nodeid"]
+
+                // A node that is already in the table is refused on entry, so the
+                // drop highlight never promises a row that would not be added.
+                onEntered: function (drag) {
+                    // qmllint disable missing-property
+                    drag.accepted = !!drag.source && !!drag.source.dragNodeId
+                                    && !drag.source.dragMonitored
+                    // qmllint enable missing-property
+                }
 
                 onDropped: function (drop) {
                     // The drop source is the address-space tree's drag proxy, which

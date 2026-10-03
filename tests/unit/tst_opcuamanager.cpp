@@ -117,6 +117,9 @@ private slots:
     /*! Verifies that a bulk add refreshes the monitored-id sets only once. */
     void bulkAddRefreshesTheMonitoredSetsOnce();
 
+    /*! Verifies that a drop, the checkbox, and row removal stay in sync. */
+    void dropAndCheckboxStayInSync();
+
     /*! Verifies that an exported CSV cell cannot become a spreadsheet formula. */
     void csvExportNeutralizesFormulaInjection();
 
@@ -239,6 +242,52 @@ void OpcUaManagerTest::bulkAddRefreshesTheMonitoredSetsOnce()
     manager.setNodeMonitored(child, false);
     QCOMPARE(projectSpy.count(), 1);
     QCOMPARE(manager.dataModel()->rowCount(), childCount - 1);
+}
+
+/*!
+ * \brief Verifies that a drop, the checkbox, and row removal stay in sync.
+ *
+ * A node dropped into the Data View must tick its tree checkbox, exactly as if
+ * the checkbox had been clicked. Removing the row from the table must untick it
+ * again; otherwise the stale flag makes the tree believe the node is still
+ * monitored and a second drop of the same node is rejected.
+ */
+void OpcUaManagerTest::dropAndCheckboxStayInSync()
+{
+    OpcUaManager manager;
+    OpcUaModel *tree = manager.treeModel();
+
+    const QModelIndex objectIndex = browseObjectWithVariables(tree, 2);
+    QVERIFY(objectIndex.isValid());
+    const QModelIndex first = tree->index(0, 0, objectIndex);
+    const QModelIndex second = tree->index(1, 0, objectIndex);
+    const QString firstId = tree->nodeIdAt(first);
+    const QString secondId = tree->nodeIdAt(second);
+
+    // Dropping ticks the checkbox; a duplicate drop is rejected.
+    QVERIFY(manager.monitorNodeById(firstId));
+    QVERIFY(tree->monitoringEnabledAt(first));
+    QVERIFY(tree->data(first, OpcUaModel::MonitoringEnabledRole).toBool());
+    QVERIFY(!manager.monitorNodeById(firstId));
+    QCOMPARE(manager.dataModel()->rowCount(), 1);
+
+    // Removing the row from the table unticks the checkbox, so the node can be
+    // dropped again.
+    manager.removeNode(0);
+    QCOMPARE(manager.dataModel()->rowCount(), 0);
+    QVERIFY(!tree->monitoringEnabledAt(first));
+    QVERIFY(manager.monitorNodeById(firstId));
+    QVERIFY(tree->monitoringEnabledAt(first));
+
+    // A bulk removal unticks every affected checkbox and counts as one change.
+    QVERIFY(manager.monitorNodeById(secondId));
+    QCOMPARE(manager.dataModel()->rowCount(), 2);
+    QSignalSpy projectSpy(&manager, &OpcUaManager::projectStateChanged);
+    manager.removeNodes({0, 1});
+    QCOMPARE(manager.dataModel()->rowCount(), 0);
+    QCOMPARE(projectSpy.count(), 1);
+    QVERIFY(!tree->monitoringEnabledAt(first));
+    QVERIFY(!tree->monitoringEnabledAt(second));
 }
 
 /*!

@@ -413,7 +413,10 @@ public:
      */
     Q_INVOKABLE int monitorChildVariables(const QModelIndex &treeIndex);
 
-    /** Removes the Data Access View row at \a row from the table and the database. */
+    /**
+     * Removes the Data Access View row at \a row from the table and the database
+     * and clears the node's monitoring checkbox in the trees.
+     */
     Q_INVOKABLE void removeNode(int row);
 
     /**
@@ -739,6 +742,13 @@ private:
      * Returns whether the change was applied.
      */
     bool applyNodeMonitored(const QModelIndex &treeIndex, bool on);
+
+    /**
+     * Removes the Data Access View source row \a row without refreshing the
+     * monitored-id sets or emitting projectStateChanged().
+     * Returns whether a row was removed.
+     */
+    bool applyRemoveNode(int row);
     /** Returns the owned model that produced \a index (focus model or tree model). */
     OpcUaModel *modelForIndex(const QModelIndex &index) const;
     /** Pins \a nodeId as the focus node using \a absolutePath and \a displayName. */

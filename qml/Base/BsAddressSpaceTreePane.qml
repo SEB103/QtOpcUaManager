@@ -11,7 +11,10 @@ import QtQuick.Layouts
     The pane renders \l paneModel as a \c TreeView with a node-class icon, the
     display name, a monitoring checkbox, and a marker on the pinned focus node. A
     right-click context menu copies node identity to the clipboard, adds nodes to
-    the Data Access View, and pins or clears the focus segment. When \l
+    the Data Access View, and pins or clears the focus segment. A monitorable
+    node can also be dragged into the Data Access View: with the mouse right
+    away, and on a touch screen after a long press, so a plain swipe still
+    scrolls the tree. A successful drop ticks the node's checkbox. When \l
     searchEnabled is set, the header offers an incremental search that highlights
     matching nodes and steps through them. The same pane is reused for the full
     address space and for the focus segment. When deep branches or long display
@@ -67,6 +70,21 @@ Rectangle {
 
     /*! Whether the context-menu target is already in the Data Access View. */
     property bool contextMonitored: false
+
+    /*! Row armed for a touch drag by a long press; -1 when none. */
+    property int touchDragRow: -1
+
+    /*! Whether a node is currently dragged out of this pane. */
+    property bool rowDragActive: false
+
+    /*! Display name of the dragged node, shown by the drag preview. */
+    property string rowDragText: ""
+
+    /*! Icon key of the dragged node, shown by the drag preview. */
+    property string rowDragIcon: ""
+
+    /*! Pointer position of the drag in window coordinates. */
+    property point rowDragPosition: Qt.point(0, 0)
 
     /*! Whether a search query is currently highlighting nodes in this pane. */
     readonly property bool searchActive:
@@ -234,6 +252,42 @@ Rectangle {
         nodeContextMenu.popup()
     }
 
+    /*!
+        Starts dragging the node carried by \a proxy out of the pane. \a displayName
+        and \a iconKey feed the drag preview that follows the pointer.
+    */
+    function beginRowDrag(proxy, displayName, iconKey) {
+        root.rowDragText = displayName
+        root.rowDragIcon = iconKey
+        root.rowDragPosition = proxy.mapToItem(null, 0, 0)
+        root.rowDragActive = true
+        proxy.Drag.active = true
+    }
+
+    /*! Moves the drag preview to the current position of \a proxy. */
+    function moveRowDrag(proxy) {
+        if (root.rowDragActive)
+            root.rowDragPosition = proxy.mapToItem(null, 0, 0)
+    }
+
+    /*!
+        Ends the drag of \a proxy by dropping it at its current position. An
+        internal drag only reaches the drop target's \c onDropped through \c
+        Drag.drop(); clearing \c Drag.active would merely cancel the drag.
+    */
+    function endRowDrag(proxy) {
+        if (proxy.Drag.active)
+            proxy.Drag.drop()
+        root.rowDragActive = false
+    }
+
+    /*! Abandons the drag of \a proxy without dropping it, e.g. after a grab loss. */
+    function cancelRowDrag(proxy) {
+        if (proxy.Drag.active)
+            proxy.Drag.cancel()
+        root.rowDragActive = false
+    }
+
     color: Material.background
     border.color: Material.dividerColor
     border.width: 1
@@ -260,6 +314,49 @@ Rectangle {
 
             Behavior on opacity {
                 NumberAnimation { duration: 150 }
+            }
+        }
+    }
+
+    // Drag preview that follows the pointer while a node is dragged. It lives in
+    // the window's content item because this pane clips its children and the
+    // drop target is a different panel.
+    Rectangle {
+        id: rowDragPreview
+
+        parent: root.Window.contentItem ? root.Window.contentItem : root
+        visible: root.rowDragActive
+        z: 1000
+        x: root.rowDragPosition.x + 12
+        y: root.rowDragPosition.y + 12
+        width: previewRow.implicitWidth + 16
+        height: 28
+        radius: 4
+        color: Qt.lighter(Material.background, 1.3)
+        border.color: Material.accent
+        border.width: 1
+        opacity: 0.92
+
+        Row {
+            id: previewRow
+
+            anchors.centerIn: parent
+            spacing: 6
+
+            Image {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 16
+                height: 16
+                source: root.rowDragActive ? root.iconSource(root.rowDragIcon) : ""
+                sourceSize.width: 16
+                sourceSize.height: 16
+            }
+
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.rowDragText
+                color: Material.foreground
+                font.pixelSize: 12
             }
         }
     }
@@ -546,11 +643,15 @@ Rectangle {
             TreeView {
                 id: treeView
 
+                objectName: "addressSpaceTree"
                 anchors.fill: parent
                 anchors.margins: 4
                 clip: true
                 model: root.paneModel
                 boundsBehavior: Flickable.StopAtBounds
+
+                // A row armed for a touch drag must not flick the tree away.
+                interactive: root.touchDragRow < 0
 
                 // The tree model exposes four logical columns (Name/Value/Type/
                 // NodeId). The address space only needs the name column, so hide
@@ -591,14 +692,22 @@ Rectangle {
                     readonly property bool searchDimmed:
                         root.searchActive && !searchMatch
 
+                    /*! Whether a touch long press armed this row for dragging. */
+                    readonly property bool touchDragArmed:
+                        root.touchDragRow >= 0 && root.touchDragRow === row
+
                     implicitHeight: root.rowHeight
 
-                    // Plain panel background instead of the Material default. The
+                    // Plain panel background instead of the Material default. A row
+                    // armed for a touch drag gets a strong accent wash; the
                     // currently selected node (shared across panels) gets a
                     // lightened highlight; search matches get an accent wash, with
                     // a stronger one on the match the user stepped to.
                     background: Rectangle {
-                        color: nodeId === cppManagerOpcUa.selectedNodeId
+                        color: treeDelegate.touchDragArmed
+                               ? Qt.rgba(Material.accent.r, Material.accent.g,
+                                         Material.accent.b, 0.30)
+                               : nodeId === cppManagerOpcUa.selectedNodeId
                                ? root.selectedRowColor
                                : (treeDelegate.currentMatch
                                   ? Qt.rgba(Material.accent.r, Material.accent.g,
@@ -619,35 +728,92 @@ Rectangle {
                                                        canMonitor, monitoringEnabled)
                     }
 
-                    // Invisible 1x1 proxy that follows the cursor during a drag.
+                    // Invisible 1x1 proxy that follows the pointer during a drag.
                     // Qt Quick hit-tests drop areas against the dragged item's own
                     // position, so the proxy has to move even though the row must
-                    // stay where it is.
+                    // stay where it is. The drag is driven imperatively by
+                    // beginRowDrag()/endRowDrag(): an internal drag only delivers
+                    // the drop when Drag.drop() is called.
                     Item {
                         id: dragProxy
 
                         /*! Node id handed to the drop target. */
                         readonly property string dragNodeId: nodeId
 
+                        /*! Whether the node is already in the Data Access View. */
+                        readonly property bool dragMonitored: monitoringEnabled
+
+                        x: mouseDragHandler.active ? mouseDragHandler.centroid.position.x
+                                                   : touchDragHandler.centroid.position.x
+                        y: mouseDragHandler.active ? mouseDragHandler.centroid.position.y
+                                                   : touchDragHandler.centroid.position.y
                         width: 1
                         height: 1
-                        Drag.active: rowDragHandler.active
                         Drag.keys: ["application/x-opcua-nodeid"]
                         Drag.supportedActions: Qt.CopyAction
+
+                        onXChanged: root.moveRowDrag(dragProxy)
+                        onYChanged: root.moveRowDrag(dragProxy)
                     }
 
-                    // Only monitorable nodes can be dropped into the Data Access View.
+                    // Mouse, touchpad, and stylus drag a monitorable node as soon
+                    // as the pointer moves past the drag threshold.
                     DragHandler {
-                        id: rowDragHandler
+                        id: mouseDragHandler
 
-                        target: dragProxy
+                        target: null
                         enabled: canMonitor
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                         | PointerDevice.Stylus
+                        cursorShape: Qt.DragCopyCursor
+                        onActiveChanged: active ? root.beginRowDrag(dragProxy, displayName,
+                                                                    iconName)
+                                                : root.endRowDrag(dragProxy)
+                        onCanceled: root.cancelRowDrag(dragProxy)
+                    }
+
+                    // On a touch screen a plain swipe keeps flicking the tree. A
+                    // long press arms the row; only then does the threshold drop
+                    // to the normal drag distance so the next move starts a drag.
+                    // Until then it sits at 32767, the largest value Qt accepts.
+                    DragHandler {
+                        id: touchDragHandler
+
+                        target: null
+                        enabled: canMonitor
+                        acceptedDevices: PointerDevice.TouchScreen
+                        dragThreshold: treeDelegate.touchDragArmed
+                                       ? Application.styleHints.startDragDistance
+                                       : 32767
                         onActiveChanged: {
-                            if (!active) {
-                                dragProxy.x = 0
-                                dragProxy.y = 0
+                            if (active) {
+                                root.beginRowDrag(dragProxy, displayName, iconName)
+                            } else {
+                                root.endRowDrag(dragProxy)
+                                root.touchDragRow = -1
                             }
                         }
+                        onCanceled: root.cancelRowDrag(dragProxy)
+
+                        // The handler watches the finger passively from the
+                        // press on. Losing that watch without having dragged
+                        // means the finger lifted (or the tree took the gesture),
+                        // so the armed row is released again.
+                        onGrabChanged: function (transition, point) {
+                            if (!active && root.touchDragRow === row
+                                    && (transition === PointerDevice.UngrabPassive
+                                        || transition === PointerDevice.CancelGrabPassive))
+                                root.touchDragRow = -1
+                        }
+                    }
+
+                    // Arms the touch drag after a long press. The tap handler
+                    // cannot disarm it: the first move after the long press
+                    // already cancels the tap, before the drag has started.
+                    TapHandler {
+                        acceptedDevices: PointerDevice.TouchScreen
+                        enabled: canMonitor
+                        onLongPressed: root.touchDragRow = row
                     }
 
                     contentItem: RowLayout {

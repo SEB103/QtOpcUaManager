@@ -793,21 +793,43 @@ void OpcUaManager::copyToClipboard(const QString &text) const
 }
 
 /*!
- * \brief Removes the Data Access View row at \a row from the table.
+ * \internal
+ * \brief Removes source row \a row without refreshing the monitored-id sets.
+ * \param row The Data Access View source row to remove.
+ * \return Whether a row was removed.
  *
- * The monitored-node set is part of the active project, so projectStateChanged()
- * is emitted; the change is persisted when the project is saved.
+ * Drops the row, its trend history, and its subscription. The tree checkboxes
+ * and the project-state notification are left to the caller, so a bulk removal
+ * walks the tree models once instead of once per row.
  */
-void OpcUaManager::removeNode(int row)
+bool OpcUaManager::applyRemoveNode(int row)
 {
     const QString nodeId = m_dataModel->nodeIdAt(row);
     if (nodeId.isEmpty())
-        return;
+        return false;
 
     m_dataModel->removeAt(row);
     if (m_trendModel)
         m_trendModel->dropNode(nodeId);
     emit unsubscribeNodeRequested(nodeId);
+    return true;
+}
+
+/*!
+ * \brief Removes the Data Access View row at \a row from the table.
+ *
+ * The monitored-id sets are refreshed so the node's checkbox in the address
+ * space and segment trees is cleared, keeping the checkbox, drag and drop, and
+ * the table in agreement. The monitored-node set is part of the active project,
+ * so projectStateChanged() is emitted; the change is persisted when the project
+ * is saved.
+ */
+void OpcUaManager::removeNode(int row)
+{
+    if (!applyRemoveNode(row))
+        return;
+
+    refreshMonitoredNodeIds();
     emit projectStateChanged();
 }
 
@@ -815,7 +837,9 @@ void OpcUaManager::removeNode(int row)
  * \brief Removes every Data Access View source row in \a rows.
  *
  * Duplicates are ignored and the rows are removed from the highest index down,
- * so the indexes still to be processed keep pointing at the intended rows.
+ * so the indexes still to be processed keep pointing at the intended rows. The
+ * monitored-id refresh and the project-state notification happen once for the
+ * whole batch.
  */
 void OpcUaManager::removeNodes(const QList<int> &rows)
 {
@@ -823,8 +847,15 @@ void OpcUaManager::removeNodes(const QList<int> &rows)
     std::sort(ordered.begin(), ordered.end(), std::greater<int>());
     ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
 
+    bool removed = false;
     for (const int row : std::as_const(ordered))
-        removeNode(row);
+        removed = applyRemoveNode(row) || removed;
+
+    if (!removed)
+        return;
+
+    refreshMonitoredNodeIds();
+    emit projectStateChanged();
 }
 
 /*!
