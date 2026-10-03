@@ -116,6 +116,17 @@ Rectangle {
                                                 Material.foreground.b,
                                                 0.45)
 
+    /*!
+        Background of the highlighted row, identical to the selected node in the
+        address-space tree so both panels match.
+
+        The dark theme lightens the background. Lightening has no effect on the
+        near-white light-theme background, so there a factor below 1 shades the
+        row slightly instead.
+    */
+    readonly property color selectedRowColor:
+        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+
     /*! Emitted with the node id and browse path when a row is selected, so the tree can reveal it. */
     signal nodeSelected(string nodeId, string nodePath)
 
@@ -727,6 +738,7 @@ Rectangle {
             TableView {
                 id: tableView
 
+                objectName: "dataTable"
                 anchors.fill: parent
                 anchors.margins: 4
                 clip: true
@@ -774,19 +786,23 @@ Rectangle {
                     /*! Whether this row has not received a value in this session. */
                     readonly property bool awaitingValue: cellDelegate.lastUpdateMs === 0
 
+                    // A click only moves the current index; it does not add the
+                    // row to the selection, so the current row is highlighted too.
+                    /*! Whether this row is the current one or part of the selection. */
+                    readonly property bool highlighted:
+                        cellDelegate.selected || cellDelegate.row === tableView.currentRow
+
                     implicitHeight: root.rowHeight
 
                     color: {
-                        if (cellDelegate.selected)
-                            return Qt.lighter(Material.background, 1.5)
+                        if (cellDelegate.highlighted)
+                            return root.selectedRowColor
                         // Status severity 3 is DataAccessModel::StatusBad.
                         if (cellDelegate.statusSeverity === 3)
                             return Qt.rgba(Material.color(Material.Red).r,
                                            Material.color(Material.Red).g,
                                            Material.color(Material.Red).b, 0.12)
-                        return cellDelegate.row % 2 === 0
-                               ? "transparent"
-                               : Qt.darker(Material.background, 1.05)
+                        return "transparent"
                     }
 
                     Label {
@@ -806,7 +822,7 @@ Rectangle {
                         text: cellDelegate.column === root.valueColumn
                               ? cellDelegate.valueMarkup
                               : cellDelegate.display
-                        font.bold: cellDelegate.selected
+                        font.bold: cellDelegate.highlighted
                         elide: Text.ElideRight
                         color: {
                             if (cellDelegate.column === root.statusColumn) {

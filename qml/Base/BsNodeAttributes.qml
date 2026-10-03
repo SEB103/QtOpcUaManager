@@ -130,18 +130,14 @@ Rectangle {
 
                         ScrollBar.vertical: ScrollBar {}
 
-                        delegate: Rectangle {
+                        delegate: Item {
                             id: attributeDelegate
 
-                            required property int index
                             required property string attribute
                             required property string value
 
                             width: attributesView.width
                             height: root.rowHeight
-                            color: index % 2 === 0
-                                   ? "transparent"
-                                   : Qt.darker(Material.background, 1.05)
 
                             RowLayout {
                                 anchors.fill: parent

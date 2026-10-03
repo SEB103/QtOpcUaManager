@@ -38,6 +38,17 @@ Pane {
     property var rejectedCerts: []
 
     /*!
+        Background of the selected tree node, matching the client's address
+        space and Data Access View highlight.
+
+        The dark theme lightens the background. Lightening has no effect on the
+        near-white light-theme background, so there a factor below 1 shades the
+        row slightly instead.
+    */
+    readonly property color selectedRowColor:
+        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+
+    /*!
         Runs \a action now, or, when the project has unsaved changes, defers it
         behind the unsaved-changes prompt. Used for operations that replace the
         in-memory project (new, open, import). Plain navigation (Back) does not
@@ -292,7 +303,7 @@ Pane {
 
                             background: Rectangle {
                                 color: treeDelegate.nodeId === cppServerStudio.selectedNodeId
-                                       ? Qt.lighter(Material.background, 1.5)
+                                       ? studio.selectedRowColor
                                        : Material.background
                             }
 

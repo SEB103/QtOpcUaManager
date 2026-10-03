@@ -83,6 +83,16 @@ Rectangle {
                                                 0.4)
 
     /*!
+        Background of the selected node, shared with the Data Access View rows.
+
+        The dark theme lightens the background. Lightening has no effect on the
+        near-white light-theme background, so there a factor below 1 shades the
+        row slightly instead.
+    */
+    readonly property color selectedRowColor:
+        Qt.lighter(Material.background, Material.theme === Material.Dark ? 1.5 : 0.9)
+
+    /*!
         Returns the icon resource for the model \a key (the \c iconName role).
         The key encodes the node kind and, for variables, the data-type category.
         Each SVG already carries its own fill color, so no runtime tinting is
@@ -589,7 +599,7 @@ Rectangle {
                     // a stronger one on the match the user stepped to.
                     background: Rectangle {
                         color: nodeId === cppManagerOpcUa.selectedNodeId
-                               ? Qt.lighter(Material.background, 1.5)
+                               ? root.selectedRowColor
                                : (treeDelegate.currentMatch
                                   ? Qt.rgba(Material.accent.r, Material.accent.g,
                                             Material.accent.b, 0.30)

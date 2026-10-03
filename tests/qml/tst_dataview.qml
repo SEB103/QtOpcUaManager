@@ -237,6 +237,46 @@ Item {
         }
 
         /*!
+            Verifies that clicking a row highlights every cell of that row.
+
+            A click only moves the current index without selecting the row, so
+            the highlight must follow the current row, not just the selection.
+        */
+        function test_clickedRowIsHighlighted() {
+            cppManagerOpcUa.clearMockNodes();
+            // AccessLevel 3 is CurrentRead|CurrentWrite.
+            cppManagerOpcUa.addMockNode("ns=1;s=A", "First", "DINT", 3);
+            cppManagerOpcUa.addMockNode("ns=1;s=B", "Second", "DINT", 3);
+
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            const table = findChild(view, "dataTable");
+            verify(table !== null);
+            waitForRendering(view);
+
+            const clicked = table.itemAtCell(Qt.point(1, 1));
+            verify(clicked !== null);
+            verify(!clicked.highlighted);
+
+            mouseClick(clicked);
+            tryCompare(table, "currentRow", 1);
+
+            // Every cell of the clicked row is tinted, the other row is not.
+            const sibling = table.itemAtCell(Qt.point(0, 1));
+            verify(clicked.highlighted);
+            verify(sibling.highlighted);
+            compare(Qt.colorEqual(clicked.color, view.selectedRowColor), true);
+            // The tests run in the light theme, where lightening the near-white
+            // background would leave the highlight invisible.
+            verify(!Qt.colorEqual(view.selectedRowColor, view.color));
+            verify(!table.itemAtCell(Qt.point(1, 0)).highlighted);
+            // Unselected rows are not striped, so they show the plain panel.
+            compare(table.itemAtCell(Qt.point(1, 0)).color.a, 0);
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
+        /*!
             Verifies that an untouched table never writes its own defaults back.
 
             The table samples its layout on a timer because TableView has no
