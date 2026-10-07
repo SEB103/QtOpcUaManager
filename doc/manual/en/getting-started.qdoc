@@ -100,6 +100,13 @@
     (see \l {Configuration}). This documentation is available in the same languages;
     the API reference is English.
 
+    \section1 Choosing the color theme
+
+    Next to the language, the start page offers the color theme: \e{System} follows the
+    light or dark mode of Windows, \e{Light} and \e{Dark} keep the theme fixed. The
+    workspace opens in the same theme, and the choice is remembered between sessions,
+    together with the window size and the pane layout (see \l {Configuration}).
+
     \section1 Opening this documentation
 
     This guide ships with the application and opens from \e{Info > Documentation}. It is

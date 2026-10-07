@@ -31,8 +31,9 @@
     \section1 Réglages de l’application
 
     Les réglages généraux sont conservés dans un magasin INI. Ils comprennent la dernière
-    connexion, le nœud de focus épinglé, la liste des projets récents et la langue
-    d’interface sélectionnée.
+    connexion, le nœud de focus épinglé, la liste des projets récents, la langue
+    d’interface sélectionnée, le thème de couleurs, le zoom de l’interface ainsi que la
+    disposition de la fenêtre et des panneaux.
 
     \section1 Projets client (\c .uaproj)
 
@@ -67,4 +68,20 @@
     La langue de l’interface (anglais, allemand, français, italien, russe, ukrainien) est
     appliquée au démarrage et peut être changée en cours d’exécution ; le choix est
     enregistré dans les réglages de l’application (\l LocaleController).
+
+    \section1 Thème, zoom et disposition de la fenêtre
+
+    Le thème de couleurs se choisit sur la page de démarrage, à côté de la langue, ou se
+    change dans l’espace de travail via \e{Affichage}. \e{Système} suit le mode clair ou
+    sombre de Windows, tandis que \e{Clair} et \e{Sombre} fixent le thème. Le zoom de
+    l’interface (de 50 % à 200 %) se règle avec \c{Ctrl++}, \c{Ctrl+-} et \c{Ctrl+0} ou via
+    \e{Affichage > Zoom}. Les deux choix sont enregistrés dans les réglages de l’application.
+
+    L’application mémorise aussi l’état dans lequel vous avez laissé la fenêtre
+    principale : sa taille, sa position et son état (normal, agrandi ou plein écran), ainsi
+    que la taille des panneaux redimensionnables — \e{Address Space}, les segments
+    en dessous, \e{Data View}, \e{Attributes} et la vue de la valeur structurée. Ils sont
+    enregistrés à la fermeture et restaurés au démarrage suivant. Une fenêtre affichée en
+    dernier sur un moniteur qui n’est plus connecté s’ouvre sur l’écran principal.
+    \e{Affichage > Plein écran} ou \c F11 active et quitte le mode plein écran.
 */

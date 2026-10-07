@@ -103,6 +103,13 @@
     sessioni (vedi \l {Configurazione}). Questa documentazione è disponibile nelle stesse
     lingue; il riferimento dell’API è in inglese.
 
+    \section1 Scegliere il tema colori
+
+    Accanto alla lingua, la pagina iniziale offre il tema colori: \e{Sistema} segue la
+    modalità chiara o scura di Windows, \e{Chiaro} e \e{Scuro} fissano il tema. L’area di
+    lavoro si apre con lo stesso tema e la scelta viene ricordata tra le sessioni, insieme
+    alla dimensione della finestra e al layout dei pannelli (vedi \l {Configurazione}).
+
     \section1 Aprire questa documentazione
 
     Questa guida è fornita con l’applicazione e si apre da \e{Info > Documentazione}. Viene

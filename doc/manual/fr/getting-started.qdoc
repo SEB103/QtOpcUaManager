@@ -105,6 +105,14 @@
     d’une session à l’autre (voir \l {Configuration}). Cette documentation est disponible
     dans les mêmes langues ; la référence de l’API est en anglais.
 
+    \section1 Choisir le thème de couleurs
+
+    À côté de la langue, la page de démarrage propose le thème de couleurs : \e{Système}
+    suit le mode clair ou sombre de Windows, \e{Clair} et \e{Sombre} fixent le thème.
+    L’espace de travail s’ouvre dans le même thème, et le choix est mémorisé d’une session
+    à l’autre, avec la taille de la fenêtre et la disposition des panneaux (voir
+    \l {Configuration}).
+
     \section1 Ouvrir cette documentation
 
     Ce guide est fourni avec l’application et s’ouvre depuis \e{Info > Documentation}. Il

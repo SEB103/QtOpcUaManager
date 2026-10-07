@@ -17,6 +17,40 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.3.0] - 2026-10-07
+
+Feature release for a personal workspace: the application now opens the way
+you left it — same theme, same zoom, same window and pane layout.
+
+### Added
+- **Interface zoom** like the page zoom of a web browser: `Ctrl++` (also
+  `Ctrl+=`), `Ctrl+-` and `Ctrl+0` on every screen, plus a **View > Zoom**
+  submenu. Steps go from 50% to 200%. Layouts reflow instead of being cut off,
+  and menus, dialogs and tooltips scale too. The status bar shows the zoom
+  when it is not 100% (click to reset), and a short badge confirms each
+  change. The zoom is remembered between sessions.
+- **Color theme on the start page**: a theme selector next to the language
+  offers *System*, *Light* and *Dark*. *System* follows the Windows light or
+  dark mode. The workspace opens in the chosen theme, and the choice is
+  remembered between sessions.
+- **The window and pane layout is restored at the next start**: the window
+  size, position and state (normal, maximized or full screen), the widths of
+  Address Space, Data View and Attributes, the split between Address Space and
+  the segments, and the split inside the Attributes panel. A window last shown
+  on a monitor that is no longer connected opens on the primary screen.
+- **Full screen mode** with **View > Full Screen** or `F11`; pressing it again
+  returns to the normal or maximized window.
+
+### Changed
+- The **View** menu theme switch now stores an explicit light or dark choice,
+  so the theme no longer resets to the Windows setting at the next start.
+- Dialogs of the main window are centered and sized for the current zoom.
+
+### Documentation
+- The user manual (all languages) describes choosing the color theme on the
+  start page, the interface zoom, full screen mode, and which window and pane
+  settings are remembered between sessions.
+
 ## [1.2.0] - 2026-10-03
 
 Feature release for working with monitored values: highlighted values,
@@ -210,6 +244,7 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.3.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.2.0
 [1.1.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.1.0
 [1.0.2]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.0.2

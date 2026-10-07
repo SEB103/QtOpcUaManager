@@ -28,7 +28,8 @@
     \section1 Application settings
 
     General settings are kept in an INI store. These include the last connection, the
-    pinned focus node, the recent-projects list, and the selected UI language.
+    pinned focus node, the recent-projects list, the selected UI language, the color
+    theme, the interface zoom, and the window and pane layout.
 
     \section1 Client projects (\c .uaproj)
 
@@ -60,4 +61,19 @@
     The UI language (English, German, French, Italian, Russian, Ukrainian) is applied at startup and can
     be switched at runtime; the choice is saved in the application settings
     (\l LocaleController).
+
+    \section1 Theme, zoom, and window layout
+
+    The color theme is chosen on the start page next to the language, or switched in the
+    workspace from \e{View}. \e{System} follows the light or dark mode of Windows, while
+    \e{Light} and \e{Dark} keep the theme fixed. The interface zoom (50% to 200%) is
+    changed with \c{Ctrl++}, \c{Ctrl+-}, and \c{Ctrl+0} or from \e{View > Zoom}. Both
+    choices are saved in the application settings.
+
+    The application also remembers how you left the main window: its size, position, and
+    state (normal, maximized, or full screen), and the sizes of the resizable panes —
+    \e{Address Space}, the segments below it, \e{Data View}, \e{Attributes}, and the
+    structured value view. They are saved on exit and restored at the next start. A window
+    that was last shown on a monitor that is no longer connected opens on the primary
+    screen. \e{View > Full Screen} or \c F11 enters and leaves full screen mode.
 */

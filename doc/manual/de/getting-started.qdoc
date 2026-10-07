@@ -105,6 +105,14 @@
     (siehe \l {Konfiguration}). Diese Dokumentation ist in denselben Sprachen verfügbar;
     die API-Referenz ist in Englisch.
 
+    \section1 Farbdesign wählen
+
+    Neben der Sprache bietet die Startseite das Farbdesign an: \e{System} folgt dem hellen
+    oder dunklen Modus von Windows, \e{Hell} und \e{Dunkel} legen das Design fest. Der
+    Arbeitsbereich öffnet sich im selben Design, und die Wahl wird zwischen Sitzungen
+    gemerkt, zusammen mit der Fenstergröße und dem Bereichslayout (siehe
+    \l {Konfiguration}).
+
     \section1 Diese Dokumentation öffnen
 
     Diese Anleitung wird mit der Anwendung ausgeliefert und über \e{Info > Dokumentation}

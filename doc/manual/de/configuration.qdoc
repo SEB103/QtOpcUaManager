@@ -29,8 +29,9 @@
     \section1 Anwendungseinstellungen
 
     Allgemeine Einstellungen werden in einem INI-Speicher gehalten. Dazu gehören die letzte
-    Verbindung, der angeheftete Fokus-Knoten, die Liste der zuletzt verwendeten Projekte und
-    die gewählte Oberflächensprache.
+    Verbindung, der angeheftete Fokus-Knoten, die Liste der zuletzt verwendeten Projekte,
+    die gewählte Oberflächensprache, das Farbdesign, der Oberflächen-Zoom sowie das Fenster-
+    und Bereichslayout.
 
     \section1 Client-Projekte (\c .uaproj)
 
@@ -63,4 +64,21 @@
     Die Oberflächensprache (Englisch, Deutsch, Französisch, Italienisch, Russisch, Ukrainisch) wird beim Start angewendet
     und kann zur Laufzeit umgeschaltet werden; die Wahl wird in den Anwendungseinstellungen
     gespeichert (\l LocaleController).
+
+    \section1 Design, Zoom und Fensterlayout
+
+    Das Farbdesign wird auf der Startseite neben der Sprache gewählt oder im Arbeitsbereich
+    über \e{Ansicht} umgeschaltet. \e{System} folgt dem hellen oder dunklen Modus von
+    Windows, \e{Hell} und \e{Dunkel} legen das Design fest. Der Oberflächen-Zoom (50% bis
+    200%) wird mit \c{Strg++}, \c{Strg+-} und \c{Strg+0} oder über \e{Ansicht > Zoom}
+    geändert. Beide Einstellungen werden in den Anwendungseinstellungen gespeichert.
+
+    Die Anwendung merkt sich außerdem, wie Sie das Hauptfenster verlassen haben: Größe,
+    Position und Zustand (normal, maximiert oder Vollbild) sowie die Größen der
+    veränderbaren Bereiche — \e{Address Space}, die Segmente darunter, \e{Data View},
+    \e{Attributes} und die Ansicht des strukturierten Werts. Sie werden beim Beenden
+    gespeichert und beim nächsten Start wiederhergestellt. Ein Fenster, das zuletzt auf
+    einem nicht mehr angeschlossenen Monitor angezeigt wurde, öffnet sich auf dem
+    Hauptbildschirm. \e{Ansicht > Vollbild} oder \c F11 schaltet den Vollbildmodus ein und
+    aus.
 */

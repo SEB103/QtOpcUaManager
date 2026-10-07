@@ -64,6 +64,31 @@
     immediately without any network access.
 */
 
+/*!
+    \class UiZoomController
+    \inmodule OpcUaManager
+    \brief Selects, steps, and persists the global UI zoom, exposed to QML as
+           \c cppUiZoom.
+*/
+
+/*!
+    \class ThemeController
+    \inmodule OpcUaManager
+    \brief Selects and persists the UI color theme (system, light, or dark),
+           exposed to QML as \c cppTheme.
+*/
+
+/*!
+    \class UiLayoutController
+    \inmodule OpcUaManager
+    \brief Persists the main window state and the splitter layout, exposed to QML
+           as \c cppUiLayout.
+
+    The controller stores the normal window geometry, the window visibility
+    (normal, maximized, or full screen), and the SplitView states of the resizable
+    panes, and fits a saved geometry onto the screens that are currently connected.
+*/
+
 // ---------------------------------------------------------------------------
 // Core OPC UA client (src/core/)
 // ---------------------------------------------------------------------------

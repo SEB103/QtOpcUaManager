@@ -29,8 +29,9 @@
     \section1 Impostazioni dell’applicazione
 
     Le impostazioni generali sono conservate in un archivio INI. Includono l’ultima
-    connessione, il nodo di focus fissato, l’elenco dei progetti recenti e la lingua
-    dell’interfaccia selezionata.
+    connessione, il nodo di focus fissato, l’elenco dei progetti recenti, la lingua
+    dell’interfaccia selezionata, il tema colori, lo zoom dell’interfaccia e il layout della
+    finestra e dei pannelli.
 
     \section1 Progetti client (\c .uaproj)
 
@@ -64,4 +65,21 @@
     La lingua dell’interfaccia (inglese, tedesco, francese, italiano, russo, ucraino) viene
     applicata all’avvio e può essere cambiata durante l’esecuzione; la scelta viene salvata
     nelle impostazioni dell’applicazione (\l LocaleController).
+
+    \section1 Tema, zoom e layout della finestra
+
+    Il tema colori si sceglie nella pagina iniziale accanto alla lingua, oppure si cambia
+    nell’area di lavoro dal menu \e{Visualizza}. \e{Sistema} segue la modalità chiara o
+    scura di Windows, mentre \e{Chiaro} e \e{Scuro} fissano il tema. Lo zoom
+    dell’interfaccia (dal 50% al 200%) si cambia con \c{Ctrl++}, \c{Ctrl+-} e \c{Ctrl+0}
+    oppure da \e{Visualizza > Zoom}. Entrambe le scelte vengono salvate nelle impostazioni
+    dell’applicazione.
+
+    L’applicazione ricorda anche come hai lasciato la finestra principale: dimensione,
+    posizione e stato (normale, ingrandita o a schermo intero), e le dimensioni dei pannelli
+    ridimensionabili — \e{Address Space}, i segmenti sottostanti, \e{Data View},
+    \e{Attributes} e la vista del valore strutturato. Vengono salvati all’uscita e
+    ripristinati all’avvio successivo. Una finestra mostrata l’ultima volta su un monitor
+    non più collegato si apre sullo schermo principale. \e{Visualizza > Schermo intero} o
+    \c F11 attiva e disattiva la modalità a schermo intero.
 */
