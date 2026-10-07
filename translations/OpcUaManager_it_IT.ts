@@ -156,7 +156,7 @@
 <context>
     <name>BsAddressSpaceTreePane</name>
     <message>
-        <location filename="../qml/Base/BsAddressSpaceTreePane.qml" line="+293"/>
+        <location filename="../qml/Base/BsAddressSpaceTreePane.qml" line="+424"/>
         <source>Copy Node Id</source>
         <translation>Copia ID nodo</translation>
     </message>
@@ -364,12 +364,12 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+151"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+210"/>
         <source>Application</source>
         <translation>Applicazione</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+5"/>
         <source>&amp;Login</source>
         <translation>&amp;Accedi</translation>
     </message>
@@ -419,7 +419,7 @@
         <translation>Progetto</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+5"/>
         <source>&amp;New Project…</source>
         <translation>&amp;Nuovo progetto…</translation>
     </message>
@@ -459,7 +459,7 @@
         <translation>Visualizza</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Switch to &amp;Light Theme</source>
         <translation>Passa al tema &amp;chiaro</translation>
     </message>
@@ -489,7 +489,27 @@
         <translation>Mostra pannello &amp;log</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+12"/>
+        <source>&amp;Zoom (%1%)</source>
+        <translation>&amp;Zoom (%1%)</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Zoom &amp;In</source>
+        <translation>&amp;Ingrandisci</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Zoom &amp;Out</source>
+        <translation>&amp;Riduci</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>&amp;Reset to 100%</source>
+        <translation>Ri&amp;pristina al 100%</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <source>&amp;Value Format</source>
         <translation>Formato &amp;valore</translation>
     </message>
@@ -645,7 +665,7 @@
 <context>
     <name>BsNodeAttributes</name>
     <message>
-        <location filename="../qml/Base/BsNodeAttributes.qml" line="+50"/>
+        <location filename="../qml/Base/BsNodeAttributes.qml" line="+90"/>
         <source>ATTRIBUTES</source>
         <translation>ATTRIBUTI</translation>
     </message>
@@ -655,7 +675,7 @@
         <translation>Seleziona un nodo per visualizzarne gli attributi.</translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+76"/>
         <source>VALUE</source>
         <translation>VALORE</translation>
     </message>
@@ -683,7 +703,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+225"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+234"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Un numero decimale, ad esempio 12.5. Usa il punto come separatore.</translation>
     </message>
@@ -698,7 +718,7 @@
         <translation>Un numero intero compreso tra %1 e %2.</translation>
     </message>
     <message>
-        <location line="+264"/>
+        <location line="+274"/>
         <source>Copy Selected Rows</source>
         <translation>Copia righe selezionate</translation>
     </message>
@@ -778,12 +798,12 @@
         <translation>Seleziona i nodi nello spazio degli indirizzi, oppure trascinali qui, per aggiungerli alla vista di accesso ai dati.</translation>
     </message>
     <message>
-        <location line="+110"/>
+        <location line="+124"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Sola lettura: il server non concede CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+116"/>
         <location line="+2"/>
         <source>Remove from Data Access View</source>
         <translation>Rimuovi dalla vista di accesso ai dati</translation>
@@ -860,12 +880,12 @@
 <context>
     <name>BsOpcUaConnectionForm</name>
     <message>
-        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+342"/>
+        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+344"/>
         <source>Enter a username before requesting endpoints or connecting.</source>
         <translation>Inserisci un nome utente prima di richiedere gli endpoint o di connetterti.</translation>
     </message>
     <message>
-        <location line="-277"/>
+        <location line="-279"/>
         <source>Discovering servers…</source>
         <translation>Individuazione server…</translation>
     </message>
@@ -920,7 +940,7 @@
         <translation>Scansiona rete…</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>OPC UA server:</source>
         <translation>Server OPC UA:</translation>
     </message>
@@ -1008,7 +1028,7 @@
 <context>
     <name>BsStatusBar</name>
     <message>
-        <location filename="../qml/Base/BsStatusBar.qml" line="+84"/>
+        <location filename="../qml/Base/BsStatusBar.qml" line="+92"/>
         <source>Connected</source>
         <translation>Connesso</translation>
     </message>
@@ -1023,7 +1043,7 @@
         <translation>Offline</translation>
     </message>
     <message numerus="yes">
-        <location line="+28"/>
+        <location line="+30"/>
         <source>%n node(s) watched</source>
         <translation>
             <numerusform>%n nodo monitorato</numerusform>
@@ -1031,7 +1051,22 @@
         </translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+37"/>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Reset zoom to 100%</source>
+        <translation>Ripristina lo zoom al 100%</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Zoom %1% — click to reset to 100% (Ctrl+0)</source>
+        <translation>Zoom %1% — fai clic per ripristinare il 100% (Ctrl+0)</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Toggle the log panel</source>
         <translation>Mostra/nascondi il pannello log</translation>
     </message>
@@ -1188,7 +1223,7 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="+331"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="+337"/>
         <source>#</source>
         <translation>#</translation>
     </message>
@@ -1294,18 +1329,18 @@
         <translation>La fine dell&apos;intervallo precede l&apos;inizio.</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+41"/>
         <source>Not a valid port: %1</source>
         <translation>Porta non valida: %1</translation>
     </message>
     <message>
         <location line="+7"/>
-        <location line="+15"/>
+        <location line="+12"/>
         <source>Too many ports (%1); the maximum is %2.</source>
         <translation>Troppe porte (%1); il massimo è %2.</translation>
     </message>
     <message>
-        <location line="-2"/>
+        <location line="+10"/>
         <source>Enter at least one port.</source>
         <translation>Inserisci almeno una porta.</translation>
     </message>
@@ -1366,23 +1401,28 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+332"/>
+        <location line="+279"/>
+        <source>Zoom: %1%</source>
+        <translation>Zoom: %1%</translation>
+    </message>
+    <message>
+        <location line="+189"/>
         <source>Open Project</source>
         <translation>Apri progetto</translation>
     </message>
     <message>
         <location line="+1"/>
-        <location line="+109"/>
+        <location line="+108"/>
         <source>OPC UA projects (*.uaproj)</source>
         <translation>Progetti OPC UA (*.uaproj)</translation>
     </message>
     <message>
-        <location line="-109"/>
+        <location line="-108"/>
         <source>All files (*)</source>
         <translation>Tutti i file (*)</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+14"/>
         <source>Create New Project</source>
         <translation>Crea nuovo progetto</translation>
     </message>
@@ -1414,12 +1454,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+226"/>
+        <location line="+221"/>
         <source>Browse…</source>
         <translation>Sfoglia…</translation>
     </message>
     <message>
-        <location line="-220"/>
+        <location line="-215"/>
         <source>Full path:</source>
         <translation>Percorso completo:</translation>
     </message>
@@ -1434,7 +1474,7 @@
         <translation>Salva progetto con nome</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Unsaved changes</source>
         <translation>Modifiche non salvate</translation>
     </message>
@@ -1444,7 +1484,7 @@
         <translation>Il progetto &quot;%1&quot; contiene modifiche non salvate. Salvarle prima di continuare?</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+11"/>
         <source>Unsaved server changes</source>
         <translation>Modifiche al server non salvate</translation>
     </message>
@@ -1454,7 +1494,7 @@
         <translation>Il progetto server &quot;%1&quot; contiene modifiche non salvate. Salvarle prima di continuare?</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Clone server to Server Studio</source>
         <translation>Clona il server in Server Studio</translation>
     </message>
@@ -1474,12 +1514,12 @@
         <translation>Se disattivato, i nodi vengono rinominati in base al percorso di esplorazione sotto un unico namespace del clone.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Errore del progetto</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+19"/>
         <source>Settings</source>
         <translation>Impostazioni</translation>
     </message>
@@ -1509,12 +1549,12 @@
         <translation>Seleziona cartella progetti predefinita</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+11"/>
         <source>Connect to OPC UA server</source>
         <translation>Connetti al server OPC UA</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+42"/>
         <source>Password required</source>
         <translation>Password richiesta</translation>
     </message>
@@ -1540,7 +1580,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+763"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+767"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n nodo aggiunto alla vista dati.</numerusform>
@@ -1553,7 +1593,7 @@
         <translation>Nessun nodo figlio monitorabile trovato. Espandi prima il ramo.</translation>
     </message>
     <message>
-        <location line="+109"/>
+        <location line="+140"/>
         <source>Sampling interval set to %1 ms.</source>
         <translation>Intervallo di campionamento impostato su %1 ms.</translation>
     </message>
@@ -1998,7 +2038,7 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+376"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+383"/>
         <source>(none)</source>
         <translation>(nessuno)</translation>
     </message>

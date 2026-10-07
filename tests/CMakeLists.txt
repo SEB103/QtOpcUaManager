@@ -59,6 +59,25 @@ target_link_libraries(tst_updatecontroller
 
 add_test(NAME UpdateController.Unit COMMAND tst_updatecontroller)
 
+# UiZoomController lives in the application layer (app/); compile it into the test.
+qt_add_executable(tst_uizoomcontroller
+    unit/tst_uizoomcontroller.cpp
+    "${CMAKE_SOURCE_DIR}/app/uizoomcontroller.cpp"
+    "${CMAKE_SOURCE_DIR}/app/uizoomcontroller.h"
+)
+
+target_include_directories(tst_uizoomcontroller
+    PRIVATE "${CMAKE_SOURCE_DIR}/app"
+)
+
+target_link_libraries(tst_uizoomcontroller
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+)
+
+add_test(NAME UiZoomController.Unit COMMAND tst_uizoomcontroller)
+
 qt_add_executable(tst_nodedatabase
     unit/tst_nodedatabase.cpp
 )

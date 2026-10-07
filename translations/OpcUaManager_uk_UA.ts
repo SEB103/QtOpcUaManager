@@ -157,7 +157,7 @@
 <context>
     <name>BsAddressSpaceTreePane</name>
     <message>
-        <location filename="../qml/Base/BsAddressSpaceTreePane.qml" line="+293"/>
+        <location filename="../qml/Base/BsAddressSpaceTreePane.qml" line="+424"/>
         <source>Copy Node Id</source>
         <translation>Копіювати Node Id</translation>
     </message>
@@ -366,12 +366,12 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+151"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+210"/>
         <source>Application</source>
         <translation>Застосунок</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+5"/>
         <source>&amp;Login</source>
         <translation>&amp;Вхід</translation>
     </message>
@@ -421,7 +421,7 @@
         <translation>Проект</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+5"/>
         <source>&amp;New Project…</source>
         <translation>&amp;Новий проект…</translation>
     </message>
@@ -461,7 +461,7 @@
         <translation>Вигляд</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+6"/>
         <source>Switch to &amp;Light Theme</source>
         <translation>Перемкнути на &amp;світлу тему</translation>
     </message>
@@ -491,7 +491,27 @@
         <translation>Показати панель &amp;журналу</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+12"/>
+        <source>&amp;Zoom (%1%)</source>
+        <translation>&amp;Масштаб (%1%)</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Zoom &amp;In</source>
+        <translation>З&amp;більшити</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Zoom &amp;Out</source>
+        <translation>З&amp;меншити</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>&amp;Reset to 100%</source>
+        <translation>&amp;Скинути до 100%</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <source>&amp;Value Format</source>
         <translation>Формат &amp;значень</translation>
     </message>
@@ -647,7 +667,7 @@
 <context>
     <name>BsNodeAttributes</name>
     <message>
-        <location filename="../qml/Base/BsNodeAttributes.qml" line="+50"/>
+        <location filename="../qml/Base/BsNodeAttributes.qml" line="+90"/>
         <source>ATTRIBUTES</source>
         <translation>АТРИБУТИ</translation>
     </message>
@@ -657,7 +677,7 @@
         <translation>Виберіть вузол, щоб переглянути його атрибути.</translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+76"/>
         <source>VALUE</source>
         <translation>ЗНАЧЕННЯ</translation>
     </message>
@@ -685,7 +705,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+225"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+234"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Десяткове число, наприклад 12.5. Використовуйте крапку як роздільник.</translation>
     </message>
@@ -700,7 +720,7 @@
         <translation>Ціле число від %1 до %2.</translation>
     </message>
     <message>
-        <location line="+264"/>
+        <location line="+274"/>
         <source>Copy Selected Rows</source>
         <translation>Копіювати вибрані рядки</translation>
     </message>
@@ -780,12 +800,12 @@
         <translation>Позначте вузли в адресному просторі або перетягніть їх сюди, щоб додати до подання даних.</translation>
     </message>
     <message>
-        <location line="+110"/>
+        <location line="+124"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Лише для читання: сервер не надає CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+116"/>
         <location line="+2"/>
         <source>Remove from Data Access View</source>
         <translation>Прибрати з подання даних</translation>
@@ -862,12 +882,12 @@
 <context>
     <name>BsOpcUaConnectionForm</name>
     <message>
-        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+342"/>
+        <location filename="../qml/Base/BsOpcUaConnectionForm.qml" line="+344"/>
         <source>Enter a username before requesting endpoints or connecting.</source>
         <translation>Введіть ім’я користувача, перш ніж запитувати кінцеві точки або підключатися.</translation>
     </message>
     <message>
-        <location line="-277"/>
+        <location line="-279"/>
         <source>Discovering servers…</source>
         <translation>Пошук серверів…</translation>
     </message>
@@ -922,7 +942,7 @@
         <translation>Сканувати мережу…</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>OPC UA server:</source>
         <translation>Сервер OPC UA:</translation>
     </message>
@@ -1010,7 +1030,7 @@
 <context>
     <name>BsStatusBar</name>
     <message>
-        <location filename="../qml/Base/BsStatusBar.qml" line="+84"/>
+        <location filename="../qml/Base/BsStatusBar.qml" line="+92"/>
         <source>Connected</source>
         <translation>Підключено</translation>
     </message>
@@ -1025,7 +1045,7 @@
         <translation>Не в мережі</translation>
     </message>
     <message numerus="yes">
-        <location line="+28"/>
+        <location line="+30"/>
         <source>%n node(s) watched</source>
         <translation>
             <numerusform>відстежується %n вузол</numerusform>
@@ -1034,7 +1054,22 @@
         </translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+37"/>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Reset zoom to 100%</source>
+        <translation>Скинути масштаб до 100%</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Zoom %1% — click to reset to 100% (Ctrl+0)</source>
+        <translation>Масштаб %1% — натисніть, щоб скинути до 100% (Ctrl+0)</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Toggle the log panel</source>
         <translation>Перемкнути панель журналу</translation>
     </message>
@@ -1192,7 +1227,7 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="+331"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="+337"/>
         <source>#</source>
         <translation>#</translation>
     </message>
@@ -1298,18 +1333,18 @@
         <translation>Кінець діапазону менший за його початок.</translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+41"/>
         <source>Not a valid port: %1</source>
         <translation>Неприпустимий порт: %1</translation>
     </message>
     <message>
         <location line="+7"/>
-        <location line="+15"/>
+        <location line="+12"/>
         <source>Too many ports (%1); the maximum is %2.</source>
         <translation>Забагато портів (%1); максимум — %2.</translation>
     </message>
     <message>
-        <location line="-2"/>
+        <location line="+10"/>
         <source>Enter at least one port.</source>
         <translation>Вкажіть хоча б один порт.</translation>
     </message>
@@ -1370,23 +1405,28 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+332"/>
+        <location line="+279"/>
+        <source>Zoom: %1%</source>
+        <translation>Масштаб: %1%</translation>
+    </message>
+    <message>
+        <location line="+189"/>
         <source>Open Project</source>
         <translation>Відкрити проект</translation>
     </message>
     <message>
         <location line="+1"/>
-        <location line="+109"/>
+        <location line="+108"/>
         <source>OPC UA projects (*.uaproj)</source>
         <translation>Проекти OPC UA (*.uaproj)</translation>
     </message>
     <message>
-        <location line="-109"/>
+        <location line="-108"/>
         <source>All files (*)</source>
         <translation>Усі файли (*)</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+14"/>
         <source>Create New Project</source>
         <translation>Створити проект</translation>
     </message>
@@ -1418,12 +1458,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+226"/>
+        <location line="+221"/>
         <source>Browse…</source>
         <translation>Огляд…</translation>
     </message>
     <message>
-        <location line="-220"/>
+        <location line="-215"/>
         <source>Full path:</source>
         <translation>Повний шлях:</translation>
     </message>
@@ -1438,7 +1478,7 @@
         <translation>Зберегти проект як</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Unsaved changes</source>
         <translation>Незбережені зміни</translation>
     </message>
@@ -1448,7 +1488,7 @@
         <translation>У проекті «%1» є незбережені зміни. Зберегти їх перед продовженням?</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+11"/>
         <source>Unsaved server changes</source>
         <translation>Незбережені зміни сервера</translation>
     </message>
@@ -1458,7 +1498,7 @@
         <translation>Серверний проєкт «%1» має незбережені зміни. Зберегти їх перед продовженням?</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>Clone server to Server Studio</source>
         <translation>Клонувати сервер до Server Studio</translation>
     </message>
@@ -1478,12 +1518,12 @@
         <translation>Якщо вимкнено, вузли перейменовуються за шляхом огляду в єдиному просторі імен клону.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Помилка проекту</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+19"/>
         <source>Settings</source>
         <translation>Налаштування</translation>
     </message>
@@ -1513,12 +1553,12 @@
         <translation>Виберіть типову теку проектів</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+11"/>
         <source>Connect to OPC UA server</source>
         <translation>Підключитися до сервера OPC UA</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+42"/>
         <source>Password required</source>
         <translation>Потрібен пароль</translation>
     </message>
@@ -1544,7 +1584,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+763"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+767"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>До подання даних додано %n вузол.</numerusform>
@@ -1558,7 +1598,7 @@
         <translation>Не знайдено дочірніх вузлів для моніторингу. Спочатку розгорніть гілку.</translation>
     </message>
     <message>
-        <location line="+109"/>
+        <location line="+140"/>
         <source>Sampling interval set to %1 ms.</source>
         <translation>Інтервал опитування встановлено на %1 мс.</translation>
     </message>
@@ -2004,7 +2044,7 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+376"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+383"/>
         <source>(none)</source>
         <translation>(немає)</translation>
     </message>

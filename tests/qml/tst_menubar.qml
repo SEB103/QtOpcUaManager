@@ -45,6 +45,24 @@ Item {
         signalName: "checkForUpdatesRequested"
     }
 
+    SignalSpy {
+        id: zoomInSpy
+
+        signalName: "zoomInRequested"
+    }
+
+    SignalSpy {
+        id: zoomOutSpy
+
+        signalName: "zoomOutRequested"
+    }
+
+    SignalSpy {
+        id: zoomResetSpy
+
+        signalName: "zoomResetRequested"
+    }
+
     TestCase {
         id: testCase
 
@@ -130,6 +148,60 @@ Item {
                 compare(item.icon.height, plainItem.icon.height,
                         "icon height of \"" + item.text + "\"");
             }
+        }
+
+        /*!
+            Verifies the View > Zoom submenu: its title shows the zoom percent,
+            each entry emits its request signal, and the entries are disabled at
+            the ladder ends and at 100 % respectively.
+        */
+        function test_menuBarZoomSubmenu() {
+            const menuBar = createTemporaryObject(menuBarComponent, root);
+            verify(menuBar !== null);
+
+            let viewMenu = null;
+            for (let i = 0; i < menuBar.count; ++i) {
+                if (menuBar.menuAt(i).title === "View")
+                    viewMenu = menuBar.menuAt(i);
+            }
+            verify(viewMenu !== null, "View menu not found");
+
+            let zoomMenu = null;
+            for (let j = 0; j < viewMenu.count; ++j) {
+                const item = viewMenu.itemAt(j);
+                if (item && item.subMenu && item.subMenu.title.indexOf("Zoom") >= 0)
+                    zoomMenu = item.subMenu;
+            }
+            verify(zoomMenu !== null, "View > Zoom submenu not found");
+            compare(zoomMenu.count, 3);
+
+            menuBar.zoomPercent = 125;
+            verify(zoomMenu.title.indexOf("125%") >= 0, zoomMenu.title);
+
+            zoomInSpy.target = menuBar;
+            zoomOutSpy.target = menuBar;
+            zoomResetSpy.target = menuBar;
+            zoomInSpy.clear();
+            zoomOutSpy.clear();
+            zoomResetSpy.clear();
+
+            const zoomIn = zoomMenu.itemAt(0);
+            const zoomOut = zoomMenu.itemAt(1);
+            const reset = zoomMenu.itemAt(2);
+            verify(reset.enabled);
+            zoomIn.triggered();
+            zoomOut.triggered();
+            reset.triggered();
+            compare(zoomInSpy.count, 1);
+            compare(zoomOutSpy.count, 1);
+            compare(zoomResetSpy.count, 1);
+
+            menuBar.zoomPercent = 100;
+            verify(!reset.enabled, "reset must be disabled at 100%");
+            menuBar.canZoomIn = false;
+            menuBar.canZoomOut = false;
+            verify(!zoomIn.enabled);
+            verify(!zoomOut.enabled);
         }
 
         /*! Verifies that BsOpcUaConnectionForm can be created with its default state. */

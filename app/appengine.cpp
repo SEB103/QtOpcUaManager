@@ -21,6 +21,7 @@
 #include "appinfo.h"
 #include "licensemodel.h"
 #include "localecontroller.h"
+#include "uizoomcontroller.h"
 #include "updatecontroller.h"
 #include "qmlapi/networkscancontroller.h"
 #include "qmlapi/opcuamanager.h"
@@ -423,6 +424,21 @@ void AppEngine::setUpdateController(UpdateController* controller)
         return;
 
     rootContext()->setContextProperty("cppUpdate", controller);
+}
+
+/*!
+ * \brief Publishes the global UI zoom \a controller to QML as \c cppUiZoom.
+ *
+ * Main.qml scales its zoom layer and the popup overlay by the controller's
+ * zoomFactor and binds the zoom shortcuts and menu entries to it.
+ */
+void AppEngine::setUiZoomController(UiZoomController* controller)
+{
+    m_uiZoomController = controller;
+    if (!controller)
+        return;
+
+    rootContext()->setContextProperty("cppUiZoom", controller);
 }
 
 void AppEngine::createOpcUaRuntime()

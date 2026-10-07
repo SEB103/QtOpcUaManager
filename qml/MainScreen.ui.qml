@@ -46,6 +46,15 @@ Pane {
     /*! Height of the trend panel while it is shown. */
     property int trendPanelHeight: 220
 
+    /*! Active global UI zoom in percent, forwarded to the View menu. */
+    property int zoomPercent: 100
+
+    /*! Whether a larger zoom step is available, forwarded to the View menu. */
+    property bool canZoomIn: true
+
+    /*! Whether a smaller zoom step is available, forwarded to the View menu. */
+    property bool canZoomOut: true
+
     // A column keeps the browser, the banner, and the log panel from overlapping:
     // a hidden layout child takes no space, so no anchor points at an invisible
     // item when the banner or the log panel is collapsed.
@@ -76,6 +85,9 @@ Pane {
                     darkTheme: main.darkTheme
                     logPanelVisible: main.logPanelVisible
                     trendPanelVisible: main.trendPanelVisible
+                    zoomPercent: main.zoomPercent
+                    canZoomIn: main.canZoomIn
+                    canZoomOut: main.canZoomOut
                 }
 
                 Base.BsTopBarActions {

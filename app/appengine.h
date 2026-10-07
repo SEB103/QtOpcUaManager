@@ -15,6 +15,7 @@ class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
 class ServerStudio;
+class UiZoomController;
 class UpdateController;
 class QThread;
 
@@ -54,6 +55,9 @@ public:
 
     /** Publishes the update \a controller to QML as \c cppUpdate. */
     void setUpdateController(UpdateController* controller);
+
+    /** Publishes the global UI zoom \a controller to QML as \c cppUiZoom. */
+    void setUiZoomController(UiZoomController* controller);
 
     /** Returns the filtered application log exposed to QML. */
     LogFilterModel* logModel() const { return m_logFilterModel; }
@@ -100,6 +104,9 @@ private:
 
     /** Update checker exposed to QML as \c cppUpdate; owned by main(). */
     UpdateController* m_updateController = nullptr;
+
+    /** Global UI zoom exposed to QML as \c cppUiZoom; owned by main(). */
+    UiZoomController* m_uiZoomController = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

@@ -26,8 +26,14 @@ Rectangle {
     /*! Whether the log panel is currently shown, used to highlight the toggle. */
     property bool logPanelVisible: false
 
+    /*! Active global UI zoom in percent; any value other than 100 shows the zoom indicator. */
+    property int zoomPercent: 100
+
     /*! Emitted when the user asks to show or hide the log panel. */
     signal logToggleRequested()
+
+    /*! Emitted when the user clicks the zoom indicator to restore 100 %. */
+    signal zoomResetRequested()
 
     // Client state 1 is OpcUaManager::ClientConnecting.
     /*! Whether a connect or disconnect transition is in progress. */
@@ -141,6 +147,22 @@ Rectangle {
             HoverHandler {
                 id: messageHover
             }
+        }
+
+        // Shown only while the UI is zoomed, like the zoom badge of a web browser;
+        // clicking it restores the default size.
+        ToolButton {
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredHeight: 26
+            visible: root.zoomPercent !== 100
+            flat: true
+            padding: 4
+            text: qsTr("%1%").arg(root.zoomPercent)
+            font.pixelSize: 12
+            Accessible.name: qsTr("Reset zoom to 100%")
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Zoom %1% — click to reset to 100% (Ctrl+0)").arg(root.zoomPercent)
+            onClicked: root.zoomResetRequested()
         }
 
         ToolButton {

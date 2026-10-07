@@ -112,6 +112,36 @@ MenuBar {
     /*! Whether the trend panel is currently shown, used to word the menu item. */
     property bool trendPanelVisible: false
 
+    /*! Active global UI zoom in percent, shown in the View > Zoom submenu title. */
+    property int zoomPercent: 100
+
+    /*! Whether a larger zoom step is available; enables "Zoom In". */
+    property bool canZoomIn: true
+
+    /*! Whether a smaller zoom step is available; enables "Zoom Out". */
+    property bool canZoomOut: true
+
+    /*!
+        \qmlsignal BsMenuBar::zoomInRequested()
+        Emitted when the user selects View > Zoom > Zoom In. The corresponding
+        handler is \c onZoomInRequested.
+    */
+    signal zoomInRequested()
+
+    /*!
+        \qmlsignal BsMenuBar::zoomOutRequested()
+        Emitted when the user selects View > Zoom > Zoom Out. The corresponding
+        handler is \c onZoomOutRequested.
+    */
+    signal zoomOutRequested()
+
+    /*!
+        \qmlsignal BsMenuBar::zoomResetRequested()
+        Emitted when the user resets the zoom to 100 % from View > Zoom. The
+        corresponding handler is \c onZoomResetRequested.
+    */
+    signal zoomResetRequested()
+
     /*!
         \qmlsignal BsMenuBar::settingsRequested()
         Emitted when the user opens application settings. The corresponding
@@ -351,6 +381,37 @@ MenuBar {
                                              : qsTr("Show &Log Panel")
             icon.source: "qrc:/images/svg/article.svg"
             onTriggered: appMenuBar.logPanelToggleRequested()
+        }
+
+        MenuSeparator {}
+
+        // Global UI zoom. The same actions are bound to Ctrl++, Ctrl+- and Ctrl+0
+        // in the main window; the hints name those shortcuts. The menu is wider
+        // than the style's 200 px so the hints are not elided in any language.
+        Menu {
+            width: 280
+            title: qsTr("&Zoom (%1%)").arg(appMenuBar.zoomPercent)
+            icon.source: "qrc:/images/svg/search.svg"
+            icon.width: 24
+            icon.height: 24
+
+            BsMenuItem {
+                text: qsTr("Zoom &In") + "    Ctrl++"
+                enabled: appMenuBar.canZoomIn
+                onTriggered: appMenuBar.zoomInRequested()
+            }
+
+            BsMenuItem {
+                text: qsTr("Zoom &Out") + "    Ctrl+-"
+                enabled: appMenuBar.canZoomOut
+                onTriggered: appMenuBar.zoomOutRequested()
+            }
+
+            BsMenuItem {
+                text: qsTr("&Reset to 100%") + "    Ctrl+0"
+                enabled: appMenuBar.zoomPercent !== 100
+                onTriggered: appMenuBar.zoomResetRequested()
+            }
         }
 
         MenuSeparator {}

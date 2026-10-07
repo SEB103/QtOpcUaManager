@@ -33,6 +33,23 @@ ApplicationWindow {
     /*! Whether the application currently uses the dark Material theme. */
     property bool darkTheme: Application.styleHints.colorScheme === Qt.Dark
 
+    /*!
+        Global UI zoom as a scale factor (1.0 = 100 %), driven by \c cppUiZoom.
+        It scales \c zoomLayer and the popup overlay, so screens, menus, dialogs,
+        and tooltips all follow one value.
+    */
+    readonly property real uiZoomFactor: cppUiZoom.zoomFactor
+
+    /*!
+        Window width in logical (zoom-adjusted) units: the width the UI and its
+        popups lay out in. It is valid from the start, unlike the width of the
+        content item, which is still 0 while the window is being created.
+    */
+    readonly property real uiWidth: width / uiZoomFactor
+
+    /*! Window height in logical (zoom-adjusted) units; see \l uiWidth. */
+    readonly property real uiHeight: height / uiZoomFactor
+
     /*! Pending action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
 
@@ -146,6 +163,29 @@ ApplicationWindow {
         cloneOptionsDialog.open()
     }
 
+    /*!
+        Puts the popup overlay into the coordinate space of \c zoomLayer: the same
+        scale around the top-left corner and the same logical size. Popups then
+        open at the zoomed size and at the right place, and modal dimmers still
+        cover exactly the window.
+
+        The overlay resets its own size to the window size whenever the window is
+        resized, so this runs again on every overlay and zoom layer geometry change;
+        it only writes values that differ, which ends the update cycle.
+    */
+    function syncOverlayZoom() {
+        const overlay = mainWindow.Overlay.overlay
+        if (!overlay)
+            return
+        overlay.transformOrigin = Item.TopLeft
+        if (overlay.scale !== zoomLayer.scale)
+            overlay.scale = zoomLayer.scale
+        if (overlay.width !== zoomLayer.width)
+            overlay.width = zoomLayer.width
+        if (overlay.height !== zoomLayer.height)
+            overlay.height = zoomLayer.height
+    }
+
     // Guard application exit: prompt to save when the active project or the
     // Server Studio project is dirty. Resolve the client project first, then the
     // Server Studio project, then quit.
@@ -168,25 +208,136 @@ ApplicationWindow {
         value: mainWindow.darkTheme
     }
 
-    // The workspace is present but hidden until a project is active, so its menu
-    // and browser bindings stay wired across project open/close.
-    MainScreen {
-        id: mainScreen
-        anchors.fill: parent
-        darkTheme: mainWindow.darkTheme
-        visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
-        logPanelVisible: mainWindow.logPanelVisible
-        trendPanelVisible: mainWindow.trendPanelVisible
+    // Global UI zoom, like the page zoom of a web browser: the whole window UI is
+    // laid out at the logical size window / zoom and scaled back up to the window
+    // size. Layouts therefore reflow (more room at 80 %, less at 150 %) instead of
+    // being clipped. Popups follow through syncOverlayZoom().
+    Item {
+        id: zoomLayer
+
+        // The window has no header, footer, or menuBar, so the zoom layer covers
+        // the whole window, exactly like the popup overlay.
+        width: mainWindow.uiWidth
+        height: mainWindow.uiHeight
+        scale: mainWindow.uiZoomFactor
+        transformOrigin: Item.TopLeft
+
+        onWidthChanged: mainWindow.syncOverlayZoom()
+        onHeightChanged: mainWindow.syncOverlayZoom()
+        onScaleChanged: mainWindow.syncOverlayZoom()
+
+        // The workspace is present but hidden until a project is active, so its
+        // menu and browser bindings stay wired across project open/close.
+        MainScreen {
+            id: mainScreen
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: statusBar.visible ? statusBar.top : parent.bottom
+            darkTheme: mainWindow.darkTheme
+            visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
+            logPanelVisible: mainWindow.logPanelVisible
+            trendPanelVisible: mainWindow.trendPanelVisible
+            zoomPercent: cppUiZoom.zoomPercent
+            canZoomIn: cppUiZoom.canZoomIn
+            canZoomOut: cppUiZoom.canZoomOut
+        }
+
+        // The status bar belongs to the workspace; the launcher has nothing to
+        // report. It lives inside the zoom layer so it scales with the workspace.
+        Base.BsStatusBar {
+            id: statusBar
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: implicitHeight
+            visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
+            message: mainWindow.statusMessage
+            messageLevel: mainWindow.statusMessageLevel
+            logPanelVisible: mainWindow.logPanelVisible
+            zoomPercent: cppUiZoom.zoomPercent
+
+            onLogToggleRequested: mainWindow.logPanelVisible = !mainWindow.logPanelVisible
+            onZoomResetRequested: cppUiZoom.resetZoom()
+        }
+
+        // The launcher is the entry point when no project is active and the
+        // client is not connected through Server Studio.
+        LauncherScreen {
+            id: launcherScreen
+
+            anchors.fill: parent
+            darkTheme: mainWindow.darkTheme
+            visible: !mainWindow.workspaceActive && !mainWindow.serverStudioActive
+
+            onOpenProjectRequested: openProjectDialog.open()
+            onCreateProjectRequested: newProjectDialog.open()
+            onOpenServerStudioRequested: mainWindow.serverStudioActive = true
+        }
+
+        // Server Studio workspace: runs and controls the local OPC UA server runtime.
+        ServerStudioScreen {
+            id: serverStudioScreen
+
+            anchors.fill: parent
+            darkTheme: mainWindow.darkTheme
+            visible: mainWindow.serverStudioActive
+
+            onCloseRequested: mainWindow.serverStudioActive = false
+        }
     }
 
-    // The status bar belongs to the workspace; the launcher has nothing to report.
-    footer: Base.BsStatusBar {
-        visible: mainWindow.workspaceActive && !mainWindow.serverStudioActive
-        message: mainWindow.statusMessage
-        messageLevel: mainWindow.statusMessageLevel
-        logPanelVisible: mainWindow.logPanelVisible
+    // Zoom shortcuts work on every screen of the main window. "Ctrl+=" covers
+    // layouts where "+" needs Shift; numeric keypad keys match as well.
+    Shortcut {
+        sequences: [StandardKey.ZoomIn, "Ctrl+="]
+        onActivated: cppUiZoom.zoomIn()
+    }
 
-        onLogToggleRequested: mainWindow.logPanelVisible = !mainWindow.logPanelVisible
+    Shortcut {
+        sequences: [StandardKey.ZoomOut]
+        onActivated: cppUiZoom.zoomOut()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+0"
+        onActivated: cppUiZoom.resetZoom()
+    }
+
+    // Short-lived zoom badge in the top-right corner, so a zoom change is
+    // confirmed on every screen, including those without a status bar.
+    ToolTip {
+        id: zoomIndicator
+
+        parent: zoomLayer
+        x: zoomLayer.width - width - 12
+        y: 52
+        timeout: 1200
+        text: qsTr("Zoom: %1%").arg(cppUiZoom.zoomPercent)
+    }
+
+    Connections {
+        target: cppUiZoom
+
+        function onZoomChanged() {
+            zoomIndicator.open()
+        }
+    }
+
+    // QQuickOverlay re-applies the window size on every window resize; restore
+    // the zoomed logical size right afterwards.
+    Connections {
+        target: mainWindow.Overlay.overlay
+
+        function onWidthChanged() {
+            mainWindow.syncOverlayZoom()
+        }
+
+        function onHeightChanged() {
+            mainWindow.syncOverlayZoom()
+        }
     }
 
     Connections {
@@ -203,29 +354,6 @@ ApplicationWindow {
         function onCloseRequested() {
             mainWindow.trendPanelVisible = false
         }
-    }
-
-    // The launcher is the entry point when no project is active and the client
-    // is not connected through Server Studio.
-    LauncherScreen {
-        id: launcherScreen
-        anchors.fill: parent
-        darkTheme: mainWindow.darkTheme
-        visible: !mainWindow.workspaceActive && !mainWindow.serverStudioActive
-
-        onOpenProjectRequested: openProjectDialog.open()
-        onCreateProjectRequested: newProjectDialog.open()
-        onOpenServerStudioRequested: mainWindow.serverStudioActive = true
-    }
-
-    // Server Studio workspace: runs and controls the local OPC UA server runtime.
-    ServerStudioScreen {
-        id: serverStudioScreen
-        anchors.fill: parent
-        darkTheme: mainWindow.darkTheme
-        visible: mainWindow.serverStudioActive
-
-        onCloseRequested: mainWindow.serverStudioActive = false
     }
 
     Connections {
@@ -308,6 +436,18 @@ ApplicationWindow {
             mainWindow.trendPanelVisible = !mainWindow.trendPanelVisible
         }
 
+        function onZoomInRequested() {
+            cppUiZoom.zoomIn()
+        }
+
+        function onZoomOutRequested() {
+            cppUiZoom.zoomOut()
+        }
+
+        function onZoomResetRequested() {
+            cppUiZoom.resetZoom()
+        }
+
         function onOpenProjectRequested() {
             mainWindow.runGuarded(() => openProjectDialog.open())
         }
@@ -377,9 +517,8 @@ ApplicationWindow {
         /*! Local path of the destination folder for the new project. */
         property string projectFolder: ""
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 560)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 560)
         title: qsTr("Create New Project")
         modal: true
         focus: true
@@ -481,9 +620,8 @@ ApplicationWindow {
     Dialog {
         id: unsavedDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 460)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 460)
         title: qsTr("Unsaved changes")
         modal: true
         focus: true
@@ -517,9 +655,8 @@ ApplicationWindow {
     Dialog {
         id: serverStudioUnsavedDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 460)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 460)
         title: qsTr("Unsaved server changes")
         modal: true
         focus: true
@@ -554,9 +691,8 @@ ApplicationWindow {
     Dialog {
         id: cloneOptionsDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 480)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 480)
         title: qsTr("Clone server to Server Studio")
         modal: true
         focus: true
@@ -614,9 +750,8 @@ ApplicationWindow {
     Dialog {
         id: projectErrorDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 480)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 480)
         title: qsTr("Project error")
         modal: true
         focus: true
@@ -634,9 +769,8 @@ ApplicationWindow {
     Dialog {
         id: settingsDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 620)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 620)
         title: qsTr("Settings")
         modal: true
         focus: true
@@ -698,10 +832,9 @@ ApplicationWindow {
     Dialog {
         id: apiServerDialog
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 940)
-        height: Math.min(mainWindow.height - 80, implicitHeight)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 940)
+        height: Math.min(mainWindow.uiHeight - 80, implicitHeight)
         title: qsTr("Connect to OPC UA server")
         modal: true
         focus: true
@@ -742,9 +875,8 @@ ApplicationWindow {
         /*! User name the stored connection authenticates as. */
         property string userName: ""
 
-        x: Math.round((mainWindow.width - width) / 2)
-        y: Math.round((mainWindow.height - height) / 2)
-        width: Math.min(mainWindow.width - 80, 420)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 420)
         title: qsTr("Password required")
         modal: true
         focus: true
@@ -775,15 +907,19 @@ ApplicationWindow {
         }
     }
 
+    // AboutDialog and UpdateDialog size themselves from their parent; the zoom
+    // layer provides the logical (zoom-adjusted) window size.
     AboutDialog {
         id: aboutDialog
 
+        parent: zoomLayer
         darkTheme: mainWindow.darkTheme
     }
 
     UpdateDialog {
         id: updateDialog
 
+        parent: zoomLayer
         darkTheme: mainWindow.darkTheme
 
         // Resolve unsaved client and Server Studio changes first (the user may
@@ -812,6 +948,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        mainWindow.syncOverlayZoom()
         if (cppUpdate.featureEnabled && cppUpdate.checkAutomatically)
             cppUpdate.checkNow()
     }
