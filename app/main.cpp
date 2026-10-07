@@ -12,6 +12,7 @@
 #include "appengine.h"
 #include "localecontroller.h"
 #include "themecontroller.h"
+#include "uilayoutcontroller.h"
 #include "uizoomcontroller.h"
 #include "updatecontroller.h"
 #include "core/apppaths.h"
@@ -79,6 +80,10 @@ int main(int argc, char *argv[])
     // restores the saved choice so the start page already uses that theme.
     ThemeController themeController(app.settings());
 
+    // Main window geometry/visibility and splitter layout exposed to QML as
+    // cppUiLayout. It outlives the engine, so QML can save on aboutToQuit.
+    UiLayoutController uiLayoutController(app.settings());
+
     QCommandLineParser parser;
     parser.setApplicationDescription(
         QStringLiteral("Qt OPC UA client for browsing and testing OPC UA servers."));
@@ -104,6 +109,7 @@ int main(int argc, char *argv[])
     engine.setUpdateController(&updateController);
     engine.setUiZoomController(&uiZoomController);
     engine.setThemeController(&themeController);
+    engine.setUiLayoutController(&uiLayoutController);
 
     QObject::connect(
         &engine,

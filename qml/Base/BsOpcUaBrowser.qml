@@ -27,7 +27,38 @@ Item {
     /*! Whether each selected row holds a boolean. */
     property alias selectedStepped: dataView.selectedStepped
 
+    /*!
+        Returns the layout of all resizable panes as an object that maps a
+        layout name to an opaque SplitView state: the column widths of Address
+        Space, Data View, and Attributes (\c browserColumns), the address-space
+        segment split (\c addressSpaceSegments), and the attribute/value split of
+        the Attributes panel (\c attributeSections).
+    */
+    function saveSplitStates() {
+        return {
+            browserColumns: columnSplit.saveState(),
+            addressSpaceSegments: addressTree.saveSplitState(),
+            attributeSections: attributesPanel.saveSplitState()
+        }
+    }
+
+    /*!
+        Restores the pane layout from \a states, an object in the format returned
+        by saveSplitStates(). Missing entries keep their default sizes, so a
+        partial or empty object is accepted.
+    */
+    function restoreSplitStates(states) {
+        if (!states)
+            return
+        if (states.browserColumns)
+            columnSplit.restoreState(states.browserColumns)
+        addressTree.restoreSplitState(states.addressSpaceSegments)
+        attributesPanel.restoreSplitState(states.attributeSections)
+    }
+
     SplitView {
+        id: columnSplit
+
         anchors.fill: parent
         anchors.margins: 8
         orientation: Qt.Horizontal
@@ -69,6 +100,8 @@ Item {
         }
 
         BsNodeAttributes {
+            id: attributesPanel
+
             SplitView.preferredWidth: 320
             SplitView.minimumWidth: 240
             SplitView.fillHeight: true

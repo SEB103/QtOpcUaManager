@@ -31,6 +31,9 @@ Pane {
     /*! Exposes the trend panel so Main can react to its close request. */
     property alias trendPanel: trendPanel
 
+    /*! Exposes the browser area so Main can save and restore its pane layout. */
+    property alias browser: opcUaBrowser
+
     /*! Whether child controls should follow the dark theme state. */
     property bool darkTheme: false
 
@@ -45,6 +48,9 @@ Pane {
 
     /*! Height of the trend panel while it is shown. */
     property int trendPanelHeight: 220
+
+    /*! Whether the main window is in full screen mode, forwarded to the View menu. */
+    property bool fullScreen: false
 
     /*! Active global UI zoom in percent, forwarded to the View menu. */
     property int zoomPercent: 100
@@ -85,6 +91,7 @@ Pane {
                     darkTheme: main.darkTheme
                     logPanelVisible: main.logPanelVisible
                     trendPanelVisible: main.trendPanelVisible
+                    fullScreen: main.fullScreen
                     zoomPercent: main.zoomPercent
                     canZoomIn: main.canZoomIn
                     canZoomOut: main.canZoomOut

@@ -26,7 +26,27 @@ Item {
         fullTreePane.revealNode(nodeId, nodePath)
     }
 
+    /*!
+        Returns the size of the address-space and focus-node segments as an
+        opaque SplitView state for restoreSplitState().
+    */
+    function saveSplitState() {
+        return segmentSplit.saveState()
+    }
+
+    /*!
+        Restores the segment sizes from \a state, previously returned by
+        saveSplitState(). Returns \c false for a missing or unusable state, which
+        keeps the default sizes. The focus-node segment keeps its restored size
+        while it is hidden and uses it when a focus node is pinned.
+    */
+    function restoreSplitState(state) {
+        return state ? segmentSplit.restoreState(state) : false
+    }
+
     SplitView {
+        id: segmentSplit
+
         anchors.fill: parent
         orientation: Qt.Vertical
 

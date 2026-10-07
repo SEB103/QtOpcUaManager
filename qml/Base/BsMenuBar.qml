@@ -112,6 +112,16 @@ MenuBar {
     /*! Whether the trend panel is currently shown, used to word the menu item. */
     property bool trendPanelVisible: false
 
+    /*! Whether the main window is in full screen mode, used to word the menu item. */
+    property bool fullScreen: false
+
+    /*!
+        \qmlsignal BsMenuBar::fullScreenToggleRequested()
+
+        Emitted when the user asks to enter or leave full screen mode.
+    */
+    signal fullScreenToggleRequested()
+
     /*! Active global UI zoom in percent, shown in the View > Zoom submenu title. */
     property int zoomPercent: 100
 
@@ -381,6 +391,15 @@ MenuBar {
                                              : qsTr("Show &Log Panel")
             icon.source: "qrc:/images/svg/article.svg"
             onTriggered: appMenuBar.logPanelToggleRequested()
+        }
+
+        // The same action is bound to the platform full screen key (F11 on
+        // Windows) in the main window; the hint names that shortcut.
+        BsMenuItem {
+            text: (appMenuBar.fullScreen ? qsTr("Exit &Full Screen")
+                                         : qsTr("&Full Screen")) + "    F11"
+            icon.source: "qrc:/images/svg/fullscreen.svg"
+            onTriggered: appMenuBar.fullScreenToggleRequested()
         }
 
         MenuSeparator {}

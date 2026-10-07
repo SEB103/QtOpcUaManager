@@ -97,6 +97,26 @@ target_link_libraries(tst_themecontroller
 
 add_test(NAME ThemeController.Unit COMMAND tst_themecontroller)
 
+# UiLayoutController lives in the application layer (app/); compile it into the test.
+qt_add_executable(tst_uilayoutcontroller
+    unit/tst_uilayoutcontroller.cpp
+    "${CMAKE_SOURCE_DIR}/app/uilayoutcontroller.cpp"
+    "${CMAKE_SOURCE_DIR}/app/uilayoutcontroller.h"
+)
+
+target_include_directories(tst_uilayoutcontroller
+    PRIVATE "${CMAKE_SOURCE_DIR}/app"
+)
+
+target_link_libraries(tst_uilayoutcontroller
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Test
+)
+
+add_test(NAME UiLayoutController.Unit COMMAND tst_uilayoutcontroller)
+
 qt_add_executable(tst_nodedatabase
     unit/tst_nodedatabase.cpp
 )
@@ -543,6 +563,7 @@ target_sources(tst_qml
         qml/tst_attributes.qml
         qml/tst_dataview.qml
         qml/tst_diagnostics.qml
+        qml/tst_layoutstate.qml
         qml/tst_trend.qml
         qml/tst_treedrag.qml
         qml/tst_menubar.qml

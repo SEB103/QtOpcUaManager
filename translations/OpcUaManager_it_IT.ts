@@ -133,7 +133,7 @@
 <context>
     <name>BsAddressSpaceTree</name>
     <message>
-        <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+58"/>
+        <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+78"/>
         <source>ADDRESS SPACE</source>
         <translation>SPAZIO DEGLI INDIRIZZI</translation>
     </message>
@@ -364,7 +364,7 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+210"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+220"/>
         <source>Application</source>
         <translation>Applicazione</translation>
     </message>
@@ -487,6 +487,16 @@
         <location line="+1"/>
         <source>Show &amp;Log Panel</source>
         <translation>Mostra pannello &amp;log</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Exit &amp;Full Screen</source>
+        <translation>Esci da &amp;schermo intero</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&amp;Full Screen</source>
+        <translation>&amp;Schermo intero</translation>
     </message>
     <message>
         <location line="+12"/>
@@ -665,7 +675,7 @@
 <context>
     <name>BsNodeAttributes</name>
     <message>
-        <location filename="../qml/Base/BsNodeAttributes.qml" line="+90"/>
+        <location filename="../qml/Base/BsNodeAttributes.qml" line="+109"/>
         <source>ATTRIBUTES</source>
         <translation>ATTRIBUTI</translation>
     </message>
@@ -1421,17 +1431,17 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+27"/>
+        <location filename="../qml/Main.qml" line="+28"/>
         <source>%1 — %2%3</source>
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+297"/>
+        <location line="+414"/>
         <source>Zoom: %1%</source>
         <translation>Zoom: %1%</translation>
     </message>
     <message>
-        <location line="+190"/>
+        <location line="+194"/>
         <source>Open Project</source>
         <translation>Apri progetto</translation>
     </message>

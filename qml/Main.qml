@@ -22,7 +22,8 @@ ApplicationWindow {
     height: 800
     minimumWidth: 800
     minimumHeight: 600
-    visible: true
+    // The window starts hidden: restoreUiLayout() applies the saved geometry first
+    // and then shows the window in the saved visibility, so it does not jump.
     title: cppProjectManager.hasActiveProject
            ? qsTr("%1 — %2%3")
                  .arg(cppAppInfo.appName)
@@ -55,6 +56,23 @@ ApplicationWindow {
 
     /*! Window height in logical (zoom-adjusted) units; see \l uiWidth. */
     readonly property real uiHeight: height / uiZoomFactor
+
+    /*!
+        Last geometry of the window in the normal (not maximized, not full
+        screen) state. It is saved on exit, so un-maximizing after the next start
+        returns to the size the user chose.
+    */
+    property rect normalGeometry: Qt.rect(0, 0, 0, 0)
+
+    /*!
+        Last shown visibility (Window.Windowed, Window.Maximized, or
+        Window.FullScreen), saved on exit. Minimized and hidden states are not
+        recorded, so the next start never opens minimized.
+    */
+    property int lastVisibility: Window.Windowed
+
+    /*! Visibility to return to when full screen mode is left. */
+    property int preFullScreenVisibility: Window.Windowed
 
     /*! Pending action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
@@ -192,19 +210,112 @@ ApplicationWindow {
             overlay.height = zoomLayer.height
     }
 
+    /*!
+        Records the current geometry as \l normalGeometry while the window is in
+        the normal state. Runs debounced through \c normalGeometryTimer: when the
+        window is maximized, the size changes may arrive before the visibility
+        change, and by the time the timer fires the window already reports
+        Window.Maximized, so the maximized size is not taken as the normal one.
+    */
+    function rememberNormalGeometry() {
+        if (mainWindow.visibility === Window.Windowed)
+            mainWindow.normalGeometry = Qt.rect(mainWindow.x, mainWindow.y,
+                                                mainWindow.width, mainWindow.height)
+    }
+
+    /*!
+        Applies the saved user layout and shows the window: the normal geometry,
+        the sizes of all resizable panes, and finally the saved visibility
+        (normal, maximized, or full screen). Without saved state the window opens
+        at its default size where the platform places it.
+    */
+    function restoreUiLayout() {
+        const geometry = cppUiLayout.restoredWindowGeometry()
+        if (geometry.width > 0 && geometry.height > 0) {
+            mainWindow.x = geometry.x
+            mainWindow.y = geometry.y
+            mainWindow.width = geometry.width
+            mainWindow.height = geometry.height
+            mainWindow.normalGeometry = geometry
+        }
+
+        mainScreen.browser.restoreSplitStates(cppUiLayout.splitStates())
+
+        const visibility = cppUiLayout.restoredWindowVisibility()
+        mainWindow.lastVisibility = visibility
+        mainWindow.visibility = visibility
+    }
+
+    /*!
+        Saves the window state and the pane layout. Called when the window is
+        closed and again when the application is about to quit, which also
+        covers quitting without a close request (for example for an update).
+    */
+    function saveUiLayout() {
+        mainWindow.rememberNormalGeometry()
+        cppUiLayout.saveWindowState(mainWindow.normalGeometry, mainWindow.lastVisibility)
+        cppUiLayout.saveSplitStates(mainScreen.browser.saveSplitStates())
+    }
+
+    /*!
+        Enters full screen mode, or leaves it for the state the window had
+        before (normal or maximized).
+    */
+    function toggleFullScreen() {
+        if (mainWindow.visibility === Window.FullScreen) {
+            mainWindow.visibility = mainWindow.preFullScreenVisibility
+        } else {
+            mainWindow.preFullScreenVisibility = mainWindow.visibility === Window.Maximized
+                                                 ? Window.Maximized : Window.Windowed
+            mainWindow.visibility = Window.FullScreen
+        }
+    }
+
     // Guard application exit: prompt to save when the active project or the
     // Server Studio project is dirty. Resolve the client project first, then the
     // Server Studio project, then quit.
     onClosing: (close) => {
+        // Save while the window still reports its real visibility and geometry.
+        mainWindow.saveUiLayout()
         if (cppProjectManager.dirty || cppServerStudio.dirty) {
             close.accepted = false
             runGuarded(() => mainWindow.runServerStudioGuarded(() => Qt.quit()))
         }
     }
 
+    // Track the normal geometry and the last shown visibility for saveUiLayout().
+    onXChanged: normalGeometryTimer.restart()
+    onYChanged: normalGeometryTimer.restart()
+    onWidthChanged: normalGeometryTimer.restart()
+    onHeightChanged: normalGeometryTimer.restart()
+    onVisibilityChanged: {
+        if (visibility === Window.Windowed || visibility === Window.Maximized
+                || visibility === Window.FullScreen) {
+            mainWindow.lastVisibility = visibility
+        }
+        normalGeometryTimer.restart()
+    }
+
     Material.theme: darkTheme ? Material.Dark : Material.Light
     Material.accent: Material.Teal
     Material.primary: Material.BlueGrey
+
+    Timer {
+        id: normalGeometryTimer
+
+        interval: 300
+        onTriggered: mainWindow.rememberNormalGeometry()
+    }
+
+    // Also save when quitting without a close request (Qt.quit(), for example
+    // before an update); the window is hidden by then, so the tracked values are used.
+    Connections {
+        target: Qt.application
+
+        function onAboutToQuit() {
+            mainWindow.saveUiLayout()
+        }
+    }
 
     // The shared chrome palette follows the window theme, including the View
     // menu switch.
@@ -248,6 +359,7 @@ ApplicationWindow {
             zoomPercent: cppUiZoom.zoomPercent
             canZoomIn: cppUiZoom.canZoomIn
             canZoomOut: cppUiZoom.canZoomOut
+            fullScreen: mainWindow.visibility === Window.FullScreen
         }
 
         // The status bar belongs to the workspace; the launcher has nothing to
@@ -310,6 +422,12 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+0"
         onActivated: cppUiZoom.resetZoom()
+    }
+
+    // Full screen works on every screen of the main window, like the zoom keys.
+    Shortcut {
+        sequence: "F11"
+        onActivated: mainWindow.toggleFullScreen()
     }
 
     // Short-lived zoom badge in the top-right corner, so a zoom change is
@@ -397,6 +515,10 @@ ApplicationWindow {
         // The menu switch stores an explicit choice, so it persists across starts.
         function onThemeToggleRequested() {
             cppTheme.mode = mainWindow.darkTheme ? "light" : "dark"
+        }
+
+        function onFullScreenToggleRequested() {
+            mainWindow.toggleFullScreen()
         }
 
         function onLastConnectionRequested() {
@@ -955,6 +1077,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        mainWindow.restoreUiLayout()
         mainWindow.syncOverlayZoom()
         if (cppUpdate.featureEnabled && cppUpdate.checkAutomatically)
             cppUpdate.checkNow()

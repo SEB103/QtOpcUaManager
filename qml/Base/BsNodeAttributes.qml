@@ -45,6 +45,23 @@ Rectangle {
         }
     }
 
+    /*!
+        Returns the size of the attribute and structured-value sections as an
+        opaque SplitView state for restoreSplitState().
+    */
+    function saveSplitState() {
+        return sectionSplit.saveState()
+    }
+
+    /*!
+        Restores the section sizes from \a state, previously returned by
+        saveSplitState(). Returns \c false for a missing or unusable state, which
+        keeps the default sizes.
+    */
+    function restoreSplitState(state) {
+        return state ? sectionSplit.restoreState(state) : false
+    }
+
     color: Material.background
     border.color: BsTheme.dividerColor
     border.width: 1
@@ -66,6 +83,8 @@ Rectangle {
     }
 
     SplitView {
+        id: sectionSplit
+
         anchors.fill: parent
         orientation: Qt.Vertical
 

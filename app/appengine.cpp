@@ -22,6 +22,7 @@
 #include "licensemodel.h"
 #include "localecontroller.h"
 #include "themecontroller.h"
+#include "uilayoutcontroller.h"
 #include "uizoomcontroller.h"
 #include "updatecontroller.h"
 #include "qmlapi/networkscancontroller.h"
@@ -455,6 +456,22 @@ void AppEngine::setThemeController(ThemeController* controller)
         return;
 
     rootContext()->setContextProperty("cppTheme", controller);
+}
+
+/*!
+ * \brief Publishes the window and splitter layout \a controller to QML as \c cppUiLayout.
+ *
+ * Main.qml restores the saved window geometry, visibility, and SplitView states
+ * from it before the window is shown, and saves them back when the application
+ * is about to quit.
+ */
+void AppEngine::setUiLayoutController(UiLayoutController* controller)
+{
+    m_uiLayoutController = controller;
+    if (!controller)
+        return;
+
+    rootContext()->setContextProperty("cppUiLayout", controller);
 }
 
 void AppEngine::createOpcUaRuntime()

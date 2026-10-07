@@ -16,6 +16,7 @@ class OpcUaService;
 class ProjectManager;
 class ServerStudio;
 class ThemeController;
+class UiLayoutController;
 class UiZoomController;
 class UpdateController;
 class QThread;
@@ -62,6 +63,9 @@ public:
 
     /** Publishes the UI theme \a controller to QML as \c cppTheme. */
     void setThemeController(ThemeController* controller);
+
+    /** Publishes the window and splitter layout \a controller to QML as \c cppUiLayout. */
+    void setUiLayoutController(UiLayoutController* controller);
 
     /** Returns the filtered application log exposed to QML. */
     LogFilterModel* logModel() const { return m_logFilterModel; }
@@ -114,6 +118,9 @@ private:
 
     /** UI theme selector exposed to QML as \c cppTheme; owned by main(). */
     ThemeController* m_themeController = nullptr;
+
+    /** Window and splitter layout store exposed to QML as \c cppUiLayout; owned by main(). */
+    UiLayoutController* m_uiLayoutController = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

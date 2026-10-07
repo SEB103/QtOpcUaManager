@@ -95,6 +95,8 @@ qt_add_executable(appOpcUaManager
     app/localecontroller.h
     app/themecontroller.cpp
     app/themecontroller.h
+    app/uilayoutcontroller.cpp
+    app/uilayoutcontroller.h
     app/uizoomcontroller.cpp
     app/uizoomcontroller.h
     app/updatecontroller.cpp
