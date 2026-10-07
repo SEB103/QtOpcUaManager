@@ -1357,7 +1357,32 @@
         <translation>Мова:</translation>
     </message>
     <message>
-        <location line="+32"/>
+        <location line="+11"/>
+        <source>Theme:</source>
+        <translation>Тема:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>System</source>
+        <translation>Системна</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Light</source>
+        <translation>Світла</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dark</source>
+        <translation>Темна</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Color theme</source>
+        <translation>Колірна тема</translation>
+    </message>
+    <message>
+        <location line="+48"/>
         <source>Select a project to begin. A project holds the OPC UA connection and its monitored nodes.</source>
         <translation>Виберіть проект, щоб почати. Проект містить підключення OPC UA та відстежувані вузли.</translation>
     </message>
@@ -1405,12 +1430,12 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+279"/>
+        <location line="+297"/>
         <source>Zoom: %1%</source>
         <translation>Масштаб: %1%</translation>
     </message>
     <message>
-        <location line="+189"/>
+        <location line="+190"/>
         <source>Open Project</source>
         <translation>Відкрити проект</translation>
     </message>

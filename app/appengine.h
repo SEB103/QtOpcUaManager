@@ -15,6 +15,7 @@ class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
 class ServerStudio;
+class ThemeController;
 class UiZoomController;
 class UpdateController;
 class QThread;
@@ -58,6 +59,9 @@ public:
 
     /** Publishes the global UI zoom \a controller to QML as \c cppUiZoom. */
     void setUiZoomController(UiZoomController* controller);
+
+    /** Publishes the UI theme \a controller to QML as \c cppTheme. */
+    void setThemeController(ThemeController* controller);
 
     /** Returns the filtered application log exposed to QML. */
     LogFilterModel* logModel() const { return m_logFilterModel; }
@@ -107,6 +111,9 @@ private:
 
     /** Global UI zoom exposed to QML as \c cppUiZoom; owned by main(). */
     UiZoomController* m_uiZoomController = nullptr;
+
+    /** UI theme selector exposed to QML as \c cppTheme; owned by main(). */
+    ThemeController* m_themeController = nullptr;
 
     /** Worker-thread backend service; deleted through the worker thread shutdown path. */
     OpcUaService* m_opcUaService = nullptr;

@@ -1353,7 +1353,32 @@
         <translation>Language:</translation>
     </message>
     <message>
-        <location line="+32"/>
+        <location line="+11"/>
+        <source>Theme:</source>
+        <translation>Theme:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
+        <source>System</source>
+        <translation>System</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Light</source>
+        <translation>Light</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dark</source>
+        <translation>Dark</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Color theme</source>
+        <translation>Colour theme</translation>
+    </message>
+    <message>
+        <location line="+48"/>
         <source>Select a project to begin. A project holds the OPC UA connection and its monitored nodes.</source>
         <translation>Select a project to begin. A project holds the OPC UA connection and its monitored nodes.</translation>
     </message>
@@ -1401,12 +1426,12 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+279"/>
+        <location line="+297"/>
         <source>Zoom: %1%</source>
         <translation>Zoom: %1%</translation>
     </message>
     <message>
-        <location line="+189"/>
+        <location line="+190"/>
         <source>Open Project</source>
         <translation>Open Project</translation>
     </message>

@@ -94,6 +94,51 @@ Pane {
                 Base.BsLanguageSelector {
                     id: launcherLanguageCombo
                 }
+
+                Label {
+                    Layout.leftMargin: 16
+                    text: qsTr("Theme:")
+                    color: Material.foreground
+                    opacity: 0.7
+                }
+
+                // Theme selector: applies live and is persisted by cppTheme, so the
+                // workspace opens with the same theme and the next start keeps it.
+                ComboBox {
+                    id: launcherThemeCombo
+
+                    textRole: "text"
+                    valueRole: "value"
+                    model: [
+                        { value: "system", text: qsTr("System") },
+                        { value: "light", text: qsTr("Light") },
+                        { value: "dark", text: qsTr("Dark") }
+                    ]
+
+                    Accessible.name: qsTr("Color theme")
+
+                    onActivated: cppTheme.mode = currentValue
+
+                    // Select the saved mode once the model is ready, then follow
+                    // changes made elsewhere (View menu switch in the workspace).
+                    Component.onCompleted: currentIndex = indexOfValue(cppTheme.mode)
+
+                    // A live language switch rebuilds the translated model; restore
+                    // the selection once the combo box has processed the new model.
+                    onModelChanged: Qt.callLater(() => {
+                        launcherThemeCombo.currentIndex =
+                            launcherThemeCombo.indexOfValue(cppTheme.mode)
+                    })
+
+                    Connections {
+                        target: cppTheme
+
+                        function onModeChanged() {
+                            launcherThemeCombo.currentIndex =
+                                launcherThemeCombo.indexOfValue(cppTheme.mode)
+                        }
+                    }
+                }
             }
 
             // Application wordmark logo shown at the top of the start page. The

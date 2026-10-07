@@ -21,6 +21,7 @@
 #include "appinfo.h"
 #include "licensemodel.h"
 #include "localecontroller.h"
+#include "themecontroller.h"
 #include "uizoomcontroller.h"
 #include "updatecontroller.h"
 #include "qmlapi/networkscancontroller.h"
@@ -439,6 +440,21 @@ void AppEngine::setUiZoomController(UiZoomController* controller)
         return;
 
     rootContext()->setContextProperty("cppUiZoom", controller);
+}
+
+/*!
+ * \brief Publishes the UI theme \a controller to QML as \c cppTheme.
+ *
+ * Main.qml resolves the controller's mode into the Material theme; the start
+ * page and the View menu change the mode through it, so the choice persists.
+ */
+void AppEngine::setThemeController(ThemeController* controller)
+{
+    m_themeController = controller;
+    if (!controller)
+        return;
+
+    rootContext()->setContextProperty("cppTheme", controller);
 }
 
 void AppEngine::createOpcUaRuntime()

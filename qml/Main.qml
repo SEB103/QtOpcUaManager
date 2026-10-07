@@ -30,8 +30,14 @@ ApplicationWindow {
                  .arg(cppProjectManager.dirty ? "*" : "")
            : cppAppInfo.appName
 
-    /*! Whether the application currently uses the dark Material theme. */
-    property bool darkTheme: Application.styleHints.colorScheme === Qt.Dark
+    /*!
+        Whether the application currently uses the dark Material theme. It is
+        resolved from the persisted \c cppTheme mode: "light" and "dark" are fixed
+        choices, while "system" follows the operating system color scheme.
+    */
+    readonly property bool darkTheme: cppTheme.mode === "dark"
+                                      || (cppTheme.mode === "system"
+                                          && Application.styleHints.colorScheme === Qt.Dark)
 
     /*!
         Global UI zoom as a scale factor (1.0 = 100 %), driven by \c cppUiZoom.
@@ -388,8 +394,9 @@ ApplicationWindow {
                 apiServerDialog.open()
         }
 
+        // The menu switch stores an explicit choice, so it persists across starts.
         function onThemeToggleRequested() {
-            mainWindow.darkTheme = !mainWindow.darkTheme
+            cppTheme.mode = mainWindow.darkTheme ? "light" : "dark"
         }
 
         function onLastConnectionRequested() {

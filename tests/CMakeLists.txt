@@ -78,6 +78,25 @@ target_link_libraries(tst_uizoomcontroller
 
 add_test(NAME UiZoomController.Unit COMMAND tst_uizoomcontroller)
 
+# ThemeController lives in the application layer (app/); compile it into the test.
+qt_add_executable(tst_themecontroller
+    unit/tst_themecontroller.cpp
+    "${CMAKE_SOURCE_DIR}/app/themecontroller.cpp"
+    "${CMAKE_SOURCE_DIR}/app/themecontroller.h"
+)
+
+target_include_directories(tst_themecontroller
+    PRIVATE "${CMAKE_SOURCE_DIR}/app"
+)
+
+target_link_libraries(tst_themecontroller
+    PRIVATE
+        Qt6::Core
+        Qt6::Test
+)
+
+add_test(NAME ThemeController.Unit COMMAND tst_themecontroller)
+
 qt_add_executable(tst_nodedatabase
     unit/tst_nodedatabase.cpp
 )

@@ -93,6 +93,8 @@ qt_add_executable(appOpcUaManager
     app/licensemodel.h
     app/localecontroller.cpp
     app/localecontroller.h
+    app/themecontroller.cpp
+    app/themecontroller.h
     app/uizoomcontroller.cpp
     app/uizoomcontroller.h
     app/updatecontroller.cpp

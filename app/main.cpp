@@ -11,6 +11,7 @@
 #include "appcore.h"
 #include "appengine.h"
 #include "localecontroller.h"
+#include "themecontroller.h"
 #include "uizoomcontroller.h"
 #include "updatecontroller.h"
 #include "core/apppaths.h"
@@ -74,6 +75,10 @@ int main(int argc, char *argv[])
     // restores the saved zoom so the first frame is already drawn at that size.
     UiZoomController uiZoomController(app.settings());
 
+    // UI color theme (system / light / dark) exposed to QML as cppTheme. It
+    // restores the saved choice so the start page already uses that theme.
+    ThemeController themeController(app.settings());
+
     QCommandLineParser parser;
     parser.setApplicationDescription(
         QStringLiteral("Qt OPC UA client for browsing and testing OPC UA servers."));
@@ -98,6 +103,7 @@ int main(int argc, char *argv[])
     localeController.setEngine(&engine);
     engine.setUpdateController(&updateController);
     engine.setUiZoomController(&uiZoomController);
+    engine.setThemeController(&themeController);
 
     QObject::connect(
         &engine,
