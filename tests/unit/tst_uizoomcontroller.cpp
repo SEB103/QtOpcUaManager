@@ -4,6 +4,7 @@
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QWheelEvent>
 #include <QtTest>
 
 #include "uizoomcontroller.h"
@@ -37,10 +38,45 @@ private slots:
     /*! Verifies that the zoom round-trips through QSettings and bad values are snapped. */
     void persistsThroughSettings();
 
+    /*! Verifies that Ctrl + one wheel notch steps the zoom and the event is consumed. */
+    void ctrlWheelStepsZoom();
+
+    /*! Verifies that wheel events without exactly Ctrl pass through unchanged. */
+    void wheelWithoutCtrlPassesThrough();
+
+    /*! Verifies that small touchpad deltas accumulate to one step per notch. */
+    void smallWheelDeltasAccumulate();
+
+    /*! Verifies that reversing the wheel direction discards the pending remainder. */
+    void wheelDirectionChangeResetsRemainder();
+
+    /*! Verifies that horizontal-only rotation is not consumed. */
+    void horizontalWheelPassesThrough();
+
 private:
     /*! Creates an INI settings store inside \a dir. */
     static std::unique_ptr<QSettings> createSettings(const QTemporaryDir &dir);
+
+    /*!
+        Sends a wheel event with vertical rotation \a deltaY, horizontal rotation
+        \a deltaX, and \a modifiers to \a target; returns whether it was consumed.
+    */
+    static bool sendWheel(QObject *target, int deltaY, Qt::KeyboardModifiers modifiers,
+                          int deltaX = 0);
 };
+
+bool TestUiZoomController::sendWheel(QObject *target, int deltaY,
+                                     Qt::KeyboardModifiers modifiers, int deltaX)
+{
+    const QPointF pos(10, 10);
+    QWheelEvent event(pos, pos, QPoint(), QPoint(deltaX, deltaY), Qt::NoButton, modifiers,
+                      Qt::NoScrollPhase, false);
+    // An accepted event that reaches the plain QObject target was consumed by
+    // the filter; QObject::event() itself never handles wheel events.
+    event.setAccepted(false);
+    QCoreApplication::sendEvent(target, &event);
+    return event.isAccepted();
+}
 
 std::unique_ptr<QSettings> TestUiZoomController::createSettings(const QTemporaryDir &dir)
 {
@@ -167,6 +203,79 @@ void TestUiZoomController::persistsThroughSettings()
     }
 }
 
-QTEST_GUILESS_MAIN(TestUiZoomController)
+void TestUiZoomController::ctrlWheelStepsZoom()
+{
+    UiZoomController controller(nullptr);
+    QObject window;
+    controller.attachToWindow(&window);
+
+    QVERIFY(sendWheel(&window, 120, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 110);
+    QVERIFY(sendWheel(&window, 120, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 125);
+
+    QVERIFY(sendWheel(&window, -120, Qt::ControlModifier));
+    QVERIFY(sendWheel(&window, -120, Qt::ControlModifier));
+    QVERIFY(sendWheel(&window, -120, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 90);
+
+    // A fast spin delivering several notches at once steps several times.
+    QVERIFY(sendWheel(&window, 360, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 125);
+}
+
+void TestUiZoomController::wheelWithoutCtrlPassesThrough()
+{
+    UiZoomController controller(nullptr);
+    QObject window;
+    controller.attachToWindow(&window);
+
+    QVERIFY(!sendWheel(&window, 120, Qt::NoModifier));
+    QVERIFY(!sendWheel(&window, 120, Qt::ShiftModifier));
+    QVERIFY(!sendWheel(&window, 120, Qt::ControlModifier | Qt::ShiftModifier));
+    QCOMPARE(controller.zoomPercent(), 100);
+}
+
+void TestUiZoomController::smallWheelDeltasAccumulate()
+{
+    UiZoomController controller(nullptr);
+    QObject window;
+    controller.attachToWindow(&window);
+
+    for (int i = 0; i < 3; ++i)
+        QVERIFY(sendWheel(&window, 30, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 100);
+
+    QVERIFY(sendWheel(&window, 30, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 110);
+}
+
+void TestUiZoomController::wheelDirectionChangeResetsRemainder()
+{
+    UiZoomController controller(nullptr);
+    QObject window;
+    controller.attachToWindow(&window);
+
+    QVERIFY(sendWheel(&window, 90, Qt::ControlModifier));
+    QVERIFY(sendWheel(&window, -90, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 100);
+
+    // The upward remainder was dropped, so one more small downward delta
+    // completes a full notch downwards rather than cancelling out.
+    QVERIFY(sendWheel(&window, -30, Qt::ControlModifier));
+    QCOMPARE(controller.zoomPercent(), 90);
+}
+
+void TestUiZoomController::horizontalWheelPassesThrough()
+{
+    UiZoomController controller(nullptr);
+    QObject window;
+    controller.attachToWindow(&window);
+
+    QVERIFY(!sendWheel(&window, 0, Qt::ControlModifier, 120));
+    QCOMPARE(controller.zoomPercent(), 100);
+}
+
+QTEST_MAIN(TestUiZoomController)
 
 #include "tst_uizoomcontroller.moc"

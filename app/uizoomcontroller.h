@@ -8,6 +8,7 @@
 #include <QObject>
 
 QT_BEGIN_NAMESPACE
+class QEvent;
 class QSettings;
 QT_END_NAMESPACE
 
@@ -18,6 +19,9 @@ QT_END_NAMESPACE
  * 100 % being the default), similar to the zoom levels of web browsers. The main
  * window applies zoomFactor() to one scaling layer that hosts the whole UI, so
  * every screen, menu, and dialog follows the same value.
+ *
+ * Besides the keyboard shortcuts handled in QML, attachToWindow() lets Ctrl +
+ * mouse wheel step the zoom, as in web browsers and code editors.
  */
 class UiZoomController : public QObject
 {
@@ -79,6 +83,12 @@ public:
     /** Restores the default 100 % zoom. */
     Q_INVOKABLE void resetZoom();
 
+    /** Lets Ctrl + mouse wheel over \a window step the zoom; \a window may be null. */
+    void attachToWindow(QObject *window);
+
+    /** Steps the zoom for Ctrl + wheel events on the attached window and consumes them. */
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 signals:
     /** Emitted when the active zoom changes. */
     void zoomChanged();
@@ -89,6 +99,9 @@ private:
 
     /** Active zoom in percent. */
     int m_zoomPercent {DefaultZoomPercent};
+
+    /** Ctrl + wheel rotation not yet turned into a zoom step, in eighths of a degree. */
+    int m_pendingWheelDelta {0};
 };
 
 #endif // UIZOOMCONTROLLER_H

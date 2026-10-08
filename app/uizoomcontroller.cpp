@@ -3,7 +3,9 @@
 
 #include "uizoomcontroller.h"
 
+#include <QEvent>
 #include <QSettings>
+#include <QWheelEvent>
 
 #include <cstdlib>
 
@@ -13,6 +15,13 @@ namespace {
  * \brief Settings key holding the UI zoom in percent.
  */
 constexpr auto kZoomSettingsKey = "ui/zoomPercent";
+
+/*!
+ * \internal
+ * \brief Wheel rotation of one standard mouse wheel notch (15 degrees), in the
+ *        eighths of a degree reported by QWheelEvent::angleDelta().
+ */
+constexpr int kWheelNotch = 120;
 } // namespace
 
 /*!
@@ -156,4 +165,63 @@ void UiZoomController::zoomOut()
 void UiZoomController::resetZoom()
 {
     setZoomPercent(DefaultZoomPercent);
+}
+
+/*!
+ * \brief Lets Ctrl + mouse wheel over \a window step the zoom.
+ * \param window The main window (or any object receiving its wheel events); a
+ *        null pointer is ignored.
+ *
+ * The controller installs itself as an event filter, so it sees wheel events
+ * before Qt Quick delivers them to the item under the cursor. Without that,
+ * every list, table, and tree view would consume Ctrl + wheel as an ordinary
+ * scroll. The filter is removed automatically when either object is destroyed.
+ */
+void UiZoomController::attachToWindow(QObject *window)
+{
+    if (window)
+        window->installEventFilter(this);
+}
+
+/*!
+ * \brief Steps the zoom for Ctrl + wheel events and consumes them.
+ * \param watched The object the event is sent to.
+ * \param event The event to inspect.
+ * \return \c true for a consumed Ctrl + wheel event; otherwise the result of
+ *         the base implementation, so all other events are delivered normally.
+ *
+ * Rolling the wheel away from the user zooms in, towards the user zooms out,
+ * like in web browsers. Only Ctrl without other modifiers zooms, so Ctrl+Shift
+ * and similar combinations keep their meaning. Rotation is accumulated per
+ * standard notch (120 units): a classic mouse wheel steps once per notch, while
+ * high-resolution wheels and touchpads, which report many small deltas, step
+ * once per notch-equivalent instead of jumping through the whole ladder.
+ * Reversing the direction discards the remainder of the previous direction.
+ * Horizontal-only rotation is not consumed.
+ */
+bool UiZoomController::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() != QEvent::Wheel)
+        return QObject::eventFilter(watched, event);
+
+    auto *wheel = static_cast<QWheelEvent *>(event);
+    const int delta = wheel->angleDelta().y();
+    if (wheel->modifiers() != Qt::ControlModifier || delta == 0)
+        return QObject::eventFilter(watched, event);
+
+    if ((delta > 0) != (m_pendingWheelDelta > 0))
+        m_pendingWheelDelta = 0;
+    m_pendingWheelDelta += delta;
+
+    while (m_pendingWheelDelta >= kWheelNotch) {
+        m_pendingWheelDelta -= kWheelNotch;
+        zoomIn();
+    }
+    while (m_pendingWheelDelta <= -kWheelNotch) {
+        m_pendingWheelDelta += kWheelNotch;
+        zoomOut();
+    }
+
+    wheel->accept();
+    return true;
 }

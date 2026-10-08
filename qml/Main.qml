@@ -408,7 +408,8 @@ ApplicationWindow {
     }
 
     // Zoom shortcuts work on every screen of the main window. "Ctrl+=" covers
-    // layouts where "+" needs Shift; numeric keypad keys match as well.
+    // layouts where "+" needs Shift; numeric keypad keys match as well. Ctrl +
+    // mouse wheel is handled in C++ by UiZoomController::eventFilter().
     Shortcut {
         sequences: [StandardKey.ZoomIn, "Ctrl+="]
         onActivated: cppUiZoom.zoomIn()

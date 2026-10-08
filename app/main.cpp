@@ -125,6 +125,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    // Ctrl + mouse wheel over the main window steps the zoom like Ctrl++ / Ctrl+-.
+    uiZoomController.attachToWindow(engine.rootObjects().constFirst());
+
     if (!engine.startOpcUaBackend()) {
         qCritical() << "Application startup failed because OPC UA backend startup could not be queued.";
         return -1;

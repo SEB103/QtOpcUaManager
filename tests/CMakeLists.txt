@@ -73,6 +73,7 @@ target_include_directories(tst_uizoomcontroller
 target_link_libraries(tst_uizoomcontroller
     PRIVATE
         Qt6::Core
+        Qt6::Gui
         Qt6::Test
 )
 
