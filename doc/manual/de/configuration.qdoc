@@ -71,7 +71,10 @@
     über \e{Ansicht} umgeschaltet. \e{System} folgt dem hellen oder dunklen Modus von
     Windows, \e{Hell} und \e{Dunkel} legen das Design fest. Der Oberflächen-Zoom (50% bis
     200%) wird mit \c{Strg++}, \c{Strg+-} und \c{Strg+0} oder über \e{Ansicht > Zoom}
-    geändert. Beide Einstellungen werden in den Anwendungseinstellungen gespeichert.
+    geändert. Mit gedrückter \c{Strg}-Taste vergrößert das Mausrad die Oberfläche (vom
+    Körper weg) oder verkleinert sie (zum Körper hin), eine Stufe pro Raste; ohne \c{Strg}
+    scrollt das Mausrad wie gewohnt. Beide Einstellungen werden in den
+    Anwendungseinstellungen gespeichert.
 
     Die Anwendung merkt sich außerdem, wie Sie das Hauptfenster verlassen haben: Größe,
     Position und Zustand (normal, maximiert oder Vollbild) sowie die Größen der

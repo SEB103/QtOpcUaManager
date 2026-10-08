@@ -72,8 +72,10 @@
     nell’area di lavoro dal menu \e{Visualizza}. \e{Sistema} segue la modalità chiara o
     scura di Windows, mentre \e{Chiaro} e \e{Scuro} fissano il tema. Lo zoom
     dell’interfaccia (dal 50% al 200%) si cambia con \c{Ctrl++}, \c{Ctrl+-} e \c{Ctrl+0}
-    oppure da \e{Visualizza > Zoom}. Entrambe le scelte vengono salvate nelle impostazioni
-    dell’applicazione.
+    oppure da \e{Visualizza > Zoom}. Tenendo premuto \c{Ctrl}, la rotellina del mouse
+    ingrandisce (in avanti) o riduce (all’indietro) l’interfaccia di un passo per scatto;
+    senza \c{Ctrl} la rotellina scorre come sempre. Entrambe le scelte vengono salvate
+    nelle impostazioni dell’applicazione.
 
     L’applicazione ricorda anche come hai lasciato la finestra principale: dimensione,
     posizione e stato (normale, ingrandita o a schermo intero), e le dimensioni dei pannelli

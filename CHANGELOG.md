@@ -17,6 +17,17 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.3.1] - 2026-10-08
+
+Patch release that completes the interface zoom.
+
+### Added
+- **Zoom with the mouse wheel**: holding `Ctrl` while turning the wheel zooms
+  in (away from you) or out (towards you), one step per notch, on every screen
+  and over any list, table or tree. High-resolution wheels and touchpads step
+  once per notch-equivalent instead of jumping through all levels. The wheel
+  without `Ctrl` still scrolls as before.
+
 ## [1.3.0] - 2026-10-07
 
 Feature release for a personal workspace: the application now opens the way
@@ -244,6 +255,7 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.3.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.1
 [1.3.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.2.0
 [1.1.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.1.0

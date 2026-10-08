@@ -67,8 +67,10 @@
     The color theme is chosen on the start page next to the language, or switched in the
     workspace from \e{View}. \e{System} follows the light or dark mode of Windows, while
     \e{Light} and \e{Dark} keep the theme fixed. The interface zoom (50% to 200%) is
-    changed with \c{Ctrl++}, \c{Ctrl+-}, and \c{Ctrl+0} or from \e{View > Zoom}. Both
-    choices are saved in the application settings.
+    changed with \c{Ctrl++}, \c{Ctrl+-}, and \c{Ctrl+0} or from \e{View > Zoom}. Holding
+    \c{Ctrl} while turning the mouse wheel zooms in (away from you) or out (towards you)
+    one step per notch; the wheel without \c{Ctrl} still scrolls. Both choices are saved
+    in the application settings.
 
     The application also remembers how you left the main window: its size, position, and
     state (normal, maximized, or full screen), and the sizes of the resizable panes —

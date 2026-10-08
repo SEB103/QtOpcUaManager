@@ -75,7 +75,10 @@
     change dans l’espace de travail via \e{Affichage}. \e{Système} suit le mode clair ou
     sombre de Windows, tandis que \e{Clair} et \e{Sombre} fixent le thème. Le zoom de
     l’interface (de 50 % à 200 %) se règle avec \c{Ctrl++}, \c{Ctrl+-} et \c{Ctrl+0} ou via
-    \e{Affichage > Zoom}. Les deux choix sont enregistrés dans les réglages de l’application.
+    \e{Affichage > Zoom}. En maintenant \c{Ctrl}, la molette de la souris agrandit
+    (vers l’avant) ou réduit (vers soi) l’interface d’un cran à la fois ; sans \c{Ctrl},
+    la molette fait défiler comme d’habitude. Les deux choix sont enregistrés dans les
+    réglages de l’application.
 
     L’application mémorise aussi l’état dans lequel vous avez laissé la fenêtre
     principale : sa taille, sa position et son état (normal, agrandi ou plein écran), ainsi
