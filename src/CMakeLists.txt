@@ -35,6 +35,8 @@ target_sources(OpcUaCore
         models/dataviewfiltermodel.h
         models/dataviewnames.cpp
         models/dataviewnames.h
+        models/nodecontext.cpp
+        models/nodecontext.h
         models/logfiltermodel.cpp
         models/logfiltermodel.h
         models/logmodel.cpp

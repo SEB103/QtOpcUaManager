@@ -154,6 +154,18 @@ target_link_libraries(tst_dataviewnames
 
 add_test(NAME DataViewNames.Unit COMMAND tst_dataviewnames)
 
+qt_add_executable(tst_nodecontext
+    unit/tst_nodecontext.cpp
+)
+
+target_link_libraries(tst_nodecontext
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME NodeContext.Unit COMMAND tst_nodecontext)
+
 qt_add_executable(tst_opcuavaluetext
     unit/tst_opcuavaluetext.cpp
 )
