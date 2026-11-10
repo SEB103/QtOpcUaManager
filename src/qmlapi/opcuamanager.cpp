@@ -5,6 +5,8 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSaveFile>
 #include <algorithm>
 #include <functional>
@@ -36,6 +38,24 @@ constexpr auto kValueFormatSettingsKey = "view/valueFormat";
  * \brief QSettings key storing the recently connected discovery URLs.
  */
 constexpr auto kRecentServerUrlsSettingsKey = "connection/recentServerUrls";
+
+/*!
+ * \internal
+ * \brief QSettings key storing the Data View column layout used by new projects.
+ *
+ * The value is a compact JSON object with the keys \c order, \c visible, and
+ * \c widths, written whenever the user changes the layout.
+ */
+constexpr auto kDataViewLayoutSettingsKey = "dataView/defaultLayout";
+
+/*!
+ * \internal
+ * \brief Keys of a Data View layout that are carried over to new projects.
+ *
+ * The sort is left out on purpose: it belongs to one project's data.
+ */
+const QStringList kDataViewTemplateKeys {QStringLiteral("order"), QStringLiteral("visible"),
+                                         QStringLiteral("widths")};
 
 /*!
  * \internal
@@ -476,8 +496,12 @@ void OpcUaManager::setUpdatesPaused(bool paused)
 /*!
  * \brief Stores the Data Access View layout \a state and marks the project changed.
  *
- * Called by the table whenever the user resizes, hides, shows, or re-sorts a
- * column, so the layout is saved with the project like any other project state.
+ * Called by the table whenever the user resizes, hides, shows, moves, or
+ * re-sorts a column, so the layout is saved with the project like any other
+ * project state. The column order, visibility, and widths are also remembered
+ * in QSettings as the starting layout of projects that have none of their own;
+ * applyProject() assigns the project's layout directly and so never rewrites
+ * that template.
  */
 void OpcUaManager::setDataViewState(const QVariantMap &state)
 {
@@ -485,8 +509,47 @@ void OpcUaManager::setDataViewState(const QVariantMap &state)
         return;
 
     m_dataViewState = state;
+
+    QJsonObject layout;
+    for (const QString &key : kDataViewTemplateKeys) {
+        if (state.contains(key))
+            layout.insert(key, QJsonValue::fromVariant(state.value(key)));
+    }
+    if (!layout.isEmpty()) {
+        QSettings().setValue(QLatin1String(kDataViewLayoutSettingsKey),
+                             QString::fromUtf8(QJsonDocument(layout).toJson(QJsonDocument::Compact)));
+    }
+
     emit dataViewStateChanged();
     emit projectStateChanged();
+}
+
+/*!
+ * \brief Returns the Data View layout template for projects without a layout.
+ *
+ * The template is the column order, visibility, and widths the user last
+ * arranged, read from QSettings. A missing or unreadable template yields an
+ * empty map, which leaves the table on its built-in defaults.
+ */
+QVariantMap OpcUaManager::defaultDataViewState() const
+{
+    const QByteArray json =
+        QSettings().value(QLatin1String(kDataViewLayoutSettingsKey)).toString().toUtf8();
+    if (json.isEmpty())
+        return {};
+
+    QJsonParseError error;
+    const QJsonDocument document = QJsonDocument::fromJson(json, &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject())
+        return {};
+
+    QVariantMap state;
+    const QJsonObject layout = document.object();
+    for (const QString &key : kDataViewTemplateKeys) {
+        if (layout.contains(key))
+            state.insert(key, layout.value(key).toVariant());
+    }
+    return state;
 }
 
 AttributesModel *OpcUaManager::attributesModel() const
@@ -1530,10 +1593,13 @@ void OpcUaManager::applyProject(const ProjectData &data)
     m_dataModel->setRecords(data.monitoredNodes);
     refreshMonitoredNodeIds();
 
-    // Restore the table layout without re-persisting it; an empty map from a
-    // version 1 project leaves the table on its built-in defaults.
-    if (m_dataViewState != data.settings.dataView) {
-        m_dataViewState = data.settings.dataView;
+    // Restore the table layout without re-persisting it. A project without a
+    // layout of its own (a new project, or one saved before layouts were
+    // stored) starts from the layout the user last arranged.
+    const QVariantMap layout = data.settings.dataView.isEmpty() ? defaultDataViewState()
+                                                                : data.settings.dataView;
+    if (m_dataViewState != layout) {
+        m_dataViewState = layout;
         emit dataViewStateChanged();
     }
 

@@ -128,7 +128,42 @@ private slots:
 
     /*! Verifies that successful connections are remembered as recent server URLs. */
     void remembersRecentServerUrls();
+
+    /*! Verifies that the user's column layout becomes the layout of a new project. */
+    void dataViewLayoutBecomesTheNewProjectTemplate();
+
+    /*! Verifies that a project's own column layout wins over the template. */
+    void storedProjectLayoutWinsOverTheTemplate();
+
+    /*! Verifies that opening a project does not overwrite the template. */
+    void loadingAProjectDoesNotRewriteTheTemplate();
 };
+
+/*!
+ * \internal
+ * \brief QSettings key holding the column layout template for new projects.
+ */
+static const QString kLayoutTemplateKey = QStringLiteral("dataView/defaultLayout");
+
+/*!
+ * \internal
+ * \brief Returns a complete user-arranged Data View layout, including a sort.
+ */
+static QVariantMap arrangedLayout()
+{
+    QVariantList order {0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 10};
+    QVariantList visible;
+    QVariantList widths;
+    for (int c = 0; c < 11; ++c) {
+        visible.append(c != 7);
+        widths.append(c == 9 ? 300 : -1);
+    }
+    return {{QStringLiteral("order"), order},
+            {QStringLiteral("visible"), visible},
+            {QStringLiteral("widths"), widths},
+            {QStringLiteral("sortColumn"), 2},
+            {QStringLiteral("sortOrder"), 1}};
+}
 
 /*!
  * \brief Uses a dedicated QSettings scope so tests never touch real settings.
@@ -441,6 +476,82 @@ void OpcUaManagerTest::remembersRecentServerUrls()
     QCOMPARE(reloaded.recentServerUrls().first(), QStringLiteral("opc.tcp://192.168.0.11:4840"));
 
     QSettings().remove(key);
+}
+
+/*!
+ * \brief Verifies that the user's column layout becomes the layout of a new project.
+ *
+ * The sort belongs to one project's data and is therefore not carried over.
+ */
+void OpcUaManagerTest::dataViewLayoutBecomesTheNewProjectTemplate()
+{
+    QSettings().remove(kLayoutTemplateKey);
+    const QVariantMap arranged = arrangedLayout();
+
+    OpcUaManager manager;
+    manager.setDataViewState(arranged);
+    manager.clearRuntimeState();
+    manager.applyProject(ProjectData {});
+
+    const QVariantMap state = manager.dataViewState();
+    QCOMPARE(state.value(QStringLiteral("order")).toList(),
+             arranged.value(QStringLiteral("order")).toList());
+    QCOMPARE(state.value(QStringLiteral("visible")).toList(),
+             arranged.value(QStringLiteral("visible")).toList());
+    QCOMPARE(state.value(QStringLiteral("widths")).toList(),
+             arranged.value(QStringLiteral("widths")).toList());
+    QVERIFY(!state.contains(QStringLiteral("sortColumn")));
+    QVERIFY(!state.contains(QStringLiteral("sortOrder")));
+
+    // A fresh manager, as after an application restart, uses the same template.
+    OpcUaManager restarted;
+    restarted.applyProject(ProjectData {});
+    QCOMPARE(restarted.dataViewState().value(QStringLiteral("order")).toList(),
+             arranged.value(QStringLiteral("order")).toList());
+
+    QSettings().remove(kLayoutTemplateKey);
+}
+
+/*!
+ * \brief Verifies that a project's own column layout wins over the template.
+ */
+void OpcUaManagerTest::storedProjectLayoutWinsOverTheTemplate()
+{
+    QSettings().remove(kLayoutTemplateKey);
+
+    OpcUaManager manager;
+    manager.setDataViewState(arrangedLayout());
+
+    ProjectData data;
+    data.settings.dataView = {{QStringLiteral("visible"), QVariantList {true, false}}};
+    manager.clearRuntimeState();
+    manager.applyProject(data);
+
+    QCOMPARE(manager.dataViewState(), data.settings.dataView);
+
+    QSettings().remove(kLayoutTemplateKey);
+}
+
+/*!
+ * \brief Verifies that opening a project does not overwrite the template.
+ */
+void OpcUaManagerTest::loadingAProjectDoesNotRewriteTheTemplate()
+{
+    QSettings().remove(kLayoutTemplateKey);
+
+    OpcUaManager manager;
+    manager.setDataViewState(arrangedLayout());
+    const QVariant stored = QSettings().value(kLayoutTemplateKey);
+    QVERIFY(stored.isValid());
+
+    ProjectData data;
+    data.settings.dataView = {{QStringLiteral("visible"), QVariantList {true, false}}};
+    manager.clearRuntimeState();
+    manager.applyProject(data);
+
+    QCOMPARE(QSettings().value(kLayoutTemplateKey), stored);
+
+    QSettings().remove(kLayoutTemplateKey);
 }
 
 QTEST_MAIN(OpcUaManagerTest)

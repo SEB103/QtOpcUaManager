@@ -731,6 +731,9 @@ private:
 
     /** Builds a slash-separated browse path for \a treeIndex from its ancestors. */
     QString buildNodePath(const QModelIndex &treeIndex) const;
+
+    /** Returns the Data View layout the user last arranged, for projects without one. */
+    QVariantMap defaultDataViewState() const;
     /** Makes \a nodeId the selected node and requests its attributes and value. */
     void selectNode(const QString &nodeId);
     /** Pushes the monitored node ids of the current server to the tree model. */
