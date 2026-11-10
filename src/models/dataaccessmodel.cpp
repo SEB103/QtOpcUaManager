@@ -48,8 +48,8 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
     m_rows.clear();
     m_rows.reserve(records.size());
     for (const auto &record : records)
-        m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
-    recomputeNames();
+        m_rows.push_back(makeRow(record));
+    recomputeAllNames();
     endResetModel();
 }
 
@@ -79,13 +79,11 @@ bool DataAccessModel::addRow(const MonitoredNodeRecord &record)
 
     const int row = m_rows.size();
     beginInsertRows(QModelIndex(), row, row);
-    m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
-    // The new row's own name is part of the insert; existing rows are refreshed
-    // separately because a collision may have renamed them.
-    const bool renamed = recomputeNames();
+    m_rows.push_back(makeRow(record));
+    // Only rows sharing the new row's display name can be renamed by it.
+    const std::pair<int, int> renamed = recomputeNames(record.displayName);
     endInsertRows();
-    if (renamed)
-        notifyNamesChanged();
+    notifyNamesChanged(renamed);
     return true;
 }
 
@@ -98,11 +96,12 @@ void DataAccessModel::removeAt(int row)
         return;
 
     beginRemoveRows(QModelIndex(), row, row);
+    const QString removedName = m_rows.at(row).record.displayName;
     m_rows.removeAt(row);
-    const bool renamed = recomputeNames();
+    // Only rows that shared the removed row's display name can be renamed.
+    const std::pair<int, int> renamed = recomputeNames(removedName);
     endRemoveRows();
-    if (renamed)
-        notifyNamesChanged();
+    notifyNamesChanged(renamed);
 
     // Row numbers shift, so refresh the whole first column for the remaining rows.
     if (!m_rows.isEmpty()) {
@@ -582,44 +581,89 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
 }
 
 /*!
- * \brief Recomputes the structured name of every row.
- * \return \c true when the name of at least one row changed.
+ * \internal
+ * \brief Builds a row for \a record with empty live data and its naming input prepared.
  *
- * Names depend on all rows at once, because a row is qualified only while
- * another row shares its display name; every add, remove, or reset therefore
- * recomputes the whole set. Callers notify views themselves, since the right
- * signal depends on whether rows are being inserted, removed, or reset.
+ * Tokenizing the path once here keeps the recompute after every add and remove
+ * free of string parsing.
  */
-bool DataAccessModel::recomputeNames()
+DataAccessModel::Row DataAccessModel::makeRow(const MonitoredNodeRecord &record)
 {
-    QList<DataViewNames::Entry> entries;
-    entries.reserve(m_rows.size());
-    for (const Row &row : std::as_const(m_rows))
-        entries.append({row.record.server, row.record.nodePath, row.record.displayName});
+    Row row {record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown};
+    row.naming = DataViewNames::tokenize(
+        {record.server, record.nodePath, record.displayName});
+    row.name = DataViewNames::render(row.naming, row.qualifier);
+    return row;
+}
 
-    const QList<DataViewNames::Name> names = DataViewNames::structuredNames(entries);
-
-    bool changed = false;
-    for (qsizetype i = 0; i < m_rows.size(); ++i) {
-        DataViewNames::Name &current = m_rows[i].name;
-        const DataViewNames::Name &next = names.at(i);
-        if (current.prefix != next.prefix || current.leaf != next.leaf
-            || current.suffix != next.suffix) {
-            current = next;
-            changed = true;
+/*!
+ * \internal
+ * \brief Recomputes the structured names of the rows named \a displayName.
+ * \return The first and last row whose name changed, or {-1, -1} when none did.
+ *
+ * A row is qualified only while another row shares its display name, so adding
+ * or removing a row can rename only the rows with that same name. Callers
+ * notify views themselves, since the right signal depends on whether rows are
+ * being inserted, removed, or reset.
+ */
+std::pair<int, int> DataAccessModel::recomputeNames(const QString &displayName)
+{
+    QList<int> rows;
+    QList<DataViewNames::TokenizedEntry> entries;
+    for (int i = 0; i < int(m_rows.size()); ++i) {
+        if (m_rows.at(i).record.displayName == displayName) {
+            rows.append(i);
+            entries.append(m_rows.at(i).naming);
         }
+    }
+
+    // Only rows whose qualification changed are rendered again, so a bulk add of
+    // many rows sharing one name does not rebuild every name on every add.
+    const QList<DataViewNames::Qualifier> qualified = DataViewNames::qualifiers(entries);
+
+    std::pair<int, int> changed {-1, -1};
+    for (qsizetype i = 0; i < rows.size(); ++i) {
+        Row &row = m_rows[rows.at(i)];
+        if (row.qualifier == qualified.at(i))
+            continue;
+        row.qualifier = qualified.at(i);
+        row.name = DataViewNames::render(row.naming, row.qualifier);
+        if (changed.first < 0)
+            changed.first = rows.at(i);
+        changed.second = rows.at(i);
     }
     return changed;
 }
 
 /*!
- * \brief Signals that the name column of every row may show a different name.
+ * \internal
+ * \brief Recomputes the structured names of every row, as after a reset.
  */
-void DataAccessModel::notifyNamesChanged()
+void DataAccessModel::recomputeAllNames()
 {
-    if (m_rows.isEmpty())
+    QList<DataViewNames::TokenizedEntry> entries;
+    entries.reserve(m_rows.size());
+    for (const Row &row : std::as_const(m_rows))
+        entries.append(row.naming);
+
+    const QList<DataViewNames::Qualifier> qualified = DataViewNames::qualifiers(entries);
+    for (qsizetype i = 0; i < m_rows.size(); ++i) {
+        m_rows[i].qualifier = qualified.at(i);
+        m_rows[i].name = DataViewNames::render(m_rows.at(i).naming, qualified.at(i));
+    }
+}
+
+/*!
+ * \internal
+ * \brief Signals that the names of the rows in \a range may have changed.
+ *
+ * Does nothing for the empty range {-1, -1}.
+ */
+void DataAccessModel::notifyNamesChanged(std::pair<int, int> range)
+{
+    if (range.first < 0)
         return;
-    emit dataChanged(index(0, DisplayNameColumn), index(int(m_rows.size()) - 1, DisplayNameColumn),
+    emit dataChanged(index(range.first, DisplayNameColumn), index(range.second, DisplayNameColumn),
                      {Qt::DisplayRole, SortValueRole, NamePrefixRole, NameLeafRole,
                       NameSuffixRole});
 }

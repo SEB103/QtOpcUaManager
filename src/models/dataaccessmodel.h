@@ -287,16 +287,30 @@ private:
         QStringList arrayElements;
         /** Name shown in the name column; qualified when the display name collides. */
         DataViewNames::Name name;
+        /** Path tokens and tail hashes, prepared once when the row is added. */
+        DataViewNames::TokenizedEntry naming;
+        /** How much of its path the name shows; \l name is re-rendered when it changes. */
+        DataViewNames::Qualifier qualifier;
     };
 
     /** Returns the row index for \a nodeId, or -1 when not present. */
     int indexForNodeId(const QString &nodeId) const;
 
-    /** Recomputes the structured row names; returns whether any name changed. */
-    bool recomputeNames();
+    /** Builds a row for \a record with its naming input prepared. */
+    static Row makeRow(const MonitoredNodeRecord &record);
 
-    /** Signals that the name column of every row may show a different name. */
-    void notifyNamesChanged();
+    /**
+     * Recomputes the structured names of the rows whose display name is
+     * \a displayName. Returns the first and last row whose name changed, or
+     * {-1, -1} when none did.
+     */
+    std::pair<int, int> recomputeNames(const QString &displayName);
+
+    /** Recomputes the structured names of every row. */
+    void recomputeAllNames();
+
+    /** Signals that the names of rows \a first to \a last may have changed. */
+    void notifyNamesChanged(std::pair<int, int> range);
 
     /** Returns the display text of \a column for \a row. */
     QString cellText(const Row &row, int column, int rowNumber) const;

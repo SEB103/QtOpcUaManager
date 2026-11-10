@@ -1,6 +1,9 @@
 #include "dataviewnames.h"
 
 #include <QHash>
+#include <QHashFunctions>
+
+#include <limits>
 
 namespace {
 
@@ -46,33 +49,6 @@ QString separatorBefore(const QString &token)
 
 /*!
  * \internal
- * \brief Naming input of one row: its tokens and how many of them form the leaf.
- */
-struct RowTokens
-{
-    QStringList tokens;
-    qsizetype leafCount = 0;
-};
-
-/*!
- * \internal
- * \brief Returns whether the last \a count tokens of \a a and \a b are equal.
- *
- * A row with fewer than \a count tokens has no such tail and never matches.
- */
-bool sameTail(const QStringList &a, const QStringList &b, qsizetype count)
-{
-    if (a.size() < count || b.size() < count)
-        return false;
-    for (qsizetype i = 1; i <= count; ++i) {
-        if (a.at(a.size() - i) != b.at(b.size() - i))
-            return false;
-    }
-    return true;
-}
-
-/*!
- * \internal
  * \brief Renders the qualifier formed by tokens [\a from, \a to) of \a tokens.
  *
  * The result ends with the separator the first leaf token needs, so prefix and
@@ -89,6 +65,70 @@ QString renderPrefix(const QStringList &tokens, qsizetype from, qsizetype to)
     if (!prefix.isEmpty() && to < tokens.size())
         prefix += separatorBefore(tokens.at(to));
     return prefix;
+}
+
+/*!
+ * \internal
+ * \brief Qualifies the rows of one display-name \a group that collide.
+ * \param entries All prepared entries.
+ * \param result The qualifiers to fill in, indexed like \a entries.
+ *
+ * For each tail length k, the tails of all rows of the group are counted by
+ * their precomputed hash; a row whose tail occurs once is resolved at that k.
+ * Equal tails always hash equally, so a hash collision can only make a name one
+ * token longer than necessary, never make two names look unique when they are
+ * not. Rows still unresolved after their whole path show the full path, and a
+ * row whose identical path comes from another server gets the server name.
+ */
+void qualifyCollidingGroup(const QList<DataViewNames::TokenizedEntry> &entries,
+                           const QList<qsizetype> &group,
+                           QList<DataViewNames::Qualifier> &result)
+{
+    qsizetype longest = 0;
+    qsizetype shortestLeaf = std::numeric_limits<qsizetype>::max();
+    for (const qsizetype index : group) {
+        longest = qMax(longest, entries.at(index).tokens.size());
+        shortestLeaf = qMin(shortestLeaf, entries.at(index).leafCount);
+    }
+
+    QList<qsizetype> unresolved = group;
+    QHash<size_t, int> counts;
+    counts.reserve(group.size());
+
+    for (qsizetype tail = shortestLeaf + 1; tail <= longest && !unresolved.isEmpty(); ++tail) {
+        counts.clear();
+        for (const qsizetype index : group) {
+            const DataViewNames::TokenizedEntry &entry = entries.at(index);
+            if (entry.tokens.size() >= tail)
+                ++counts[entry.tailHashes.at(tail - 1)];
+        }
+
+        QList<qsizetype> still;
+        for (const qsizetype index : std::as_const(unresolved)) {
+            const DataViewNames::TokenizedEntry &entry = entries.at(index);
+            if (tail > entry.leafCount && entry.tokens.size() >= tail
+                && counts.value(entry.tailHashes.at(tail - 1)) == 1) {
+                result[index].tail = tail;
+            } else {
+                still.append(index);
+            }
+        }
+        unresolved = still;
+    }
+
+    // The whole path is shared: show it, and name the server when an identical
+    // path comes from a different one.
+    for (const qsizetype index : std::as_const(unresolved)) {
+        const DataViewNames::TokenizedEntry &entry = entries.at(index);
+        result[index].tail = entry.tokens.size();
+        for (const qsizetype other : std::as_const(unresolved)) {
+            if (other != index && entries.at(other).tokens == entry.tokens
+                && entries.at(other).server != entry.server) {
+                result[index].serverSuffix = true;
+                break;
+            }
+        }
+    }
 }
 
 } // namespace
@@ -114,7 +154,51 @@ QStringList tokens(const QString &nodePath, const QString &displayName)
 }
 
 /*!
+ * \brief Prepares \a entry for naming.
+ *
+ * Tokenizes the path once, counts the tokens of the node's own name (its last
+ * path segment), and hashes every tail so that tails can be compared by value
+ * without building strings.
+ */
+TokenizedEntry tokenize(const Entry &entry)
+{
+    TokenizedEntry result;
+    result.server = entry.server;
+    result.displayName = entry.displayName;
+    result.tokens = tokens(entry.nodePath, entry.displayName);
+
+    const QString lastSegment =
+        entry.nodePath.isEmpty()
+            ? entry.displayName
+            : entry.nodePath.section(QLatin1Char('/'), -1, -1, QString::SectionSkipEmpty);
+    result.leafCount = qMin(segmentTokens(lastSegment).size(), result.tokens.size());
+
+    const qsizetype count = result.tokens.size();
+    result.tailHashes.reserve(count);
+    size_t hash = 0;
+    for (qsizetype tail = 1; tail <= count; ++tail) {
+        hash = qHashMulti(0, hash, result.tokens.at(count - tail));
+        result.tailHashes.append(hash);
+    }
+    return result;
+}
+
+/*!
  * \brief Returns the structured name of every entry in \a entries.
+ *
+ * Convenience overload that prepares every entry first.
+ */
+QList<Name> structuredNames(const QList<Entry> &entries)
+{
+    QList<TokenizedEntry> prepared;
+    prepared.reserve(entries.size());
+    for (const Entry &entry : entries)
+        prepared.append(tokenize(entry));
+    return structuredNames(prepared);
+}
+
+/*!
+ * \brief Returns the structured name of every prepared entry in \a entries.
  *
  * Rows are grouped by display name. A row whose name is unique keeps it. A
  * colliding row takes the shortest tail of its tokens, longer than its own
@@ -123,73 +207,51 @@ QStringList tokens(const QString &nodePath, const QString &displayName)
  * shows its full path, and a row with an identical path on another server is
  * told apart by the server name.
  */
-QList<Name> structuredNames(const QList<Entry> &entries)
+QList<Name> structuredNames(const QList<TokenizedEntry> &entries)
 {
-    QList<RowTokens> rows;
-    rows.reserve(entries.size());
-    QHash<QString, QList<qsizetype>> groups;
-
-    for (qsizetype i = 0; i < entries.size(); ++i) {
-        const Entry &entry = entries.at(i);
-        RowTokens row;
-        row.tokens = tokens(entry.nodePath, entry.displayName);
-        const QString lastSegment = entry.nodePath.isEmpty()
-                                        ? entry.displayName
-                                        : entry.nodePath.section(QLatin1Char('/'), -1,
-                                                                 -1, QString::SectionSkipEmpty);
-        row.leafCount = qMin(segmentTokens(lastSegment).size(), row.tokens.size());
-        rows.append(row);
-        groups[entry.displayName].append(i);
-    }
-
+    const QList<Qualifier> qualified = qualifiers(entries);
     QList<Name> names;
     names.reserve(entries.size());
-    for (const Entry &entry : entries)
-        names.append(Name {QString(), entry.displayName, QString()});
+    for (qsizetype i = 0; i < entries.size(); ++i)
+        names.append(render(entries.at(i), qualified.at(i)));
+    return names;
+}
+
+/*!
+ * \brief Returns how much of its path every prepared entry in \a entries shows.
+ *
+ * Groups rows by display name and qualifies only groups with more than one
+ * row; see structuredNames() for the rule.
+ */
+QList<Qualifier> qualifiers(const QList<TokenizedEntry> &entries)
+{
+    QList<Qualifier> result(entries.size());
+    QHash<QString, QList<qsizetype>> groups;
+    for (qsizetype i = 0; i < entries.size(); ++i)
+        groups[entries.at(i).displayName].append(i);
 
     for (auto it = groups.cbegin(); it != groups.cend(); ++it) {
-        const QList<qsizetype> &group = it.value();
-        if (group.size() < 2)
-            continue;
-
-        for (const qsizetype index : group) {
-            const QStringList &own = rows.at(index).tokens;
-            const qsizetype count = own.size();
-
-            qsizetype tail = rows.at(index).leafCount + 1;
-            for (; tail <= count; ++tail) {
-                bool collides = false;
-                for (const qsizetype other : group) {
-                    if (other != index && sameTail(own, rows.at(other).tokens, tail)) {
-                        collides = true;
-                        break;
-                    }
-                }
-                if (!collides)
-                    break;
-            }
-
-            const qsizetype leafStart = count - rows.at(index).leafCount;
-            if (tail <= count) {
-                names[index].prefix = renderPrefix(own, count - tail, leafStart);
-                continue;
-            }
-
-            // The whole path is shared: show it, and name the server when an
-            // identical path comes from a different one.
-            names[index].prefix = renderPrefix(own, 0, leafStart);
-            for (const qsizetype other : group) {
-                if (other != index && rows.at(other).tokens == own
-                    && entries.at(other).server != entries.at(index).server) {
-                    names[index].suffix =
-                        QStringLiteral(" (%1)").arg(entries.at(index).server);
-                    break;
-                }
-            }
-        }
+        if (it.value().size() > 1)
+            qualifyCollidingGroup(entries, it.value(), result);
     }
+    return result;
+}
 
-    return names;
+/*!
+ * \brief Renders the name of \a entry qualified by \a qualifier.
+ *
+ * The prefix holds the shown tokens in front of the leaf, ending with the
+ * separator the leaf needs; the leaf is always the display name itself.
+ */
+Name render(const TokenizedEntry &entry, const Qualifier &qualifier)
+{
+    Name name {QString(), entry.displayName, QString()};
+    const qsizetype count = entry.tokens.size();
+    if (qualifier.tail > entry.leafCount)
+        name.prefix = renderPrefix(entry.tokens, count - qualifier.tail, count - entry.leafCount);
+    if (qualifier.serverSuffix)
+        name.suffix = QStringLiteral(" (%1)").arg(entry.server);
+    return name;
 }
 
 } // namespace DataViewNames

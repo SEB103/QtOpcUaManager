@@ -41,14 +41,63 @@ struct Name
 };
 
 /**
+ * An entry prepared for naming: its tokens and their tail hashes, computed once
+ * so that names can be recomputed after every row change without re-parsing.
+ */
+struct TokenizedEntry
+{
+    /** Server the node belongs to. */
+    QString server;
+    /** Display name reported by the server for the node itself. */
+    QString displayName;
+    /** Naming tokens of the path; see tokens(). */
+    QStringList tokens;
+    /** Number of trailing tokens that make up the node's own name. */
+    qsizetype leafCount = 0;
+    /** Hash of the last k tokens at index k - 1; equal tails have equal hashes. */
+    QList<size_t> tailHashes;
+};
+
+/** How much of its path a row shows, before the name is rendered as text. */
+struct Qualifier
+{
+    /** Number of trailing tokens shown; 0 when the display name is unique. */
+    qsizetype tail = 0;
+    /** Whether the server name is appended because an identical path exists elsewhere. */
+    bool serverSuffix = false;
+
+    /** Returns whether \a other describes the same qualification. */
+    bool operator==(const Qualifier &other) const = default;
+};
+
+/**
  * Splits \a nodePath into naming tokens: one per path segment, with every
  * trailing array index ("[1]", "[1,2]") as a token of its own. Falls back to
  * \a displayName when the path is empty.
  */
 QStringList tokens(const QString &nodePath, const QString &displayName);
 
+/** Prepares \a entry for naming. */
+TokenizedEntry tokenize(const Entry &entry);
+
 /** Returns the structured name of every entry, in the same order as \a entries. */
 QList<Name> structuredNames(const QList<Entry> &entries);
+
+/**
+ * Returns the structured name of every prepared entry, in the same order as
+ * \a entries. Runs in time linear in the number of entries times path depth.
+ */
+QList<Name> structuredNames(const QList<TokenizedEntry> &entries);
+
+/**
+ * Returns how much of its path every prepared entry shows, in the same order
+ * as \a entries, without rendering any text. Lets a caller re-render only the
+ * names whose qualification changed.
+ */
+QList<Qualifier> qualifiers(const QList<TokenizedEntry> &entries);
+
+/** Renders the name of \a entry qualified by \a qualifier. */
+Name render(const TokenizedEntry &entry, const Qualifier &qualifier);
 
 } // namespace DataViewNames
 

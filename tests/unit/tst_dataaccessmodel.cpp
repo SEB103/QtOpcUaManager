@@ -123,6 +123,9 @@ private slots:
 
     /*! Verifies that replacing all rows computes structured names. */
     void setRecordsComputesNames();
+
+    /*! Verifies that a bulk add of many rows sharing one name stays fast. */
+    void bulkAddOfCollidingRowsStaysFast();
 };
 
 /*!
@@ -706,6 +709,29 @@ void DataAccessModelTest::setRecordsComputesNames()
 
     QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
     QCOMPARE(nameCell(model, 1), QStringLiteral("s2.value"));
+}
+
+/*!
+ * \brief Verifies that a bulk add of many rows sharing one name stays fast.
+ *
+ * Ticking an array of structures adds one row per element member, all named
+ * alike; names are recomputed after every add, so that recompute must stay
+ * linear in the number of colliding rows. The bound is generous for a Debug
+ * build; comparing the rows pairwise on every add takes over ten times longer.
+ */
+void DataAccessModelTest::bulkAddOfCollidingRowsStaysFast()
+{
+    DataAccessModel model;
+    QElapsedTimer timer;
+    timer.start();
+    for (int i = 0; i < 1000; ++i) {
+        model.addRow(namedRecord(QStringLiteral("Application/V_HMI/astItems[%1]/stRefOffset/value")
+                                     .arg(i)));
+    }
+    const qint64 elapsedMs = timer.elapsed();
+
+    QCOMPARE(nameCell(model, 999), QStringLiteral("[999].stRefOffset.value"));
+    QVERIFY2(elapsedMs < 3000, qPrintable(QStringLiteral("took %1 ms").arg(elapsedMs)));
 }
 
 QTEST_MAIN(DataAccessModelTest)
