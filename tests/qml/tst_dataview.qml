@@ -449,5 +449,100 @@ Item {
 
             cppManagerOpcUa.clearMockNodes();
         }
+
+        /*! Returns the identity column order, logical index per visual position. */
+        function identityOrder(view) {
+            let order = []
+            for (let c = 0; c < view.columnCount; ++c)
+                order.push(c)
+            return order
+        }
+
+        /*! Verifies that a moved column is reported in the saved order and in copies. */
+        function test_movedColumnIsSavedInOrder() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            // Logical column 9 is the node id.
+            view.moveColumn(view.visualColumn(9), 1);
+
+            compare(view.currentState().order, [0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 10]);
+            compare(view.visibleColumns()[1], 9);
+        }
+
+        /*! Verifies that a stored column order is restored silently. */
+        function test_orderRoundTrip() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            view.moveColumn(view.visualColumn(9), 1);
+            const saved = view.currentState();
+
+            view.applyState({});
+            compare(view.columnOrder, identityOrder(view));
+
+            view.applyState(saved);
+            compare(view.columnOrder, saved.order);
+            compare(view.restoring, false);
+        }
+
+        /*! Verifies that the row-number column cannot leave the first position. */
+        function test_rowNumberColumnStaysFirst() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            view.moveColumn(0, 3);
+
+            tryVerify(function () { return view.columnOrder[0] === 0 });
+            compare(view.columnOrder, identityOrder(view));
+        }
+
+        /*! Verifies that a layout saved before columns could move keeps the default order. */
+        function test_layoutWithoutOrderKeepsDefaultOrder() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            const table = findChild(view, "dataTable");
+
+            let widths = []
+            for (let c = 0; c < view.columnCount; ++c)
+                widths.push(c === 1 ? 222 : -1)
+            view.applyState({ "visible": view.columnVisible.slice(), "widths": widths });
+
+            compare(view.columnOrder, identityOrder(view));
+            compare(table.explicitColumnWidth(view.visualColumn(1)), 222);
+        }
+
+        /*! Verifies that an order that is not a permutation starting with 0 is ignored. */
+        function test_invalidOrderIsIgnored() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+
+            view.applyState({ "order": [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10] });
+            compare(view.columnOrder, identityOrder(view));
+
+            view.applyState({ "order": [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10] });
+            compare(view.columnOrder, identityOrder(view));
+
+            view.applyState({ "order": [0, 1, 2] });
+            compare(view.columnOrder, identityOrder(view));
+        }
+
+        /*! Verifies that a dragged width stays with its column when the column moves. */
+        function test_widthsFollowMovedColumns() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            const table = findChild(view, "dataTable");
+
+            table.setColumnWidth(view.visualColumn(2), 260);
+            view.moveColumn(view.visualColumn(2), 5);
+
+            const state = view.currentState();
+            compare(state.widths[2], 260);
+
+            view.applyState({});
+            view.applyState(state);
+            compare(view.visualColumn(2), 5);
+            compare(table.explicitColumnWidth(view.visualColumn(2)), 260);
+        }
     }
 }

@@ -92,6 +92,13 @@ Rectangle {
     /*! Current per-column visibility; index matches the model column. */
     property var columnVisible: root.columnDefaults.map(function (c) { return c.visible })
 
+    /*!
+        Logical model column shown at each visual position, in the order the user
+        dragged the headers into. Once columns are moved, TableView addresses
+        widths by visual position, so every width lookup goes through this map.
+    */
+    property var columnOrder: root.identityOrder()
+
     /*! Whether a project layout is currently being applied, suppressing write-back. */
     property bool restoring: false
 
@@ -270,11 +277,60 @@ Rectangle {
     /*! Returns the visible column indexes in display order. */
     function visibleColumns() {
         let columns = []
-        for (let c = 0; c < root.columnCount; ++c) {
+        for (let v = 0; v < root.columnOrder.length; ++v) {
+            const c = root.columnOrder[v]
             if (root.columnVisible[c])
                 columns.push(c)
         }
         return columns
+    }
+
+    /*! Returns the default column order: every logical column at its own position. */
+    function identityOrder() {
+        let order = []
+        for (let c = 0; c < root.columnCount; ++c)
+            order.push(c)
+        return order
+    }
+
+    /*! Returns the logical model column shown at visual position \a visual. */
+    function logicalColumn(visual) {
+        return visual >= 0 && visual < root.columnOrder.length ? root.columnOrder[visual] : visual
+    }
+
+    /*! Returns the visual position of the logical model column \a logical. */
+    function visualColumn(logical) {
+        const visual = root.columnOrder.indexOf(logical)
+        return visual >= 0 ? visual : logical
+    }
+
+    /*! Moves the column at visual position \a fromVisual to \a toVisual. */
+    function moveColumn(fromVisual, toVisual) {
+        tableView.moveColumn(fromVisual, toVisual)
+    }
+
+    /*!
+        Returns whether \a order is a usable stored column order: a permutation of
+        every logical column that keeps the row-number column first.
+    */
+    function isValidOrder(order) {
+        if (!Array.isArray(order) || order.length !== root.columnCount || order[0] !== 0)
+            return false
+        let seen = []
+        for (let i = 0; i < order.length; ++i) {
+            const c = order[i]
+            if (!Number.isInteger(c) || c < 0 || c >= root.columnCount || seen[c] === true)
+                return false
+            seen[c] = true
+        }
+        return true
+    }
+
+    /*! Moves the row-number column back to the first position after a drag displaced it. */
+    function pinRowNumberColumn() {
+        const visual = root.visualColumn(0)
+        if (visual > 0)
+            tableView.moveColumn(visual, 0)
     }
 
     /*! Returns every view row currently shown, in display order. */
@@ -309,15 +365,17 @@ Rectangle {
 
     /*! Returns the current column layout and sorting as a plain object. */
     function currentState() {
+        // Widths are stored per logical column, so they survive a different order.
         let widths = []
         for (let c = 0; c < root.columnCount; ++c) {
-            const width = tableView.explicitColumnWidth(c)
+            const width = tableView.explicitColumnWidth(root.visualColumn(c))
             widths.push(width >= 0 ? width : -1)
         }
         const proxy = cppManagerOpcUa.dataViewModel
         return {
             "widths": widths,
             "visible": root.columnVisible.slice(),
+            "order": root.columnOrder.slice(),
             "sortColumn": proxy ? proxy.sortColumn : -1,
             "sortOrder": proxy ? proxy.sortOrder : 0
         }
@@ -350,10 +408,22 @@ Rectangle {
             root.columnVisible = root.columnDefaults.map(function (c) { return c.visible })
         }
 
+        // Apply the order before the widths: widths are addressed by visual
+        // position, which only means the right column once the order is in place.
+        const order = (state && root.isValidOrder(state.order)) ? state.order : root.identityOrder()
+        tableView.clearColumnReordering()
+        root.columnOrder = root.identityOrder()
+        for (let v = 1; v < order.length; ++v) {
+            const from = root.visualColumn(order[v])
+            if (from !== v)
+                tableView.moveColumn(from, v)
+        }
+
         const widths = state ? state.widths : undefined
         for (let c = 0; c < root.columnCount; ++c) {
             const width = (widths && widths.length === root.columnCount) ? widths[c] : -1
-            tableView.setColumnWidth(c, (width !== undefined && width >= 0) ? width : -1)
+            tableView.setColumnWidth(root.visualColumn(c),
+                                     (width !== undefined && width >= 0) ? width : -1)
         }
 
         if (cppManagerOpcUa.dataViewModel) {
@@ -683,6 +753,8 @@ Rectangle {
             Layout.topMargin: 4
             syncView: tableView
             clip: true
+            // Dragging a header moves its column; a plain click still sorts.
+            movableColumns: true
 
             delegate: Rectangle {
                 id: headerCell
@@ -774,14 +846,31 @@ Rectangle {
                 rowHeightProvider: function (row) { return root.rowHeight }
 
                 // A hidden column collapses to zero width; a visible one uses the
-                // width the user dragged it to, falling back to its default.
-                columnWidthProvider: function (column) {
+                // width the user dragged it to, falling back to its default. The
+                // provider is called with a visual position, which differs from the
+                // model column once columns have been moved.
+                columnWidthProvider: function (visual) {
+                    const column = root.logicalColumn(visual)
                     if (!root.columnVisible[column])
                         return 0
-                    const explicitWidth = explicitColumnWidth(column)
+                    const explicitWidth = explicitColumnWidth(visual)
                     if (explicitWidth >= 0)
                         return explicitWidth
                     return root.columnDefaults[column].width
+                }
+
+                // Qt reports every column whose position changed, one signal each,
+                // so the map is updated entry by entry and saved once afterwards.
+                onColumnMoved: function (logicalIndex, oldVisualIndex, newVisualIndex) {
+                    let next = root.columnOrder.slice()
+                    next[newVisualIndex] = logicalIndex
+                    root.columnOrder = next
+                    // A move from inside this handler is ignored by TableView, so
+                    // the row-number column is put back on the next turn.
+                    if (logicalIndex === 0 && newVisualIndex !== 0)
+                        Qt.callLater(root.pinRowNumberColumn)
+                    if (!root.restoring)
+                        Qt.callLater(root.saveState)
                 }
 
                 ScrollBar.vertical: ScrollBar {}
