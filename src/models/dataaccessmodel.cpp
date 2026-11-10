@@ -49,6 +49,7 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
     m_rows.reserve(records.size());
     for (const auto &record : records)
         m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
+    recomputeNames();
     endResetModel();
 }
 
@@ -79,7 +80,12 @@ bool DataAccessModel::addRow(const MonitoredNodeRecord &record)
     const int row = m_rows.size();
     beginInsertRows(QModelIndex(), row, row);
     m_rows.push_back(Row{record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown});
+    // The new row's own name is part of the insert; existing rows are refreshed
+    // separately because a collision may have renamed them.
+    const bool renamed = recomputeNames();
     endInsertRows();
+    if (renamed)
+        notifyNamesChanged();
     return true;
 }
 
@@ -93,7 +99,10 @@ void DataAccessModel::removeAt(int row)
 
     beginRemoveRows(QModelIndex(), row, row);
     m_rows.removeAt(row);
+    const bool renamed = recomputeNames();
     endRemoveRows();
+    if (renamed)
+        notifyNamesChanged();
 
     // Row numbers shift, so refresh the whole first column for the remaining rows.
     if (!m_rows.isEmpty()) {
@@ -235,6 +244,20 @@ QString DataAccessModel::displayNameAt(int row) const
     if (row < 0 || row >= m_rows.size())
         return {};
     return m_rows.at(row).record.displayName;
+}
+
+/*!
+ * \brief Returns the name the table shows for \a row.
+ *
+ * This is the display name qualified by the shortest distinguishing tail of its
+ * path while another row has the same display name, otherwise the display name
+ * itself; see DataViewNames::structuredNames().
+ */
+QString DataAccessModel::structuredNameAt(int row) const
+{
+    if (row < 0 || row >= m_rows.size())
+        return {};
+    return m_rows.at(row).name.text();
 }
 
 /*!
@@ -417,7 +440,7 @@ QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) con
 {
     switch (column) {
     case RowNumberColumn: return QString::number(rowNumber);
-    case DisplayNameColumn: return row.record.displayName;
+    case DisplayNameColumn: return row.name.text();
     case ValueColumn: return row.value;
     case DataTypeColumn: return row.record.dataType;
     case StatusColumn: return row.statusCode;
@@ -490,6 +513,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     case WritabilityRole: return writabilityAt(index.row());
     case ValueMarkupRole:
         return valueHighlightMarkup(row.value, row.arrayElements, row.valueKind, m_darkTheme);
+    case NamePrefixRole: return row.name.prefix;
+    case NameLeafRole: return row.name.leaf;
+    case NameSuffixRole: return row.name.suffix;
     default: return {};
     }
 }
@@ -548,6 +574,52 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
         {SortValueRole, "sortValue"},
         {AccessLevelRole, "accessLevel"},
         {WritabilityRole, "writability"},
-        {ValueMarkupRole, "valueMarkup"}
+        {ValueMarkupRole, "valueMarkup"},
+        {NamePrefixRole, "namePrefix"},
+        {NameLeafRole, "nameLeaf"},
+        {NameSuffixRole, "nameSuffix"}
     };
+}
+
+/*!
+ * \brief Recomputes the structured name of every row.
+ * \return \c true when the name of at least one row changed.
+ *
+ * Names depend on all rows at once, because a row is qualified only while
+ * another row shares its display name; every add, remove, or reset therefore
+ * recomputes the whole set. Callers notify views themselves, since the right
+ * signal depends on whether rows are being inserted, removed, or reset.
+ */
+bool DataAccessModel::recomputeNames()
+{
+    QList<DataViewNames::Entry> entries;
+    entries.reserve(m_rows.size());
+    for (const Row &row : std::as_const(m_rows))
+        entries.append({row.record.server, row.record.nodePath, row.record.displayName});
+
+    const QList<DataViewNames::Name> names = DataViewNames::structuredNames(entries);
+
+    bool changed = false;
+    for (qsizetype i = 0; i < m_rows.size(); ++i) {
+        DataViewNames::Name &current = m_rows[i].name;
+        const DataViewNames::Name &next = names.at(i);
+        if (current.prefix != next.prefix || current.leaf != next.leaf
+            || current.suffix != next.suffix) {
+            current = next;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+/*!
+ * \brief Signals that the name column of every row may show a different name.
+ */
+void DataAccessModel::notifyNamesChanged()
+{
+    if (m_rows.isEmpty())
+        return;
+    emit dataChanged(index(0, DisplayNameColumn), index(int(m_rows.size()) - 1, DisplayNameColumn),
+                     {Qt::DisplayRole, SortValueRole, NamePrefixRole, NameLeafRole,
+                      NameSuffixRole});
 }

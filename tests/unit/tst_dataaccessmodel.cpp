@@ -111,7 +111,41 @@ private slots:
 
     /*! Verifies that switching the palette refreshes only the value markup. */
     void darkThemeRefreshesValueMarkup();
+
+    /*! Verifies that colliding display names are shown as structured names. */
+    void displayColumnShowsStructuredNames();
+
+    /*! Verifies that adding a colliding row renames the existing row. */
+    void addingACollisionRenamesTheExistingRow();
+
+    /*! Verifies that removing a colliding row restores the plain name. */
+    void removingACollisionRestoresThePlainName();
+
+    /*! Verifies that replacing all rows computes structured names. */
+    void setRecordsComputesNames();
 };
+
+/*!
+ * \internal
+ * \brief Builds a record for \a path whose display name is the last path segment.
+ */
+static MonitoredNodeRecord namedRecord(const QString &path)
+{
+    MonitoredNodeRecord record = makeRecord(QStringLiteral("ns=1;s=") + path);
+    record.nodePath = path;
+    record.displayName = path.section(QLatin1Char('/'), -1);
+    return record;
+}
+
+/*!
+ * \internal
+ * \brief Returns the text the name column shows for \a row of \a model.
+ */
+static QString nameCell(const DataAccessModel &model, int row)
+{
+    return model.data(model.index(row, DataAccessModel::DisplayNameColumn), Qt::DisplayRole)
+        .toString();
+}
 
 /*!
  * \brief Verifies that addRow() appends rows and rejects duplicates.
@@ -595,6 +629,83 @@ void DataAccessModelTest::darkThemeRefreshesValueMarkup()
     // The QML delegate reads the role by name.
     QCOMPARE(model.roleNames().value(DataAccessModel::ValueMarkupRole),
              QByteArray("valueMarkup"));
+}
+
+/*!
+ * \brief Verifies that colliding display names are shown as structured names.
+ *
+ * The name column and the prefix/leaf roles carry the structured name, while
+ * displayNameAt() keeps the server's own DisplayName.
+ */
+void DataAccessModelTest::displayColumnShowsStructuredNames()
+{
+    DataAccessModel model;
+    model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
+    model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
+
+    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
+    QCOMPARE(model.structuredNameAt(1), QStringLiteral("s2.value"));
+    QCOMPARE(model.displayNameAt(0), QStringLiteral("value"));
+
+    const QModelIndex cell = model.index(0, DataAccessModel::DisplayNameColumn);
+    QCOMPARE(model.data(cell, DataAccessModel::NamePrefixRole).toString(), QStringLiteral("s1."));
+    QCOMPARE(model.data(cell, DataAccessModel::NameLeafRole).toString(), QStringLiteral("value"));
+    QCOMPARE(model.data(cell, DataAccessModel::NameSuffixRole).toString(), QString());
+    QCOMPARE(model.roleNames().value(DataAccessModel::NamePrefixRole), QByteArray("namePrefix"));
+}
+
+/*!
+ * \brief Verifies that adding a colliding row renames the existing row.
+ */
+void DataAccessModelTest::addingACollisionRenamesTheExistingRow()
+{
+    DataAccessModel model;
+    model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
+    QCOMPARE(nameCell(model, 0), QStringLiteral("value"));
+
+    QSignalSpy spy(&model, &DataAccessModel::dataChanged);
+    model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
+
+    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
+
+    bool nameRefreshed = false;
+    for (const QList<QVariant> &arguments : std::as_const(spy)) {
+        const QModelIndex topLeft = arguments.at(0).toModelIndex();
+        const QModelIndex bottomRight = arguments.at(1).toModelIndex();
+        if (topLeft.row() <= 0 && bottomRight.row() >= 0
+            && topLeft.column() <= DataAccessModel::DisplayNameColumn
+            && bottomRight.column() >= DataAccessModel::DisplayNameColumn) {
+            nameRefreshed = true;
+        }
+    }
+    QVERIFY(nameRefreshed);
+}
+
+/*!
+ * \brief Verifies that removing a colliding row restores the plain name.
+ */
+void DataAccessModelTest::removingACollisionRestoresThePlainName()
+{
+    DataAccessModel model;
+    model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
+    model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
+
+    model.removeAt(1);
+
+    QCOMPARE(nameCell(model, 0), QStringLiteral("value"));
+}
+
+/*!
+ * \brief Verifies that replacing all rows computes structured names.
+ */
+void DataAccessModelTest::setRecordsComputesNames()
+{
+    DataAccessModel model;
+    model.setRecords({namedRecord(QStringLiteral("Objects/s1/value")),
+                      namedRecord(QStringLiteral("Objects/s2/value"))});
+
+    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
+    QCOMPARE(nameCell(model, 1), QStringLiteral("s2.value"));
 }
 
 QTEST_MAIN(DataAccessModelTest)

@@ -9,6 +9,8 @@
 #include "core/opcuavaluedata.h"
 #include "persistence/nodedatabase.h"
 
+#include "dataviewnames.h"
+
 /**
  * Table model backing the Data Access View.
  *
@@ -130,7 +132,13 @@ public:
         /** Whether the row can be written, as a Writability value. */
         WritabilityRole,
         /** Current value as StyledText colored with the value highlight palette. */
-        ValueMarkupRole
+        ValueMarkupRole,
+        /** Qualifier in front of the structured name, e.g. "[1].stRefOffset."; plain text. */
+        NamePrefixRole,
+        /** The row's own display name within the structured name; plain text. */
+        NameLeafRole,
+        /** Server disambiguation after the structured name, e.g. " (PLC-2)"; plain text. */
+        NameSuffixRole
     };
     Q_ENUM(Role)
 
@@ -184,6 +192,12 @@ public:
 
     /** Returns the display name at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString displayNameAt(int row) const;
+
+    /**
+     * Returns the name the table shows for \a row: the display name, qualified
+     * by its path when another row has the same name. Empty when out of range.
+     */
+    Q_INVOKABLE QString structuredNameAt(int row) const;
 
     /**
      * Returns whether the value at \a row is a boolean.
@@ -271,10 +285,18 @@ private:
         OpcUaValueKind valueKind {OpcUaValueKind::Empty};
         /** Per-element texts of an array value; empty for a scalar. */
         QStringList arrayElements;
+        /** Name shown in the name column; qualified when the display name collides. */
+        DataViewNames::Name name;
     };
 
     /** Returns the row index for \a nodeId, or -1 when not present. */
     int indexForNodeId(const QString &nodeId) const;
+
+    /** Recomputes the structured row names; returns whether any name changed. */
+    bool recomputeNames();
+
+    /** Signals that the name column of every row may show a different name. */
+    void notifyNamesChanged();
 
     /** Returns the display text of \a column for \a row. */
     QString cellText(const Row &row, int column, int rowNumber) const;
