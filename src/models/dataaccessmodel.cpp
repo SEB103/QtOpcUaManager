@@ -424,8 +424,7 @@ int DataAccessModel::indexForNodeId(const QString &nodeId) const
  * \param rowNumber The one-based position of the row in the project order.
  *
  * The row-number column is answered with the project position, which is also its
- * sort key. What the table displays there is the view position, which
- * DataViewFilterModel supplies because only the view order defines it.
+ * sort key, so sorting the view by it restores the order the rows were added in.
  */
 QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) const
 {

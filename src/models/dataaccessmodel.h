@@ -33,9 +33,8 @@ public:
     /** Table columns in fixed logical order. */
     enum Column {
         /**
-         * One-based position of the row in the project order. The Data Access
-         * View shows DataViewFilterModel instead, which numbers this column by
-         * view position; the number here is the sort key behind it.
+         * One-based position of the row in the project order, i.e. the order the
+         * rows were added in. It stays with its row when the view is sorted.
          */
         RowNumberColumn = 0,
         /** Localized display name. */

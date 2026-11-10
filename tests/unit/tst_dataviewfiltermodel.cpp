@@ -56,11 +56,11 @@ private slots:
     /*! Verifies that view rows map back to the source rows they came from. */
     void rowsMapBackToTheSourceModel();
 
-    /*! Verifies that the row number follows the view rather than the source. */
-    void rowNumbersFollowTheView();
+    /*! Verifies that the row number is the insertion number and stays with its row. */
+    void rowNumbersStayWithTheRow();
 
-    /*! Verifies that re-sorting refreshes the numbers of rows that stayed put. */
-    void rowNumbersRefreshWhenTheOrderChanges();
+    /*! Verifies that sorting by the row number restores the insertion order. */
+    void sortingByNumberRestoresInsertionOrder();
 
     /*! Verifies that the name column orders embedded numbers numerically. */
     void nameColumnSortsNaturally();
@@ -281,66 +281,26 @@ void DataViewFilterModelTest::rowsMapBackToTheSourceModel()
 }
 
 /*!
- * \brief Verifies that the row number follows the view rather than the source.
- *
- * The number is what the user reads as a position in the table, so it has to be
- * sequential top to bottom whatever the sorting and the quick filter do. The
- * source model cannot supply it because it does not know the view order.
+ * \internal
+ * \brief Returns the row-number texts of \a proxy, top to bottom.
  */
-void DataViewFilterModelTest::rowNumbersFollowTheView()
+static QStringList rowNumbers(const DataViewFilterModel &proxy)
 {
-    DataAccessModel source;
-    source.addRow(makeRecord(QStringLiteral("ns=1;s=C"), QStringLiteral("Charlie")));
-    source.addRow(makeRecord(QStringLiteral("ns=1;s=A"), QStringLiteral("Alpha")));
-    source.addRow(makeRecord(QStringLiteral("ns=1;s=B"), QStringLiteral("Bravo")));
-
-    DataViewFilterModel proxy;
-    proxy.setSourceModel(&source);
-
-    const auto numberAt = [&proxy](int row) {
-        return proxy.data(proxy.index(row, DataAccessModel::RowNumberColumn),
-                          Qt::DisplayRole).toString();
-    };
-
-    // Unsorted, the numbering already agrees with the project order.
-    QCOMPARE(numberAt(0), QStringLiteral("1"));
-    QCOMPARE(numberAt(2), QStringLiteral("3"));
-
-    proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::AscendingOrder);
-    QCOMPARE(proxy.data(proxy.index(0, DataAccessModel::DisplayNameColumn),
-                        Qt::DisplayRole).toString(),
-             QStringLiteral("Alpha"));
-
-    // Alpha now leads the table even though it is the second project row.
-    QCOMPARE(numberAt(0), QStringLiteral("1"));
-    QCOMPARE(numberAt(1), QStringLiteral("2"));
-    QCOMPARE(numberAt(2), QStringLiteral("3"));
-
-    // A filter removes rows from the middle without leaving gaps.
-    proxy.applySort(-1, Qt::AscendingOrder);
-    proxy.setFilterText(QStringLiteral("a"));
-    QCOMPARE(proxy.rowCount(), 3);
-    proxy.setFilterText(QStringLiteral("Bravo"));
-    QCOMPARE(proxy.rowCount(), 1);
-    QCOMPARE(numberAt(0), QStringLiteral("1"));
-
-    // Sorting by the number column means the project order, so the row that was
-    // added first leads again.
-    proxy.setFilterText(QString());
-    proxy.applySort(DataAccessModel::RowNumberColumn, Qt::AscendingOrder);
-    QCOMPARE(proxy.data(proxy.index(0, DataAccessModel::DisplayNameColumn),
-                        Qt::DisplayRole).toString(),
-             QStringLiteral("Charlie"));
-    QCOMPARE(numberAt(0), QStringLiteral("1"));
+    QStringList numbers;
+    for (int row = 0; row < proxy.rowCount(); ++row) {
+        numbers.append(proxy.data(proxy.index(row, DataAccessModel::RowNumberColumn),
+                                  Qt::DisplayRole).toString());
+    }
+    return numbers;
 }
 
 /*!
- * \brief Verifies that re-sorting refreshes the numbers of rows that stayed put.
+ * \brief Verifies that the row number is the insertion number and stays with its row.
  *
- * A row whose position does not change still gets a new number when the rows
- * around it move, and a view is only told to repaint what it is told changed.
+ * The user reads the number as "the n-th variable I added", so sorting and
+ * filtering move it with its row instead of renumbering the view.
  */
-void DataViewFilterModelTest::rowNumbersRefreshWhenTheOrderChanges()
+void DataViewFilterModelTest::rowNumbersStayWithTheRow()
 {
     DataAccessModel source;
     source.addRow(makeRecord(QStringLiteral("ns=1;s=A"), QStringLiteral("Alpha")));
@@ -349,22 +309,38 @@ void DataViewFilterModelTest::rowNumbersRefreshWhenTheOrderChanges()
 
     DataViewFilterModel proxy;
     proxy.setSourceModel(&source);
+    QCOMPARE(rowNumbers(proxy),
+             (QStringList {QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}));
 
-    QSignalSpy dataSpy(&proxy, &DataViewFilterModel::dataChanged);
     proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::DescendingOrder);
+    QCOMPARE(rowNumbers(proxy),
+             (QStringList {QStringLiteral("3"), QStringLiteral("2"), QStringLiteral("1")}));
 
-    bool coversRowNumbers = false;
-    for (const QList<QVariant> &arguments : dataSpy) {
-        const auto topLeft = arguments.at(0).value<QModelIndex>();
-        const auto bottomRight = arguments.at(1).value<QModelIndex>();
-        if (topLeft.column() <= int(DataAccessModel::RowNumberColumn)
-            && bottomRight.column() >= int(DataAccessModel::RowNumberColumn)
-            && topLeft.row() == 0 && bottomRight.row() == proxy.rowCount() - 1) {
-            coversRowNumbers = true;
-            break;
-        }
-    }
-    QVERIFY(coversRowNumbers);
+    proxy.applySort(-1, Qt::AscendingOrder);
+    proxy.setFilterText(QStringLiteral("Bravo"));
+    QCOMPARE(rowNumbers(proxy), QStringList {QStringLiteral("2")});
+}
+
+/*!
+ * \brief Verifies that sorting by the row number restores the insertion order.
+ */
+void DataViewFilterModelTest::sortingByNumberRestoresInsertionOrder()
+{
+    DataAccessModel source;
+    source.addRow(makeRecord(QStringLiteral("ns=1;s=C"), QStringLiteral("Charlie")));
+    source.addRow(makeRecord(QStringLiteral("ns=1;s=A"), QStringLiteral("Alpha")));
+    source.addRow(makeRecord(QStringLiteral("ns=1;s=B"), QStringLiteral("Bravo")));
+
+    DataViewFilterModel proxy;
+    proxy.setSourceModel(&source);
+    proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::AscendingOrder);
+    proxy.applySort(DataAccessModel::RowNumberColumn, Qt::AscendingOrder);
+
+    QCOMPARE(columnTexts(proxy, DataAccessModel::DisplayNameColumn),
+             (QStringList {QStringLiteral("Charlie"), QStringLiteral("Alpha"),
+                           QStringLiteral("Bravo")}));
+    QCOMPARE(rowNumbers(proxy),
+             (QStringList {QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}));
 }
 
 /*!
