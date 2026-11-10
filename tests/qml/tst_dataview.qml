@@ -651,6 +651,49 @@ Item {
             compare(cppManagerOpcUa.dataViewModel.sortColumn, -1);
         }
 
+        /*! Returns the cell label of logical \a column in view row \a row. */
+        function cellLabel(view, column, row) {
+            const table = findChild(view, "dataTable");
+            const cell = table.itemAtCell(Qt.point(view.visualColumn(column), row));
+            verify(cell !== null, "no cell for column " + column);
+            return findChild(cell, "cellLabel");
+        }
+
+        /*!
+            Verifies the two text levels of the table.
+
+            Name, value, and status are the primary columns; every other column is
+            reference information drawn muted. A row still waiting for its first
+            value dims its primary columns only, so the muted columns stay readable.
+        */
+        function test_secondaryColumnsAreMuted() {
+            cppManagerOpcUa.clearMockNodes();
+            cppManagerOpcUa.addMockNode("ns=1;s=A", "Live", "DINT", 3);
+            cppManagerOpcUa.addMockNode("ns=1;s=B", "Waiting", "DINT", 3);
+            cppManagerOpcUa.setMockValue("ns=1;s=A", "42");
+            const view = createTable();
+            waitForRendering(view);
+
+            const muted = view.secondaryOpacity;
+            verify(muted > 0.3 && muted < 1.0);
+
+            // A row with a value: primary columns at full strength.
+            compare(cellLabel(view, view.displayNameColumn, 0).opacity, 1.0);
+            compare(cellLabel(view, view.valueColumn, 0).opacity, 1.0);
+            compare(cellLabel(view, view.statusColumn, 0).opacity, 1.0);
+            compare(cellLabel(view, 0, 0).opacity, muted);
+            compare(cellLabel(view, 3, 0).opacity, muted);
+            compare(cellLabel(view, view.contextColumn, 0).opacity, muted);
+
+            // A row without a value: primary columns dimmed, muted ones unchanged.
+            compare(cellLabel(view, view.displayNameColumn, 1).opacity, 0.5);
+            compare(cellLabel(view, view.valueColumn, 1).opacity, 0.5);
+            compare(cellLabel(view, 0, 1).opacity, muted);
+            compare(cellLabel(view, 3, 1).opacity, muted);
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
         /*! Verifies that the row-number column cannot leave the first position. */
         function test_rowNumberColumnStaysFirst() {
             const view = createTable();

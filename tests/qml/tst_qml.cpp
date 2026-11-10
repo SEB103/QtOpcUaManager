@@ -478,6 +478,16 @@ public:
         emit monitoredNodeCountChanged();
     }
 
+    /*! Delivers the live value \a value to the mock row of \a nodeId. */
+    Q_INVOKABLE void setMockValue(const QString &nodeId, const QString &value)
+    {
+        OpcUaValueUpdate update;
+        update.nodeId = nodeId;
+        update.value = value;
+        update.statusCode = QStringLiteral("Good");
+        m_dataModel.updateValue(update);
+    }
+
     /*! Removes every mock Data Access View row and forgets recorded writes. */
     Q_INVOKABLE void clearMockNodes()
     {

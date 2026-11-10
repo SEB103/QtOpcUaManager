@@ -141,6 +141,17 @@ Rectangle {
     /*! Top of the hovered row within the table pane, positioning the delete button. */
     property real hoveredRowY: 0
 
+    /*!
+        Opacity of the reference columns (row number, context, data type,
+        interval, timestamps, node path, node id, server), the same level the
+        Attributes panel uses for its second column, so the name, the value, and
+        the status stand out.
+    */
+    readonly property real secondaryOpacity: 0.6
+
+    /*! Opacity of the primary columns of a row that has not received a value yet. */
+    readonly property real awaitingValueOpacity: 0.5
+
     /*! Neutral tint used for inactive header icons and secondary text. */
     readonly property color mutedColor: Qt.rgba(Material.foreground.r,
                                                 Material.foreground.g,
@@ -1072,6 +1083,12 @@ Rectangle {
                     /*! Whether this row has not received a value in this session. */
                     readonly property bool awaitingValue: cellDelegate.lastUpdateMs === 0
 
+                    /*! Whether this cell is one of the primary columns: name, value, status. */
+                    readonly property bool primaryColumn:
+                        cellDelegate.column === root.displayNameColumn
+                        || cellDelegate.column === root.valueColumn
+                        || cellDelegate.column === root.statusColumn
+
                     // A click only moves the current index; it does not add the
                     // row to the selection, so the current row is highlighted too.
                     /*! Whether this row is the current one or part of the selection. */
@@ -1126,10 +1143,15 @@ Rectangle {
                             }
                             return Material.foreground
                         }
-                        // A row that never received a value is dimmed so it reads
-                        // as "nothing arrived yet" rather than as an empty value.
-                        opacity: cellDelegate.awaitingValue
-                                 && cellDelegate.column !== 0 ? 0.5 : 1.0
+                        // Reference columns are muted so the primary ones stand out.
+                        // A row that never received a value dims its primary columns,
+                        // so it reads as "nothing arrived yet" rather than as an empty
+                        // value; the muted columns keep their level and stay readable.
+                        opacity: {
+                            if (!cellDelegate.primaryColumn)
+                                return root.secondaryOpacity
+                            return cellDelegate.awaitingValue ? root.awaitingValueOpacity : 1.0
+                        }
 
                         // A read-only value is shown in italics so the row says
                         // so before the user double-clicks it.

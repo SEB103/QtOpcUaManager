@@ -45,6 +45,11 @@ at a glance, and the columns can be arranged the way you work.
   sorting by `#` restores that order. New rows are always appended at the end,
   and the sort is no longer saved in the project, so a project always opens
   in the order the rows were added.
+- **Calmer table**: name, value, and status keep their full strength, while
+  the reference columns — row number, context, data type, interval,
+  timestamps, node path, node id, and server — are drawn muted, like the
+  second column of the Attributes panel. A row still waiting for its first
+  value dims its primary columns only.
 
 ### Fixed
 - **Discard when quitting**: answering *Discard* in the unsaved-changes prompt
