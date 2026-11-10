@@ -9,8 +9,6 @@
 #include "core/opcuavaluedata.h"
 #include "persistence/nodedatabase.h"
 
-#include "dataviewnames.h"
-
 /**
  * Table model backing the Data Access View.
  *
@@ -60,6 +58,12 @@ public:
         NodeIdColumn,
         /** Server identity the node belongs to. */
         ServerColumn,
+        /**
+         * Parent path of the node in IEC notation, e.g. "V_HMI.stRefOffset".
+         * Appended last so layouts saved before it existed keep their indexes;
+         * the view shows it right after the display name.
+         */
+        ContextColumn,
         /** Number of columns; not a column itself. */
         ColumnCount
     };
@@ -132,13 +136,7 @@ public:
         /** Whether the row can be written, as a Writability value. */
         WritabilityRole,
         /** Current value as StyledText colored with the value highlight palette. */
-        ValueMarkupRole,
-        /** Qualifier in front of the structured name, e.g. "[1].stRefOffset."; plain text. */
-        NamePrefixRole,
-        /** The row's own display name within the structured name; plain text. */
-        NameLeafRole,
-        /** Server disambiguation after the structured name, e.g. " (PLC-2)"; plain text. */
-        NameSuffixRole
+        ValueMarkupRole
     };
     Q_ENUM(Role)
 
@@ -193,11 +191,8 @@ public:
     /** Returns the display name at \a row, or an empty string when out of range. */
     Q_INVOKABLE QString displayNameAt(int row) const;
 
-    /**
-     * Returns the name the table shows for \a row: the display name, qualified
-     * by its path when another row has the same name. Empty when out of range.
-     */
-    Q_INVOKABLE QString structuredNameAt(int row) const;
+    /** Returns the parent path shown in the context column at \a row, or an empty string. */
+    Q_INVOKABLE QString contextAt(int row) const;
 
     /**
      * Returns whether the value at \a row is a boolean.
@@ -285,32 +280,15 @@ private:
         OpcUaValueKind valueKind {OpcUaValueKind::Empty};
         /** Per-element texts of an array value; empty for a scalar. */
         QStringList arrayElements;
-        /** Name shown in the name column; qualified when the display name collides. */
-        DataViewNames::Name name;
-        /** Path tokens and tail hashes, prepared once when the row is added. */
-        DataViewNames::TokenizedEntry naming;
-        /** How much of its path the name shows; \l name is re-rendered when it changes. */
-        DataViewNames::Qualifier qualifier;
+        /** Parent path shown in the context column, derived once when the row is added. */
+        QString context;
     };
 
     /** Returns the row index for \a nodeId, or -1 when not present. */
     int indexForNodeId(const QString &nodeId) const;
 
-    /** Builds a row for \a record with its naming input prepared. */
+    /** Builds a row for \a record with empty live data and its context derived. */
     static Row makeRow(const MonitoredNodeRecord &record);
-
-    /**
-     * Recomputes the structured names of the rows whose display name is
-     * \a displayName. Returns the first and last row whose name changed, or
-     * {-1, -1} when none did.
-     */
-    std::pair<int, int> recomputeNames(const QString &displayName);
-
-    /** Recomputes the structured names of every row. */
-    void recomputeAllNames();
-
-    /** Signals that the names of rows \a first to \a last may have changed. */
-    void notifyNamesChanged(std::pair<int, int> range);
 
     /** Returns the display text of \a column for \a row. */
     QString cellText(const Row &row, int column, int rowNumber) const;

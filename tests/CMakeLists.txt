@@ -142,18 +142,6 @@ target_link_libraries(tst_dataaccessmodel
 
 add_test(NAME DataAccessModel.Unit COMMAND tst_dataaccessmodel)
 
-qt_add_executable(tst_dataviewnames
-    unit/tst_dataviewnames.cpp
-)
-
-target_link_libraries(tst_dataviewnames
-    PRIVATE
-        OpcUaCore
-        Qt6::Test
-)
-
-add_test(NAME DataViewNames.Unit COMMAND tst_dataviewnames)
-
 qt_add_executable(tst_nodecontext
     unit/tst_nodecontext.cpp
 )

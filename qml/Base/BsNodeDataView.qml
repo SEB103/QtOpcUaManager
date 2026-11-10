@@ -22,7 +22,7 @@ Rectangle {
     id: root
 
     /*! Number of logical columns provided by DataAccessModel. */
-    readonly property int columnCount: 11
+    readonly property int columnCount: 12
 
     // Column indexes mirroring DataAccessModel::Column. They are written out as
     // integers because the Base module must not import the C++ QML module.
@@ -34,6 +34,8 @@ Rectangle {
     readonly property int statusColumn: 4
     /*! Index of the sampling-interval column. */
     readonly property int intervalColumn: 5
+    /*! Index of the context column; appended last in the model, shown after the name. */
+    readonly property int contextColumn: 11
 
     // Writability values mirroring DataAccessModel::Writability.
     /*! Writability value meaning the server has not reported an AccessLevel. */
@@ -86,7 +88,8 @@ Rectangle {
         { width: 170, visible: false },
         { width: 200, visible: false },
         { width: 240, visible: true  },
-        { width: 160, visible: false }
+        { width: 160, visible: false },
+        { width: 220, visible: true  }
     ]
 
     /*! Current per-column visibility; index matches the model column. */
@@ -98,6 +101,13 @@ Rectangle {
         widths by visual position, so every width lookup goes through this map.
     */
     property var columnOrder: root.identityOrder()
+
+    /*!
+        Column order the table should show, applied once TableView knows its
+        columns; until then TableView ignores moves and \l columnOrder stays the
+        identity it really shows.
+    */
+    property var desiredOrder: root.defaultOrder()
 
     /*! Whether a project layout is currently being applied, suppressing write-back. */
     property bool restoring: false
@@ -165,7 +175,7 @@ Rectangle {
             if (row < 0)
                 continue
             nodeIds.push(model.nodeIdAt(row))
-            names.push(model.structuredNameAt(row))
+            names.push(model.displayNameAt(row))
             stepped.push(model.isBooleanAt(row))
         }
 
@@ -181,7 +191,10 @@ Rectangle {
 
     // The built-in defaults are the layout the table starts from, so recording
     // them here keeps an untouched table from marking the project as modified.
-    Component.onCompleted: root.lastPushedState = JSON.stringify(root.currentState())
+    Component.onCompleted: {
+        root.syncColumnOrder()
+        root.lastPushedState = JSON.stringify(root.currentState())
+    }
 
     /*!
         Returns the editor kind for \a dataType: one of \c bool, \c enum,
@@ -253,27 +266,6 @@ Rectangle {
         return cppManagerOpcUa.dataViewModel.toSourceRow(viewRow)
     }
 
-    /*! Returns \a text with the StyledText markup characters escaped. */
-    function escapeMarkup(text) {
-        return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    }
-
-    /*!
-        Returns the StyledText of a name cell: \a prefix and \a suffix, which only
-        tell colliding rows apart, in the muted color around the row's own
-        \a leaf name, so the column can still be scanned by leaf name.
-    */
-    function nameMarkup(prefix, leaf, suffix) {
-        const muted = root.mutedColor.toString()
-        let markup = ""
-        if (prefix.length > 0)
-            markup += "<font color=\"" + muted + "\">" + root.escapeMarkup(prefix) + "</font>"
-        markup += root.escapeMarkup(leaf)
-        if (suffix.length > 0)
-            markup += "<font color=\"" + muted + "\">" + root.escapeMarkup(suffix) + "</font>"
-        return markup
-    }
-
     /*! Returns the visible column indexes in display order. */
     function visibleColumns() {
         let columns = []
@@ -285,12 +277,78 @@ Rectangle {
         return columns
     }
 
-    /*! Returns the default column order: every logical column at its own position. */
+    /*! Returns the identity order: every logical column at its own position. */
     function identityOrder() {
         let order = []
         for (let c = 0; c < root.columnCount; ++c)
             order.push(c)
         return order
+    }
+
+    /*!
+        Returns the built-in column order: the model order, with the context column,
+        which the model appends last, moved right behind the display name.
+    */
+    function defaultOrder() {
+        let order = []
+        for (let c = 0; c < root.columnCount; ++c) {
+            if (c === root.contextColumn)
+                continue
+            order.push(c)
+            if (c === root.displayNameColumn)
+                order.push(root.contextColumn)
+        }
+        return order
+    }
+
+    /*!
+        Moves the table's columns into \l desiredOrder. Does nothing until TableView
+        has built its columns, because it ignores moves before that; it is called
+        again when they appear.
+    */
+    function syncColumnOrder() {
+        if (tableView.columns !== root.columnCount)
+            return
+        const wasRestoring = root.restoring
+        root.restoring = true
+        tableView.clearColumnReordering()
+        root.columnOrder = root.identityOrder()
+        const order = root.desiredOrder
+        for (let v = 1; v < order.length; ++v) {
+            const from = root.visualColumn(order[v])
+            if (from !== v)
+                tableView.moveColumn(from, v)
+        }
+        root.restoring = wasRestoring
+    }
+
+    /*!
+        Returns \a values as a plain JavaScript array, or null when it is not a
+        list. A layout that went through the C++ project state comes back as a
+        sequence object, which Array.isArray() does not recognize.
+    */
+    function plainArray(values) {
+        if (values === null || values === undefined || typeof values === "string"
+                || typeof values.length !== "number") {
+            return null
+        }
+        return Array.from(values)
+    }
+
+    /*!
+        Returns \a values with one entry per column: a layout saved before the
+        context column existed has one entry less, which gets \a fallback appended.
+        Returns null for any other length.
+    */
+    function migratedColumnArray(values, fallback) {
+        const list = root.plainArray(values)
+        if (!list)
+            return null
+        if (list.length === root.columnCount)
+            return list
+        if (list.length === root.columnCount - 1)
+            return list.concat([fallback])
+        return null
     }
 
     /*! Returns the logical model column shown at visual position \a visual. */
@@ -313,8 +371,9 @@ Rectangle {
         Returns whether \a order is a usable stored column order: a permutation of
         every logical column that keeps the row-number column first.
     */
-    function isValidOrder(order) {
-        if (!Array.isArray(order) || order.length !== root.columnCount || order[0] !== 0)
+    function isValidOrder(candidate) {
+        const order = root.plainArray(candidate)
+        if (!order || order.length !== root.columnCount || order[0] !== 0)
             return false
         let seen = []
         for (let i = 0; i < order.length; ++i) {
@@ -363,7 +422,7 @@ Rectangle {
         root.saveState()
     }
 
-    /*! Returns the current column layout and sorting as a plain object. */
+    /*! Returns the current column layout as a plain object. */
     function currentState() {
         // Widths are stored per logical column, so they survive a different order.
         let widths = []
@@ -371,13 +430,12 @@ Rectangle {
             const width = tableView.explicitColumnWidth(root.visualColumn(c))
             widths.push(width >= 0 ? width : -1)
         }
-        const proxy = cppManagerOpcUa.dataViewModel
+        // The sort is left out on purpose: a project always opens in the order
+        // the rows were added.
         return {
             "widths": widths,
             "visible": root.columnVisible.slice(),
-            "order": root.columnOrder.slice(),
-            "sortColumn": proxy ? proxy.sortColumn : -1,
-            "sortOrder": proxy ? proxy.sortOrder : 0
+            "order": root.columnOrder.slice()
         }
     }
 
@@ -391,15 +449,19 @@ Rectangle {
     }
 
     /*!
-        Applies the column layout and sorting described by \a state, ignoring
-        entries that do not match the current column count so a project written
-        by a different build cannot corrupt the table.
+        Applies the column layout described by \a state and clears any sort, so
+        the rows show in the order they were added. Entries that do not match the
+        current column count are ignored so a project written by a different
+        build cannot corrupt the table; layouts saved before the context column
+        existed are extended with its defaults.
     */
     function applyState(state) {
         root.restoring = true
 
-        const visible = state ? state.visible : undefined
-        if (visible && visible.length === root.columnCount) {
+        const visible = state ? root.migratedColumnArray(
+                                    state.visible, root.columnDefaults[root.contextColumn].visible)
+                              : null
+        if (visible) {
             let next = []
             for (let i = 0; i < root.columnCount; ++i)
                 next.push(visible[i] === true)
@@ -410,27 +472,21 @@ Rectangle {
 
         // Apply the order before the widths: widths are addressed by visual
         // position, which only means the right column once the order is in place.
-        const order = (state && root.isValidOrder(state.order)) ? state.order : root.identityOrder()
-        tableView.clearColumnReordering()
-        root.columnOrder = root.identityOrder()
-        for (let v = 1; v < order.length; ++v) {
-            const from = root.visualColumn(order[v])
-            if (from !== v)
-                tableView.moveColumn(from, v)
-        }
+        root.desiredOrder = (state && root.isValidOrder(state.order)) ? root.plainArray(state.order)
+                                                                       : root.defaultOrder()
+        root.syncColumnOrder()
 
-        const widths = state ? state.widths : undefined
+        const widths = state ? root.migratedColumnArray(state.widths, -1) : null
         for (let c = 0; c < root.columnCount; ++c) {
-            const width = (widths && widths.length === root.columnCount) ? widths[c] : -1
+            const width = widths ? widths[c] : -1
             tableView.setColumnWidth(root.visualColumn(c),
                                      (width !== undefined && width >= 0) ? width : -1)
         }
 
-        if (cppManagerOpcUa.dataViewModel) {
-            const sortColumn = (state && state.sortColumn !== undefined) ? state.sortColumn : -1
-            const sortOrder = (state && state.sortOrder !== undefined) ? state.sortOrder : 0
-            cppManagerOpcUa.dataViewModel.applySort(sortColumn, sortOrder)
-        }
+        // A sort stored by an older build is ignored as well: the rows always
+        // start in the order they were added.
+        if (cppManagerOpcUa.dataViewModel)
+            cppManagerOpcUa.dataViewModel.applySort(-1, 0)
 
         tableView.forceLayout()
         root.lastPushedState = JSON.stringify(root.currentState())
@@ -456,7 +512,7 @@ Rectangle {
         valueEditor.editRow = row
         valueEditor.editNodeId = model.nodeIdAt(row)
         valueEditor.editDataType = model.dataTypeAt(row)
-        valueEditor.editDisplayName = model.structuredNameAt(row)
+        valueEditor.editDisplayName = model.displayNameAt(row)
         valueEditor.loadValue(model.valueAt(row))
         valueEditor.open()
         return true
@@ -869,8 +925,20 @@ Rectangle {
                     // the row-number column is put back on the next turn.
                     if (logicalIndex === 0 && newVisualIndex !== 0)
                         Qt.callLater(root.pinRowNumberColumn)
-                    if (!root.restoring)
+                    if (!root.restoring) {
+                        // A move by the user is the order the table should keep.
+                        root.desiredOrder = next
                         Qt.callLater(root.saveState)
+                    }
+                }
+
+                // TableView ignores column moves until it knows its columns, so the
+                // wanted order is applied again once they appear. That is not a
+                // change by the user, so the project is not marked as modified.
+                onColumnsChanged: {
+                    root.syncColumnOrder()
+                    if (!root.restoring)
+                        root.lastPushedState = JSON.stringify(root.currentState())
                 }
 
                 ScrollBar.vertical: ScrollBar {}
@@ -891,13 +959,10 @@ Rectangle {
                     required property var lastUpdateMs
                     required property int writability
                     required property string nodePath
-                    required property string namePrefix
-                    required property string nameLeaf
-                    required property string nameSuffix
 
-                    /*! Whether this cell shows the row's structured name. */
-                    readonly property bool nameCell:
-                        cellDelegate.column === root.displayNameColumn
+                    /*! Whether this cell shows the row's context, its parent path. */
+                    readonly property bool contextCell:
+                        cellDelegate.column === root.contextColumn
 
                     /*! Whether the server withholds CurrentWrite for this row. */
                     readonly property bool readOnly:
@@ -935,26 +1000,18 @@ Rectangle {
                                              ? Text.AlignRight
                                              : Text.AlignLeft
                         // The value cell shows the model's StyledText, colored with
-                        // the same palette as the structured Value panel; the name
-                        // cell mutes the qualifier of a colliding name; every other
+                        // the same palette as the structured Value panel; every other
                         // cell stays plain text.
                         textFormat: cellDelegate.column === root.valueColumn
-                                    || cellDelegate.nameCell
                                     ? Text.StyledText
                                     : Text.PlainText
-                        text: {
-                            if (cellDelegate.column === root.valueColumn)
-                                return cellDelegate.valueMarkup
-                            if (cellDelegate.nameCell)
-                                return root.nameMarkup(cellDelegate.namePrefix,
-                                                       cellDelegate.nameLeaf,
-                                                       cellDelegate.nameSuffix)
-                            return cellDelegate.display
-                        }
+                        text: cellDelegate.column === root.valueColumn
+                              ? cellDelegate.valueMarkup
+                              : cellDelegate.display
                         font.bold: cellDelegate.highlighted
-                        // A narrow name column drops the start of the qualifier, so
-                        // the row's own name stays readable.
-                        elide: cellDelegate.nameCell ? Text.ElideLeft : Text.ElideRight
+                        // A narrow context column drops the start of the path, so the
+                        // nearest structure and array index stay readable.
+                        elide: cellDelegate.contextCell ? Text.ElideLeft : Text.ElideRight
                         color: {
                             if (cellDelegate.column === root.statusColumn) {
                                 // 1 Good, 2 Uncertain, 3 Bad in DataAccessModel::StatusSeverity.
@@ -978,17 +1035,16 @@ Rectangle {
                         font.italic: cellDelegate.readOnly
                                      && cellDelegate.column === root.valueColumn
 
-                        // The name cell always offers the full browse path, the one
-                        // place that tells every row apart.
+                        // The context cell always offers the full browse path.
                         ToolTip.visible: cellHover.hovered
-                                         && (cellDelegate.nameCell
+                                         && (cellDelegate.contextCell
                                              ? cellDelegate.nodePath.length > 0
                                              : (cellDelegate.readOnly
                                                 ? cellDelegate.column === root.valueColumn
                                                 : (cellDelegate.display.length > 0
                                                    && contentWidth > width)))
                         ToolTip.text: {
-                            if (cellDelegate.nameCell)
+                            if (cellDelegate.contextCell)
                                 return cellDelegate.nodePath
                             if (cellDelegate.readOnly && cellDelegate.column === root.valueColumn)
                                 return qsTr("Read-only: the server does not grant CurrentWrite.")

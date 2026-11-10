@@ -1,6 +1,7 @@
 #include <QDateTime>
 
 #include "dataaccessmodel.h"
+#include "nodecontext.h"
 #include "valuehighlight.h"
 
 namespace {
@@ -49,7 +50,6 @@ void DataAccessModel::setRecords(const QList<MonitoredNodeRecord> &records)
     m_rows.reserve(records.size());
     for (const auto &record : records)
         m_rows.push_back(makeRow(record));
-    recomputeAllNames();
     endResetModel();
 }
 
@@ -80,10 +80,7 @@ bool DataAccessModel::addRow(const MonitoredNodeRecord &record)
     const int row = m_rows.size();
     beginInsertRows(QModelIndex(), row, row);
     m_rows.push_back(makeRow(record));
-    // Only rows sharing the new row's display name can be renamed by it.
-    const std::pair<int, int> renamed = recomputeNames(record.displayName);
     endInsertRows();
-    notifyNamesChanged(renamed);
     return true;
 }
 
@@ -96,12 +93,8 @@ void DataAccessModel::removeAt(int row)
         return;
 
     beginRemoveRows(QModelIndex(), row, row);
-    const QString removedName = m_rows.at(row).record.displayName;
     m_rows.removeAt(row);
-    // Only rows that shared the removed row's display name can be renamed.
-    const std::pair<int, int> renamed = recomputeNames(removedName);
     endRemoveRows();
-    notifyNamesChanged(renamed);
 
     // Row numbers shift, so refresh the whole first column for the remaining rows.
     if (!m_rows.isEmpty()) {
@@ -246,17 +239,15 @@ QString DataAccessModel::displayNameAt(int row) const
 }
 
 /*!
- * \brief Returns the name the table shows for \a row.
+ * \brief Returns the parent path shown in the context column at \a row.
  *
- * This is the display name qualified by the shortest distinguishing tail of its
- * path while another row has the same display name, otherwise the display name
- * itself; see DataViewNames::structuredNames().
+ * See NodeContext::contextOf() for how the path is derived.
  */
-QString DataAccessModel::structuredNameAt(int row) const
+QString DataAccessModel::contextAt(int row) const
 {
     if (row < 0 || row >= m_rows.size())
         return {};
-    return m_rows.at(row).name.text();
+    return m_rows.at(row).context;
 }
 
 /*!
@@ -367,6 +358,7 @@ QString DataAccessModel::columnTitle(int column) const
     case NodePathColumn: return tr("Node Path");
     case NodeIdColumn: return tr("Node Id");
     case ServerColumn: return tr("Server");
+    case ContextColumn: return tr("Context");
     default: return {};
     }
 }
@@ -439,7 +431,7 @@ QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) con
 {
     switch (column) {
     case RowNumberColumn: return QString::number(rowNumber);
-    case DisplayNameColumn: return row.name.text();
+    case DisplayNameColumn: return row.record.displayName;
     case ValueColumn: return row.value;
     case DataTypeColumn: return row.record.dataType;
     case StatusColumn: return row.statusCode;
@@ -454,6 +446,7 @@ QString DataAccessModel::cellText(const Row &row, int column, int rowNumber) con
     case NodePathColumn: return row.record.nodePath;
     case NodeIdColumn: return row.record.nodeId;
     case ServerColumn: return row.record.server;
+    case ContextColumn: return row.context;
     default: return {};
     }
 }
@@ -512,9 +505,6 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     case WritabilityRole: return writabilityAt(index.row());
     case ValueMarkupRole:
         return valueHighlightMarkup(row.value, row.arrayElements, row.valueKind, m_darkTheme);
-    case NamePrefixRole: return row.name.prefix;
-    case NameLeafRole: return row.name.leaf;
-    case NameSuffixRole: return row.name.suffix;
     default: return {};
     }
 }
@@ -573,97 +563,19 @@ QHash<int, QByteArray> DataAccessModel::roleNames() const
         {SortValueRole, "sortValue"},
         {AccessLevelRole, "accessLevel"},
         {WritabilityRole, "writability"},
-        {ValueMarkupRole, "valueMarkup"},
-        {NamePrefixRole, "namePrefix"},
-        {NameLeafRole, "nameLeaf"},
-        {NameSuffixRole, "nameSuffix"}
+        {ValueMarkupRole, "valueMarkup"}
     };
 }
 
 /*!
  * \internal
- * \brief Builds a row for \a record with empty live data and its naming input prepared.
+ * \brief Builds a row for \a record with empty live data and its context derived.
  *
- * Tokenizing the path once here keeps the recompute after every add and remove
- * free of string parsing.
+ * The context depends only on the node itself, so it is derived once here.
  */
 DataAccessModel::Row DataAccessModel::makeRow(const MonitoredNodeRecord &record)
 {
     Row row {record, {}, {}, {}, {}, 0, OpcUaAccessLevel::Unknown};
-    row.naming = DataViewNames::tokenize(
-        {record.server, record.nodePath, record.displayName});
-    row.name = DataViewNames::render(row.naming, row.qualifier);
+    row.context = NodeContext::contextOf(record.nodeId, record.nodePath, record.displayName);
     return row;
-}
-
-/*!
- * \internal
- * \brief Recomputes the structured names of the rows named \a displayName.
- * \return The first and last row whose name changed, or {-1, -1} when none did.
- *
- * A row is qualified only while another row shares its display name, so adding
- * or removing a row can rename only the rows with that same name. Callers
- * notify views themselves, since the right signal depends on whether rows are
- * being inserted, removed, or reset.
- */
-std::pair<int, int> DataAccessModel::recomputeNames(const QString &displayName)
-{
-    QList<int> rows;
-    QList<DataViewNames::TokenizedEntry> entries;
-    for (int i = 0; i < int(m_rows.size()); ++i) {
-        if (m_rows.at(i).record.displayName == displayName) {
-            rows.append(i);
-            entries.append(m_rows.at(i).naming);
-        }
-    }
-
-    // Only rows whose qualification changed are rendered again, so a bulk add of
-    // many rows sharing one name does not rebuild every name on every add.
-    const QList<DataViewNames::Qualifier> qualified = DataViewNames::qualifiers(entries);
-
-    std::pair<int, int> changed {-1, -1};
-    for (qsizetype i = 0; i < rows.size(); ++i) {
-        Row &row = m_rows[rows.at(i)];
-        if (row.qualifier == qualified.at(i))
-            continue;
-        row.qualifier = qualified.at(i);
-        row.name = DataViewNames::render(row.naming, row.qualifier);
-        if (changed.first < 0)
-            changed.first = rows.at(i);
-        changed.second = rows.at(i);
-    }
-    return changed;
-}
-
-/*!
- * \internal
- * \brief Recomputes the structured names of every row, as after a reset.
- */
-void DataAccessModel::recomputeAllNames()
-{
-    QList<DataViewNames::TokenizedEntry> entries;
-    entries.reserve(m_rows.size());
-    for (const Row &row : std::as_const(m_rows))
-        entries.append(row.naming);
-
-    const QList<DataViewNames::Qualifier> qualified = DataViewNames::qualifiers(entries);
-    for (qsizetype i = 0; i < m_rows.size(); ++i) {
-        m_rows[i].qualifier = qualified.at(i);
-        m_rows[i].name = DataViewNames::render(m_rows.at(i).naming, qualified.at(i));
-    }
-}
-
-/*!
- * \internal
- * \brief Signals that the names of the rows in \a range may have changed.
- *
- * Does nothing for the empty range {-1, -1}.
- */
-void DataAccessModel::notifyNamesChanged(std::pair<int, int> range)
-{
-    if (range.first < 0)
-        return;
-    emit dataChanged(index(range.first, DisplayNameColumn), index(range.second, DisplayNameColumn),
-                     {Qt::DisplayRole, SortValueRole, NamePrefixRole, NameLeafRole,
-                      NameSuffixRole});
 }

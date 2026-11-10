@@ -112,20 +112,11 @@ private slots:
     /*! Verifies that switching the palette refreshes only the value markup. */
     void darkThemeRefreshesValueMarkup();
 
-    /*! Verifies that colliding display names are shown as structured names. */
-    void displayColumnShowsStructuredNames();
+    /*! Verifies that rows with the same name all show the server's display name. */
+    void displayColumnShowsTheServerName();
 
-    /*! Verifies that adding a colliding row renames the existing row. */
-    void addingACollisionRenamesTheExistingRow();
-
-    /*! Verifies that removing a colliding row restores the plain name. */
-    void removingACollisionRestoresThePlainName();
-
-    /*! Verifies that replacing all rows computes structured names. */
-    void setRecordsComputesNames();
-
-    /*! Verifies that a bulk add of many rows sharing one name stays fast. */
-    void bulkAddOfCollidingRowsStaysFast();
+    /*! Verifies that the context column shows each row's parent path. */
+    void contextColumnShowsTheParentPath();
 };
 
 /*!
@@ -635,103 +626,41 @@ void DataAccessModelTest::darkThemeRefreshesValueMarkup()
 }
 
 /*!
- * \brief Verifies that colliding display names are shown as structured names.
+ * \brief Verifies that rows with the same name all show the server's display name.
  *
- * The name column and the prefix/leaf roles carry the structured name, while
- * displayNameAt() keeps the server's own DisplayName.
+ * The name column is never rewritten from the other rows; telling such rows
+ * apart is the job of the context column.
  */
-void DataAccessModelTest::displayColumnShowsStructuredNames()
+void DataAccessModelTest::displayColumnShowsTheServerName()
 {
     DataAccessModel model;
     model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
     model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
 
-    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
-    QCOMPARE(model.structuredNameAt(1), QStringLiteral("s2.value"));
+    QCOMPARE(nameCell(model, 0), QStringLiteral("value"));
+    QCOMPARE(nameCell(model, 1), QStringLiteral("value"));
     QCOMPARE(model.displayNameAt(0), QStringLiteral("value"));
-
-    const QModelIndex cell = model.index(0, DataAccessModel::DisplayNameColumn);
-    QCOMPARE(model.data(cell, DataAccessModel::NamePrefixRole).toString(), QStringLiteral("s1."));
-    QCOMPARE(model.data(cell, DataAccessModel::NameLeafRole).toString(), QStringLiteral("value"));
-    QCOMPARE(model.data(cell, DataAccessModel::NameSuffixRole).toString(), QString());
-    QCOMPARE(model.roleNames().value(DataAccessModel::NamePrefixRole), QByteArray("namePrefix"));
 }
 
 /*!
- * \brief Verifies that adding a colliding row renames the existing row.
+ * \brief Verifies that the context column shows each row's parent path.
  */
-void DataAccessModelTest::addingACollisionRenamesTheExistingRow()
+void DataAccessModelTest::contextColumnShowsTheParentPath()
 {
     DataAccessModel model;
-    model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
-    QCOMPARE(nameCell(model, 0), QStringLiteral("value"));
-
-    QSignalSpy spy(&model, &DataAccessModel::dataChanged);
+    MonitoredNodeRecord codesys = makeRecord(
+        QStringLiteral("ns=4;s=|var|CODESYS Control Win V3 x64.Application.V_HMI."
+                       "astTestPrepContainer[1].stRefOffset.value"));
+    codesys.displayName = QStringLiteral("value");
+    model.addRow(codesys);
     model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
 
-    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
-
-    bool nameRefreshed = false;
-    for (const QList<QVariant> &arguments : std::as_const(spy)) {
-        const QModelIndex topLeft = arguments.at(0).toModelIndex();
-        const QModelIndex bottomRight = arguments.at(1).toModelIndex();
-        if (topLeft.row() <= 0 && bottomRight.row() >= 0
-            && topLeft.column() <= DataAccessModel::DisplayNameColumn
-            && bottomRight.column() >= DataAccessModel::DisplayNameColumn) {
-            nameRefreshed = true;
-        }
-    }
-    QVERIFY(nameRefreshed);
-}
-
-/*!
- * \brief Verifies that removing a colliding row restores the plain name.
- */
-void DataAccessModelTest::removingACollisionRestoresThePlainName()
-{
-    DataAccessModel model;
-    model.addRow(namedRecord(QStringLiteral("Objects/s1/value")));
-    model.addRow(namedRecord(QStringLiteral("Objects/s2/value")));
-
-    model.removeAt(1);
-
-    QCOMPARE(nameCell(model, 0), QStringLiteral("value"));
-}
-
-/*!
- * \brief Verifies that replacing all rows computes structured names.
- */
-void DataAccessModelTest::setRecordsComputesNames()
-{
-    DataAccessModel model;
-    model.setRecords({namedRecord(QStringLiteral("Objects/s1/value")),
-                      namedRecord(QStringLiteral("Objects/s2/value"))});
-
-    QCOMPARE(nameCell(model, 0), QStringLiteral("s1.value"));
-    QCOMPARE(nameCell(model, 1), QStringLiteral("s2.value"));
-}
-
-/*!
- * \brief Verifies that a bulk add of many rows sharing one name stays fast.
- *
- * Ticking an array of structures adds one row per element member, all named
- * alike; names are recomputed after every add, so that recompute must stay
- * linear in the number of colliding rows. The bound is generous for a Debug
- * build; comparing the rows pairwise on every add takes over ten times longer.
- */
-void DataAccessModelTest::bulkAddOfCollidingRowsStaysFast()
-{
-    DataAccessModel model;
-    QElapsedTimer timer;
-    timer.start();
-    for (int i = 0; i < 1000; ++i) {
-        model.addRow(namedRecord(QStringLiteral("Application/V_HMI/astItems[%1]/stRefOffset/value")
-                                     .arg(i)));
-    }
-    const qint64 elapsedMs = timer.elapsed();
-
-    QCOMPARE(nameCell(model, 999), QStringLiteral("[999].stRefOffset.value"));
-    QVERIFY2(elapsedMs < 3000, qPrintable(QStringLiteral("took %1 ms").arg(elapsedMs)));
+    QCOMPARE(model.columnTitle(DataAccessModel::ContextColumn), QStringLiteral("Context"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ContextColumn), Qt::DisplayRole)
+                 .toString(),
+             QStringLiteral("V_HMI.astTestPrepContainer[1].stRefOffset"));
+    QCOMPARE(model.contextAt(1), QStringLiteral("s2"));
+    QCOMPARE(model.contextAt(2), QString());
 }
 
 QTEST_MAIN(DataAccessModelTest)

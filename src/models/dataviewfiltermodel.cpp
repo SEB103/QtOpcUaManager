@@ -230,9 +230,10 @@ bool DataViewFilterModel::lessThan(const QModelIndex &left, const QModelIndex &r
     if (leftNumeric != rightNumeric)
         return leftNumeric;
 
-    // Structured names carry array indexes, so the name column compares the
-    // numbers inside the text by value: "[2].v" sorts before "[10].v".
-    if (left.column() == DataAccessModel::DisplayNameColumn)
+    // Names and contexts carry numbers and array indexes, so these columns
+    // compare the numbers inside the text by value: "a[2]" sorts before "a[10]".
+    if (left.column() == DataAccessModel::DisplayNameColumn
+        || left.column() == DataAccessModel::ContextColumn)
         return m_nameCollator.compare(leftValue.toString(), rightValue.toString()) < 0;
 
     return QString::compare(leftValue.toString(), rightValue.toString(),

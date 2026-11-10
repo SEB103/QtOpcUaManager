@@ -418,12 +418,12 @@ Item {
         }
 
         /*!
-            Verifies that colliding names are shown qualified by their path.
+            Verifies that rows with the same name show the server's name unchanged.
 
-            The name cell shows the qualifier and the leaf, its tooltip carries the
-            full browse path, and the value editor is titled with the same name.
+            Rows are told apart by the context column, so the name cell and the
+            value editor title keep the plain display name.
         */
-        function test_structuredNamesAreShownAndUsed() {
+        function test_namesStayPlain() {
             cppManagerOpcUa.clearMockNodes();
             cppManagerOpcUa.addMockNodeAtPath("ns=1;s=A", "Objects/s1/value");
             cppManagerOpcUa.addMockNodeAtPath("ns=1;s=B", "Objects/s2/value");
@@ -438,69 +438,154 @@ Item {
             verify(cell !== null);
             const label = findChild(cell, "cellLabel");
             verify(label !== null);
-            verify(label.text.indexOf("s1.") !== -1);
-            verify(label.text.indexOf("value") !== -1);
-            compare(label.ToolTip.text, "Objects/s1/value");
+            compare(label.text, "value");
 
             verify(view.editValue(1));
             const dialog = findChild(view, "valueEditorDialog");
-            compare(dialog.editDisplayName, "s2.value");
+            compare(dialog.editDisplayName, "value");
             dialog.close();
 
             cppManagerOpcUa.clearMockNodes();
         }
 
-        /*! Returns the identity column order, logical index per visual position. */
-        function identityOrder(view) {
-            let order = []
-            for (let c = 0; c < view.columnCount; ++c)
-                order.push(c)
-            return order
+        /*! Returns the built-in column order: the context column right after the name. */
+        function defaultOrder() {
+            return [0, 1, 11, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        }
+
+        /*! Creates a table and waits until TableView has built its columns. */
+        function createTable() {
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            const table = findChild(view, "dataTable");
+            tryCompare(table, "columns", view.columnCount);
+            return view
+        }
+
+        /*! Verifies that the context column follows the display name by default. */
+        function test_contextColumnFollowsTheName() {
+            const view = createTable();
+
+            compare(view.columnOrder, defaultOrder());
+            compare(view.visibleColumns().slice(0, 4), [0, 1, 11, 2]);
+            compare(cppManagerOpcUa.dataModel.columnTitle(view.contextColumn), "Context");
+        }
+
+        /*! Verifies that the context cell shows the parent path with the full path as tooltip. */
+        function test_contextCellShowsPathTooltip() {
+            cppManagerOpcUa.clearMockNodes();
+            cppManagerOpcUa.addMockNodeAtPath("ns=1;s=A", "Objects/Boiler/Drum/Level");
+            const view = createTable();
+            const table = findChild(view, "dataTable");
+            waitForRendering(view);
+
+            const cell = table.itemAtCell(Qt.point(view.visualColumn(view.contextColumn), 0));
+            verify(cell !== null);
+            const label = findChild(cell, "cellLabel");
+            compare(label.text, "Boiler.Drum");
+            compare(label.elide, Text.ElideLeft);
+            compare(label.ToolTip.text, "Objects/Boiler/Drum/Level");
+
+            cppManagerOpcUa.clearMockNodes();
+        }
+
+        /*!
+            Verifies that a layout saved before the context column existed migrates.
+
+            Its widths stay on their columns, the context column is added visible
+            after the name, and a sort stored by that build is not restored.
+        */
+        function test_elevenColumnLayoutMigrates() {
+            const view = createTable();
+            const table = findChild(view, "dataTable");
+
+            let visible = []
+            let widths = []
+            for (let c = 0; c < 11; ++c) {
+                visible.push(c !== 4)
+                widths.push(c === 2 ? 250 : -1)
+            }
+            cppManagerOpcUa.dataViewModel.applySort(1, 0);
+            view.applyState({ "visible": visible, "widths": widths,
+                              "sortColumn": 1, "sortOrder": 1 });
+
+            compare(view.columnOrder, defaultOrder());
+            compare(view.columnVisible[4], false);
+            compare(view.columnVisible[view.contextColumn], true);
+            compare(table.explicitColumnWidth(view.visualColumn(2)), 250);
+            compare(cppManagerOpcUa.dataViewModel.sortColumn, -1);
+        }
+
+        /*! Verifies that the sort is not part of the saved layout. */
+        function test_sortIsNotSaved() {
+            const view = createTable();
+
+            cppManagerOpcUa.dataViewModel.applySort(1, 0);
+            const state = view.currentState();
+            verify(state.sortColumn === undefined);
+            verify(state.sortOrder === undefined);
+            cppManagerOpcUa.dataViewModel.applySort(-1, 0);
         }
 
         /*! Verifies that a moved column is reported in the saved order and in copies. */
         function test_movedColumnIsSavedInOrder() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
 
             // Logical column 9 is the node id.
             view.moveColumn(view.visualColumn(9), 1);
 
-            compare(view.currentState().order, [0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 10]);
+            compare(view.currentState().order, [0, 9, 1, 11, 2, 3, 4, 5, 6, 7, 8, 10]);
             compare(view.visibleColumns()[1], 9);
         }
 
         /*! Verifies that a stored column order is restored silently. */
         function test_orderRoundTrip() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
 
             view.moveColumn(view.visualColumn(9), 1);
             const saved = view.currentState();
 
             view.applyState({});
-            compare(view.columnOrder, identityOrder(view));
+            compare(view.columnOrder, defaultOrder());
 
             view.applyState(saved);
             compare(view.columnOrder, saved.order);
             compare(view.restoring, false);
         }
 
+        /*!
+            Verifies that a column order stored in the project is restored.
+
+            The layout makes a round trip through the C++ project state, where the
+            arrays come back as sequences rather than plain JavaScript arrays.
+        */
+        function test_orderSurvivesTheProjectRoundTrip() {
+            const view = createTable();
+
+            view.moveColumn(view.visualColumn(9), 1);
+            view.saveState();
+            const stored = cppManagerOpcUa.dataViewState;
+
+            view.applyState({});
+            compare(view.columnOrder, defaultOrder());
+
+            view.applyState(stored);
+            compare(view.columnOrder, [0, 9, 1, 11, 2, 3, 4, 5, 6, 7, 8, 10]);
+        }
+
         /*! Verifies that the row-number column cannot leave the first position. */
         function test_rowNumberColumnStaysFirst() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
 
             view.moveColumn(0, 3);
 
             tryVerify(function () { return view.columnOrder[0] === 0 });
-            compare(view.columnOrder, identityOrder(view));
+            compare(view.columnOrder, defaultOrder());
         }
 
         /*! Verifies that a layout saved before columns could move keeps the default order. */
         function test_layoutWithoutOrderKeepsDefaultOrder() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
             const table = findChild(view, "dataTable");
 
             let widths = []
@@ -508,29 +593,27 @@ Item {
                 widths.push(c === 1 ? 222 : -1)
             view.applyState({ "visible": view.columnVisible.slice(), "widths": widths });
 
-            compare(view.columnOrder, identityOrder(view));
+            compare(view.columnOrder, defaultOrder());
             compare(table.explicitColumnWidth(view.visualColumn(1)), 222);
         }
 
         /*! Verifies that an order that is not a permutation starting with 0 is ignored. */
         function test_invalidOrderIsIgnored() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
 
-            view.applyState({ "order": [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10] });
-            compare(view.columnOrder, identityOrder(view));
+            view.applyState({ "order": [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] });
+            compare(view.columnOrder, defaultOrder());
 
-            view.applyState({ "order": [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10] });
-            compare(view.columnOrder, identityOrder(view));
+            view.applyState({ "order": [0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] });
+            compare(view.columnOrder, defaultOrder());
 
             view.applyState({ "order": [0, 1, 2] });
-            compare(view.columnOrder, identityOrder(view));
+            compare(view.columnOrder, defaultOrder());
         }
 
         /*! Verifies that a dragged width stays with its column when the column moves. */
         function test_widthsFollowMovedColumns() {
-            const view = createTemporaryObject(dataViewComponent, root);
-            verify(view !== null);
+            const view = createTable();
             const table = findChild(view, "dataTable");
 
             table.setColumnWidth(view.visualColumn(2), 260);

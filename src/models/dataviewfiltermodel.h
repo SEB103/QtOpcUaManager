@@ -97,7 +97,7 @@ private:
     int m_sortColumn {-1};
     /** Current sort direction. */
     Qt::SortOrder m_sortOrder {Qt::AscendingOrder};
-    /** Numeric-aware, case-insensitive comparison for the name column. */
+    /** Numeric-aware, case-insensitive comparison for the name and context columns. */
     QCollator m_nameCollator;
 };
 

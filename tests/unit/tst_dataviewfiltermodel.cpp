@@ -64,7 +64,22 @@ private slots:
 
     /*! Verifies that the name column orders embedded numbers numerically. */
     void nameColumnSortsNaturally();
+
+    /*! Verifies that the context column orders array indexes numerically. */
+    void contextColumnSortsNaturally();
 };
+
+/*!
+ * \internal
+ * \brief Returns the texts of \a column in the view order of \a proxy.
+ */
+static QStringList columnTexts(const DataViewFilterModel &proxy, int column)
+{
+    QStringList texts;
+    for (int row = 0; row < proxy.rowCount(); ++row)
+        texts.append(proxy.data(proxy.index(row, column), Qt::DisplayRole).toString());
+    return texts;
+}
 
 /*!
  * \brief Verifies that an unsorted, unfiltered proxy mirrors the source order.
@@ -354,11 +369,31 @@ void DataViewFilterModelTest::rowNumbersRefreshWhenTheOrderChanges()
 
 /*!
  * \brief Verifies that the name column orders embedded numbers numerically.
- *
- * Array elements are qualified by their index, so "[2]…" must sort before
- * "[10]…" rather than after it as plain text comparison would.
  */
 void DataViewFilterModelTest::nameColumnSortsNaturally()
+{
+    DataAccessModel source;
+    for (const QString &name : {QStringLiteral("Motor10"), QStringLiteral("Motor2"),
+                                QStringLiteral("Motor1")}) {
+        source.addRow(makeRecord(QStringLiteral("ns=1;s=") + name, name));
+    }
+
+    DataViewFilterModel proxy;
+    proxy.setSourceModel(&source);
+    proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::AscendingOrder);
+
+    QCOMPARE(columnTexts(proxy, DataAccessModel::DisplayNameColumn),
+             (QStringList {QStringLiteral("Motor1"), QStringLiteral("Motor2"),
+                           QStringLiteral("Motor10")}));
+}
+
+/*!
+ * \brief Verifies that the context column orders array indexes numerically.
+ *
+ * Members of array elements share their context, so "a[2]" must sort before
+ * "a[10]" for the elements to come out in index order.
+ */
+void DataViewFilterModelTest::contextColumnSortsNaturally()
 {
     DataAccessModel source;
     for (const QString &index : {QStringLiteral("10"), QStringLiteral("2"), QStringLiteral("1")}) {
@@ -370,14 +405,11 @@ void DataViewFilterModelTest::nameColumnSortsNaturally()
 
     DataViewFilterModel proxy;
     proxy.setSourceModel(&source);
-    proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::AscendingOrder);
+    proxy.applySort(DataAccessModel::ContextColumn, Qt::AscendingOrder);
 
-    QStringList order;
-    for (int row = 0; row < proxy.rowCount(); ++row)
-        order.append(proxy.data(proxy.index(row, DataAccessModel::DisplayNameColumn),
-                                Qt::DisplayRole).toString());
-    QCOMPARE(order, (QStringList {QStringLiteral("[1].v"), QStringLiteral("[2].v"),
-                                  QStringLiteral("[10].v")}));
+    QCOMPARE(columnTexts(proxy, DataAccessModel::ContextColumn),
+             (QStringList {QStringLiteral("A.a[1]"), QStringLiteral("A.a[2]"),
+                           QStringLiteral("A.a[10]")}));
 }
 
 QTEST_MAIN(DataViewFilterModelTest)
