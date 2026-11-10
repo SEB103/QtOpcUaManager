@@ -77,6 +77,13 @@ ApplicationWindow {
     /*! Pending action deferred until the unsaved-changes prompt is answered. */
     property var pendingAction: null
 
+    /*!
+        Whether the user already answered the unsaved-changes prompts for quitting.
+        Qt.quit() closes every window first, so without it the closing guard would
+        see the still unsaved project, cancel the quit, and ask again.
+    */
+    property bool quitConfirmed: false
+
     /*! Whether the Server Studio workspace is shown instead of the launcher. */
     property bool serverStudioActive: false
 
@@ -147,6 +154,15 @@ ApplicationWindow {
         } else {
             action()
         }
+    }
+
+    /*!
+        Quits after the unsaved-changes prompts were answered with save or
+        discard, letting the closing guard pass the window close Qt.quit() sends.
+    */
+    function quitAfterPrompt() {
+        mainWindow.quitConfirmed = true
+        Qt.quit()
     }
 
     /*! Runs and clears the deferred action stored by runGuarded(). */
@@ -277,9 +293,9 @@ ApplicationWindow {
     onClosing: (close) => {
         // Save while the window still reports its real visibility and geometry.
         mainWindow.saveUiLayout()
-        if (cppProjectManager.dirty || cppServerStudio.dirty) {
+        if (!mainWindow.quitConfirmed && (cppProjectManager.dirty || cppServerStudio.dirty)) {
             close.accepted = false
-            runGuarded(() => mainWindow.runServerStudioGuarded(() => Qt.quit()))
+            runGuarded(() => mainWindow.runServerStudioGuarded(() => mainWindow.quitAfterPrompt()))
         }
     }
 
@@ -1072,8 +1088,10 @@ ApplicationWindow {
                 updateDialog.open()
         }
 
+        // The unsaved-changes prompts were answered before the update started, so
+        // the closing guard must not ask again.
         function onQuitRequested() {
-            Qt.quit()
+            mainWindow.quitAfterPrompt()
         }
     }
 
