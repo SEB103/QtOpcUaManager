@@ -380,7 +380,7 @@ Rectangle {
     }
 
     /*!
-        Returns whether \a order is a usable stored column order: a permutation of
+        Returns whether \a candidate is a usable stored column order: a permutation of
         every logical column that keeps the row-number column first.
     */
     function isValidOrder(candidate) {

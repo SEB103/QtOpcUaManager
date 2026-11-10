@@ -23,20 +23,33 @@ Feature release for the Data View: rows with the same name can be told apart
 at a glance, and the columns can be arranged the way you work.
 
 ### Added
-- **Distinguishable names**: when several rows have the same name — for
-  example the `value` member of every element of an array of structures — the
-  Display Name column adds the shortest part of the node path that tells them
-  apart, such as `[1].stRefOffset.value`, in IEC 61131-3 notation. The added
-  part is dimmed, the full node path is shown on hover, and sorting treats
-  array indexes as numbers (`[2]` before `[10]`). Copying rows, CSV export,
-  the value editor title, and the trend legend use the same name.
-- **Movable columns**: drag a column header to the left or right to change
-  the column order; the row number stays first. Copying rows and CSV export
-  follow the visible order.
+- **Context column**: right after Display Name, it shows where each variable
+  lives, in IEC notation starting at the GVL or program — for example
+  `V_HMI.astTestPrepContainer[1].stRefOffset` — so rows with the same name,
+  such as the `value` member of every element of an array of structures, can
+  be told apart. A narrow column keeps the end of the path visible, the full
+  node path is shown on hover, and sorting treats array indexes as numbers
+  (`[2]` before `[10]`).
+- **Movable columns**: drag the middle of a column header to the left or
+  right to change the column order; dragging near its edge still resizes the
+  column. A marker shows where the column will land, and the row number stays
+  first. Copying rows and CSV export follow the visible order.
 - **Column layout for new projects**: the column order, visibility, and
   widths you arrange are saved with the project and also become the starting
   layout of every new project, so the columns do not have to be arranged
   again after a restart.
+
+### Changed
+- **Row numbers and sorting**: `#` is the number of the row in the order the
+  variables were added and stays with its row when the table is sorted;
+  sorting by `#` restores that order. New rows are always appended at the end,
+  and the sort is no longer saved in the project, so a project always opens
+  in the order the rows were added.
+
+### Fixed
+- **Discard when quitting**: answering *Discard* in the unsaved-changes prompt
+  now quits the application instead of showing the prompt again. The same
+  applies when quitting to install an update.
 
 ## [1.3.1] - 2026-10-08
 

@@ -715,7 +715,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+234"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+268"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Десяткове число, наприклад 12.5. Використовуйте крапку як роздільник.</translation>
     </message>
@@ -730,7 +730,7 @@
         <translation>Ціле число від %1 до %2.</translation>
     </message>
     <message>
-        <location line="+274"/>
+        <location line="+442"/>
         <source>Copy Selected Rows</source>
         <translation>Копіювати вибрані рядки</translation>
     </message>
@@ -800,7 +800,7 @@
         <translation>Експортувати таблицю до CSV</translation>
     </message>
     <message>
-        <location line="+93"/>
+        <location line="+143"/>
         <source>No row matches the filter.</source>
         <translation>Немає рядків, що відповідають фільтру.</translation>
     </message>
@@ -810,12 +810,12 @@
         <translation>Позначте вузли в адресному просторі або перетягніть їх сюди, щоб додати до подання даних.</translation>
     </message>
     <message>
-        <location line="+124"/>
+        <location line="+166"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Лише для читання: сервер не надає CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+116"/>
+        <location line="+117"/>
         <location line="+2"/>
         <source>Remove from Data Access View</source>
         <translation>Прибрати з подання даних</translation>
@@ -1237,7 +1237,7 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="+337"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="+350"/>
         <source>#</source>
         <translation>#</translation>
     </message>
@@ -1290,6 +1290,11 @@
         <location line="+1"/>
         <source>Server</source>
         <translation>Сервер</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Context</source>
+        <translation>Контекст</translation>
     </message>
 </context>
 <context>
@@ -1440,7 +1445,7 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+414"/>
+        <location line="+431"/>
         <source>Zoom: %1%</source>
         <translation>Масштаб: %1%</translation>
     </message>
@@ -1619,7 +1624,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+767"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+830"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>До подання даних додано %n вузол.</numerusform>
@@ -1693,7 +1698,7 @@
         <translation>%1 доступний лише для читання: сервер не надає CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+350"/>
+        <location line="+353"/>
         <source>The stored server was not found during discovery.</source>
         <translation>Збережений сервер не знайдено під час виявлення.</translation>
     </message>

@@ -715,7 +715,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+234"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+268"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Десятичное число, например 12.5. Используйте точку как разделитель.</translation>
     </message>
@@ -730,7 +730,7 @@
         <translation>Целое число от %1 до %2.</translation>
     </message>
     <message>
-        <location line="+274"/>
+        <location line="+442"/>
         <source>Copy Selected Rows</source>
         <translation>Копировать выбранные строки</translation>
     </message>
@@ -800,7 +800,7 @@
         <translation>Экспортировать таблицу в CSV</translation>
     </message>
     <message>
-        <location line="+93"/>
+        <location line="+143"/>
         <source>No row matches the filter.</source>
         <translation>Нет строк, соответствующих фильтру.</translation>
     </message>
@@ -810,12 +810,12 @@
         <translation>Отметьте узлы в адресном пространстве или перетащите их сюда, чтобы добавить в представление данных.</translation>
     </message>
     <message>
-        <location line="+124"/>
+        <location line="+166"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Только для чтения: сервер не предоставляет CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+116"/>
+        <location line="+117"/>
         <location line="+2"/>
         <source>Remove from Data Access View</source>
         <translation>Убрать из представления данных</translation>
@@ -1237,7 +1237,7 @@
 <context>
     <name>DataAccessModel</name>
     <message>
-        <location filename="../src/models/dataaccessmodel.cpp" line="+337"/>
+        <location filename="../src/models/dataaccessmodel.cpp" line="+350"/>
         <source>#</source>
         <translation>#</translation>
     </message>
@@ -1290,6 +1290,11 @@
         <location line="+1"/>
         <source>Server</source>
         <translation>Сервер</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Context</source>
+        <translation>Контекст</translation>
     </message>
 </context>
 <context>
@@ -1440,7 +1445,7 @@
         <translation>%1 — %2%3</translation>
     </message>
     <message>
-        <location line="+414"/>
+        <location line="+431"/>
         <source>Zoom: %1%</source>
         <translation>Масштаб: %1%</translation>
     </message>
@@ -1619,7 +1624,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+767"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+830"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>В представление данных добавлен %n узел.</numerusform>
@@ -1693,7 +1698,7 @@
         <translation>%1 доступен только для чтения: сервер не предоставляет CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+350"/>
+        <location line="+353"/>
         <source>The stored server was not found during discovery.</source>
         <translation>Сохранённый сервер не найден при обнаружении.</translation>
     </message>
