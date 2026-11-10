@@ -459,6 +459,25 @@ public:
         emit monitoredNodeCountChanged();
     }
 
+    /*!
+     * Adds a writable row at the browse path \a nodePath whose display name is
+     * the last path segment, so rows with colliding names can be exercised.
+     */
+    Q_INVOKABLE void addMockNodeAtPath(const QString &nodeId, const QString &nodePath)
+    {
+        MonitoredNodeRecord record;
+        record.server = QStringLiteral("mock");
+        record.nodeId = nodeId;
+        record.nodePath = nodePath;
+        record.displayName = nodePath.section(QLatin1Char('/'), -1);
+        record.dataType = QStringLiteral("DINT");
+
+        m_dataModel.addRow(record);
+        // AccessLevel 3 is CurrentRead|CurrentWrite.
+        m_dataModel.setAccessLevelForNode(nodeId, 3);
+        emit monitoredNodeCountChanged();
+    }
+
     /*! Removes every mock Data Access View row and forgets recorded writes. */
     Q_INVOKABLE void clearMockNodes()
     {

@@ -416,5 +416,38 @@ Item {
             host.Material.theme = Material.Light;
             verify(Qt.colorEqual(host.table.selectedRowColor, host.tree.selectedRowColor));
         }
+
+        /*!
+            Verifies that colliding names are shown qualified by their path.
+
+            The name cell shows the qualifier and the leaf, its tooltip carries the
+            full browse path, and the value editor is titled with the same name.
+        */
+        function test_structuredNamesAreShownAndUsed() {
+            cppManagerOpcUa.clearMockNodes();
+            cppManagerOpcUa.addMockNodeAtPath("ns=1;s=A", "Objects/s1/value");
+            cppManagerOpcUa.addMockNodeAtPath("ns=1;s=B", "Objects/s2/value");
+
+            const view = createTemporaryObject(dataViewComponent, root);
+            verify(view !== null);
+            const table = findChild(view, "dataTable");
+            verify(table !== null);
+            waitForRendering(view);
+
+            const cell = table.itemAtCell(Qt.point(view.displayNameColumn, 0));
+            verify(cell !== null);
+            const label = findChild(cell, "cellLabel");
+            verify(label !== null);
+            verify(label.text.indexOf("s1.") !== -1);
+            verify(label.text.indexOf("value") !== -1);
+            compare(label.ToolTip.text, "Objects/s1/value");
+
+            verify(view.editValue(1));
+            const dialog = findChild(view, "valueEditorDialog");
+            compare(dialog.editDisplayName, "s2.value");
+            dialog.close();
+
+            cppManagerOpcUa.clearMockNodes();
+        }
     }
 }

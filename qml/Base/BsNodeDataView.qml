@@ -26,6 +26,8 @@ Rectangle {
 
     // Column indexes mirroring DataAccessModel::Column. They are written out as
     // integers because the Base module must not import the C++ QML module.
+    /*! Index of the display-name column. */
+    readonly property int displayNameColumn: 1
     /*! Index of the value column. */
     readonly property int valueColumn: 2
     /*! Index of the status column. */
@@ -156,7 +158,7 @@ Rectangle {
             if (row < 0)
                 continue
             nodeIds.push(model.nodeIdAt(row))
-            names.push(model.displayNameAt(row))
+            names.push(model.structuredNameAt(row))
             stepped.push(model.isBooleanAt(row))
         }
 
@@ -242,6 +244,27 @@ Rectangle {
         if (!cppManagerOpcUa.dataViewModel || viewRow < 0)
             return -1
         return cppManagerOpcUa.dataViewModel.toSourceRow(viewRow)
+    }
+
+    /*! Returns \a text with the StyledText markup characters escaped. */
+    function escapeMarkup(text) {
+        return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+
+    /*!
+        Returns the StyledText of a name cell: \a prefix and \a suffix, which only
+        tell colliding rows apart, in the muted color around the row's own
+        \a leaf name, so the column can still be scanned by leaf name.
+    */
+    function nameMarkup(prefix, leaf, suffix) {
+        const muted = root.mutedColor.toString()
+        let markup = ""
+        if (prefix.length > 0)
+            markup += "<font color=\"" + muted + "\">" + root.escapeMarkup(prefix) + "</font>"
+        markup += root.escapeMarkup(leaf)
+        if (suffix.length > 0)
+            markup += "<font color=\"" + muted + "\">" + root.escapeMarkup(suffix) + "</font>"
+        return markup
     }
 
     /*! Returns the visible column indexes in display order. */
@@ -363,7 +386,7 @@ Rectangle {
         valueEditor.editRow = row
         valueEditor.editNodeId = model.nodeIdAt(row)
         valueEditor.editDataType = model.dataTypeAt(row)
-        valueEditor.editDisplayName = model.displayNameAt(row)
+        valueEditor.editDisplayName = model.structuredNameAt(row)
         valueEditor.loadValue(model.valueAt(row))
         valueEditor.open()
         return true
@@ -778,6 +801,14 @@ Rectangle {
                     required property int statusSeverity
                     required property var lastUpdateMs
                     required property int writability
+                    required property string nodePath
+                    required property string namePrefix
+                    required property string nameLeaf
+                    required property string nameSuffix
+
+                    /*! Whether this cell shows the row's structured name. */
+                    readonly property bool nameCell:
+                        cellDelegate.column === root.displayNameColumn
 
                     /*! Whether the server withholds CurrentWrite for this row. */
                     readonly property bool readOnly:
@@ -806,6 +837,7 @@ Rectangle {
                     }
 
                     Label {
+                        objectName: "cellLabel"
                         anchors.fill: parent
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
@@ -814,16 +846,26 @@ Rectangle {
                                              ? Text.AlignRight
                                              : Text.AlignLeft
                         // The value cell shows the model's StyledText, colored with
-                        // the same palette as the structured Value panel; every other
+                        // the same palette as the structured Value panel; the name
+                        // cell mutes the qualifier of a colliding name; every other
                         // cell stays plain text.
                         textFormat: cellDelegate.column === root.valueColumn
+                                    || cellDelegate.nameCell
                                     ? Text.StyledText
                                     : Text.PlainText
-                        text: cellDelegate.column === root.valueColumn
-                              ? cellDelegate.valueMarkup
-                              : cellDelegate.display
+                        text: {
+                            if (cellDelegate.column === root.valueColumn)
+                                return cellDelegate.valueMarkup
+                            if (cellDelegate.nameCell)
+                                return root.nameMarkup(cellDelegate.namePrefix,
+                                                       cellDelegate.nameLeaf,
+                                                       cellDelegate.nameSuffix)
+                            return cellDelegate.display
+                        }
                         font.bold: cellDelegate.highlighted
-                        elide: Text.ElideRight
+                        // A narrow name column drops the start of the qualifier, so
+                        // the row's own name stays readable.
+                        elide: cellDelegate.nameCell ? Text.ElideLeft : Text.ElideRight
                         color: {
                             if (cellDelegate.column === root.statusColumn) {
                                 // 1 Good, 2 Uncertain, 3 Bad in DataAccessModel::StatusSeverity.
@@ -847,15 +889,22 @@ Rectangle {
                         font.italic: cellDelegate.readOnly
                                      && cellDelegate.column === root.valueColumn
 
+                        // The name cell always offers the full browse path, the one
+                        // place that tells every row apart.
                         ToolTip.visible: cellHover.hovered
-                                         && (cellDelegate.readOnly
-                                             ? cellDelegate.column === root.valueColumn
-                                             : (cellDelegate.display.length > 0
-                                                && contentWidth > width))
-                        ToolTip.text: cellDelegate.readOnly
-                                      && cellDelegate.column === root.valueColumn
-                                      ? qsTr("Read-only: the server does not grant CurrentWrite.")
-                                      : cellDelegate.display
+                                         && (cellDelegate.nameCell
+                                             ? cellDelegate.nodePath.length > 0
+                                             : (cellDelegate.readOnly
+                                                ? cellDelegate.column === root.valueColumn
+                                                : (cellDelegate.display.length > 0
+                                                   && contentWidth > width)))
+                        ToolTip.text: {
+                            if (cellDelegate.nameCell)
+                                return cellDelegate.nodePath
+                            if (cellDelegate.readOnly && cellDelegate.column === root.valueColumn)
+                                return qsTr("Read-only: the server does not grant CurrentWrite.")
+                            return cellDelegate.display
+                        }
                     }
 
                     HoverHandler {
