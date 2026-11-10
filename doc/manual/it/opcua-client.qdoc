@@ -88,6 +88,17 @@
     dalla vista viene deselezionata anche la casella nell’albero, così il nodo può essere
     aggiunto di nuovo in seguito.
 
+    Quando più righe hanno lo stesso nome, ad esempio il membro \c value di ogni elemento di
+    un array di strutture, la colonna \e{Nome visualizzato} aggiunge la parte più breve del
+    percorso del nodo che le distingue, come \c{[1].stRefOffset.value}; la parte aggiunta è
+    mostrata attenuata. Passa il puntatore su un nome per vedere il percorso completo del nodo.
+
+    Per cambiare l’ordine delle colonne, trascina l’intestazione di una colonna a sinistra o a
+    destra; il numero di riga resta sempre per primo. Il pulsante a forma di occhio mostra o
+    nasconde le colonne. La disposizione delle colonne viene salvata con il progetto ed è usata
+    anche come disposizione iniziale di ogni nuovo progetto, così non occorre riordinare di
+    nuovo le colonne.
+
     Le variabili monitorate possono essere conservate per essere ripristinate alla
     connessione successiva (vedi \l {Configurazione}).
 

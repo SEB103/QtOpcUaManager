@@ -17,6 +17,27 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.4.0] - 2026-11-10
+
+Feature release for the Data View: rows with the same name can be told apart
+at a glance, and the columns can be arranged the way you work.
+
+### Added
+- **Distinguishable names**: when several rows have the same name — for
+  example the `value` member of every element of an array of structures — the
+  Display Name column adds the shortest part of the node path that tells them
+  apart, such as `[1].stRefOffset.value`, in IEC 61131-3 notation. The added
+  part is dimmed, the full node path is shown on hover, and sorting treats
+  array indexes as numbers (`[2]` before `[10]`). Copying rows, CSV export,
+  the value editor title, and the trend legend use the same name.
+- **Movable columns**: drag a column header to the left or right to change
+  the column order; the row number stays first. Copying rows and CSV export
+  follow the visible order.
+- **Column layout for new projects**: the column order, visibility, and
+  widths you arrange are saved with the project and also become the starting
+  layout of every new project, so the columns do not have to be arranged
+  again after a restart.
+
 ## [1.3.1] - 2026-10-08
 
 Patch release that completes the interface zoom.

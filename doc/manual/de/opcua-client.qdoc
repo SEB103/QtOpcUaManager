@@ -87,6 +87,18 @@
     Wird eine Zeile aus der Ansicht entfernt, wird auch das Kontrollkästchen im Baum
     zurückgesetzt, sodass der Knoten später erneut hinzugefügt werden kann.
 
+    Haben mehrere Zeilen denselben Namen, zum Beispiel das Element \c value in jedem Eintrag
+    eines Arrays von Strukturen, ergänzt die Spalte \e{Anzeigename} den kürzesten Teil des
+    Knotenpfads, der sie unterscheidet, etwa \c{[1].stRefOffset.value}; der ergänzte Teil wird
+    abgeblendet dargestellt. Fahren Sie mit der Maus über einen Namen, um den vollständigen
+    Knotenpfad zu sehen.
+
+    Um die Reihenfolge der Spalten zu ändern, ziehen Sie einen Spaltenkopf nach links oder
+    rechts; die Zeilennummer bleibt immer vorne. Mit der Augen-Schaltfläche werden Spalten ein-
+    oder ausgeblendet. Die Spaltenanordnung wird mit dem Projekt gespeichert und dient außerdem
+    als Ausgangsanordnung für jedes neue Projekt, sodass die Spalten nicht erneut angeordnet
+    werden müssen.
+
     Überwachte Variablen können gespeichert werden, sodass sie bei der nächsten Verbindung
     wiederhergestellt werden (siehe \l {Konfiguration}).
 

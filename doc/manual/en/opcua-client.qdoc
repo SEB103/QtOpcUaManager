@@ -83,6 +83,16 @@
     Unticking the check box removes the variable from the view. Removing a row from the view
     also clears the check box in the tree, so the node can be added again later.
 
+    When several rows have the same name, for example the \c value member of every element
+    of an array of structures, the \e{Display Name} column adds the shortest part of the node
+    path that tells them apart, such as \c{[1].stRefOffset.value}; the added part is shown
+    dimmed. Hover over a name to see the full node path.
+
+    To change the order of the columns, drag a column header to the left or right; the row
+    number always stays first. Columns are shown or hidden with the eye button. The column
+    layout is saved with the project and is also used as the starting layout of every new
+    project, so the columns do not have to be arranged again.
+
     Monitored variables can be persisted so they are restored on the next connection
     (see \l {Configuration}).
 

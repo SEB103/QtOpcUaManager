@@ -92,6 +92,17 @@
     Décocher la case retire la variable de la vue. Retirer une ligne de la vue décoche aussi
     la case dans l’arbre, de sorte que le nœud peut être ajouté de nouveau plus tard.
 
+    Lorsque plusieurs lignes portent le même nom, par exemple le membre \c value de chaque
+    élément d’un tableau de structures, la colonne \e{Nom affiché} ajoute la plus courte partie
+    du chemin du nœud qui les distingue, comme \c{[1].stRefOffset.value} ; la partie ajoutée
+    est affichée en grisé. Survolez un nom pour voir le chemin complet du nœud.
+
+    Pour changer l’ordre des colonnes, faites glisser un en-tête de colonne vers la gauche ou
+    vers la droite ; le numéro de ligne reste toujours en premier. Le bouton en forme d’œil
+    affiche ou masque les colonnes. La disposition des colonnes est enregistrée avec le projet
+    et sert aussi de disposition de départ pour chaque nouveau projet : inutile de réorganiser
+    les colonnes à nouveau.
+
     Les variables surveillées peuvent être conservées afin d’être restaurées lors de la
     prochaine connexion (voir \l {Configuration}).
 
