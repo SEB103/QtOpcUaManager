@@ -50,6 +50,9 @@ DataViewFilterModel::DataViewFilterModel(QObject *parent)
     setSortCaseSensitivity(Qt::CaseInsensitive);
     setDynamicSortFilter(true);
 
+    m_nameCollator.setNumericMode(true);
+    m_nameCollator.setCaseSensitivity(Qt::CaseInsensitive);
+
     // Reordering or hiding rows changes the number of rows that did not move, and
     // a view repaints only what it is told changed.
     connect(this, &QAbstractItemModel::layoutChanged,
@@ -226,6 +229,11 @@ bool DataViewFilterModel::lessThan(const QModelIndex &left, const QModelIndex &r
         return leftValue.toDouble() < rightValue.toDouble();
     if (leftNumeric != rightNumeric)
         return leftNumeric;
+
+    // Structured names carry array indexes, so the name column compares the
+    // numbers inside the text by value: "[2].v" sorts before "[10].v".
+    if (left.column() == DataAccessModel::DisplayNameColumn)
+        return m_nameCollator.compare(leftValue.toString(), rightValue.toString()) < 0;
 
     return QString::compare(leftValue.toString(), rightValue.toString(),
                             Qt::CaseInsensitive)

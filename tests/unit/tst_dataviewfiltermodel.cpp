@@ -61,6 +61,9 @@ private slots:
 
     /*! Verifies that re-sorting refreshes the numbers of rows that stayed put. */
     void rowNumbersRefreshWhenTheOrderChanges();
+
+    /*! Verifies that the name column orders embedded numbers numerically. */
+    void nameColumnSortsNaturally();
 };
 
 /*!
@@ -347,6 +350,34 @@ void DataViewFilterModelTest::rowNumbersRefreshWhenTheOrderChanges()
         }
     }
     QVERIFY(coversRowNumbers);
+}
+
+/*!
+ * \brief Verifies that the name column orders embedded numbers numerically.
+ *
+ * Array elements are qualified by their index, so "[2]…" must sort before
+ * "[10]…" rather than after it as plain text comparison would.
+ */
+void DataViewFilterModelTest::nameColumnSortsNaturally()
+{
+    DataAccessModel source;
+    for (const QString &index : {QStringLiteral("10"), QStringLiteral("2"), QStringLiteral("1")}) {
+        MonitoredNodeRecord record = makeRecord(QStringLiteral("ns=1;s=a") + index,
+                                                QStringLiteral("v"));
+        record.nodePath = QStringLiteral("A/a[%1]/v").arg(index);
+        source.addRow(record);
+    }
+
+    DataViewFilterModel proxy;
+    proxy.setSourceModel(&source);
+    proxy.applySort(DataAccessModel::DisplayNameColumn, Qt::AscendingOrder);
+
+    QStringList order;
+    for (int row = 0; row < proxy.rowCount(); ++row)
+        order.append(proxy.data(proxy.index(row, DataAccessModel::DisplayNameColumn),
+                                Qt::DisplayRole).toString());
+    QCOMPARE(order, (QStringList {QStringLiteral("[1].v"), QStringLiteral("[2].v"),
+                                  QStringLiteral("[10].v")}));
 }
 
 QTEST_MAIN(DataViewFilterModelTest)

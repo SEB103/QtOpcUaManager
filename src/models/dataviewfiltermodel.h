@@ -1,6 +1,7 @@
 #ifndef DATAVIEWFILTERMODEL_H
 #define DATAVIEWFILTERMODEL_H
 
+#include <QCollator>
 #include <QSortFilterProxyModel>
 #include <QString>
 
@@ -96,6 +97,8 @@ private:
     int m_sortColumn {-1};
     /** Current sort direction. */
     Qt::SortOrder m_sortOrder {Qt::AscendingOrder};
+    /** Numeric-aware, case-insensitive comparison for the name column. */
+    QCollator m_nameCollator;
 };
 
 #endif // DATAVIEWFILTERMODEL_H
