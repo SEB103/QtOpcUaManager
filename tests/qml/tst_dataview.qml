@@ -573,6 +573,84 @@ Item {
             compare(view.columnOrder, [0, 9, 1, 11, 2, 3, 4, 5, 6, 7, 8, 10]);
         }
 
+        /*!
+            Drags the header of the column at visual position \a fromVisual onto the
+            header at visual position \a toVisual with real mouse events.
+        */
+        function dragHeader(view, fromVisual, toVisual) {
+            const header = findChild(view, "dataHeader");
+            verify(header !== null);
+            const source = header.itemAtCell(Qt.point(fromVisual, 0));
+            const target = header.itemAtCell(Qt.point(toVisual, 0));
+            verify(source !== null);
+            verify(target !== null);
+            const start = source.mapToItem(header, source.width / 2, source.height / 2);
+            const end = target.mapToItem(header, target.width / 2, target.height / 2);
+
+            mousePress(header, start.x, start.y);
+            const steps = 10;
+            for (let i = 1; i <= steps; ++i) {
+                mouseMove(header, start.x + (end.x - start.x) * i / steps,
+                          start.y + (end.y - start.y) * i / steps);
+            }
+            mouseRelease(header, end.x, end.y);
+            wait(0);
+        }
+
+        /*! Verifies that dragging a header moves its column there. */
+        function test_draggingAHeaderMovesTheColumn() {
+            const view = createTable();
+            waitForRendering(view);
+
+            // Logical 4 is the status, logical 1 the display name.
+            dragHeader(view, view.visualColumn(4), view.visualColumn(1));
+
+            compare(view.visualColumn(4), 1);
+            compare(view.desiredOrder, view.columnOrder);
+        }
+
+        /*!
+            Verifies that a click on a column border does not break dragging.
+
+            In Qt's own header dragging such a click leaves the resize handler
+            active for good, after which no header can be dragged any more.
+        */
+        function test_dragAfterBorderClickStillMoves() {
+            const view = createTable();
+            waitForRendering(view);
+            const header = findChild(view, "dataHeader");
+
+            const nameHeader = header.itemAtCell(Qt.point(view.visualColumn(1), 0));
+            const border = nameHeader.mapToItem(header, nameHeader.width - 1,
+                                                nameHeader.height / 2);
+            mouseClick(header, border.x, border.y);
+
+            dragHeader(view, view.visualColumn(4), view.visualColumn(1));
+            compare(view.visualColumn(4), 1);
+        }
+
+        /*! Verifies that a header dropped onto # lands right behind it. */
+        function test_dragOntoRowNumberLandsSecond() {
+            const view = createTable();
+            waitForRendering(view);
+
+            dragHeader(view, view.visualColumn(4), 0);
+
+            compare(view.columnOrder[0], 0);
+            compare(view.visualColumn(4), 1);
+        }
+
+        /*! Verifies that dragging a header does not toggle the sort. */
+        function test_dragDoesNotSort() {
+            const view = createTable();
+            waitForRendering(view);
+
+            dragHeader(view, view.visualColumn(4), view.visualColumn(1));
+
+            compare(view.visualColumn(4), 1);
+            compare(cppManagerOpcUa.dataViewModel.sortColumn, -1);
+        }
+
         /*! Verifies that the row-number column cannot leave the first position. */
         function test_rowNumberColumnStaysFirst() {
             const view = createTable();

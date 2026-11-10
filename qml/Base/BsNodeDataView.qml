@@ -109,6 +109,18 @@ Rectangle {
     */
     property var desiredOrder: root.defaultOrder()
 
+    /*! Width of the zone at both header edges that resizes instead of moving a column. */
+    readonly property int headerResizeMargin: 8
+
+    /*! Visual position of the column whose header is being dragged, or -1. */
+    property int headerDragVisual: -1
+
+    /*! Visual position the dragged column would be dropped at, or -1. */
+    property int headerDropVisual: -1
+
+    /*! Header content x of the drop indicator while a header is dragged. */
+    property real headerDropX: 0
+
     /*! Whether a project layout is currently being applied, suppressing write-back. */
     property bool restoring: false
 
@@ -383,6 +395,47 @@ Rectangle {
             seen[c] = true
         }
         return true
+    }
+
+    /*! Starts dragging the header of the logical column \a column. */
+    function beginHeaderDrag(column) {
+        root.headerDragVisual = root.visualColumn(column)
+        root.headerDropVisual = root.headerDragVisual
+    }
+
+    /*!
+        Updates the drop target of a header drag for the pointer at
+        \a scenePosition. A drop onto the row-number column lands right behind
+        it, a drop past the last column lands last.
+    */
+    function updateHeaderDrag(scenePosition) {
+        if (root.headerDragVisual < 0)
+            return
+        const position = headerView.contentItem.mapFromItem(null, scenePosition.x,
+                                                            scenePosition.y)
+        const cell = headerView.cellAtPosition(Qt.point(position.x, root.rowHeight / 2), true)
+        let target = cell.x
+        if (target < 0) {
+            const visible = root.visibleColumns()
+            target = position.x < 0 ? 1 : root.visualColumn(visible[visible.length - 1])
+        }
+        target = Math.max(1, target)
+        root.headerDropVisual = target
+
+        // The indicator sits on the edge the column will be inserted at.
+        const item = headerView.itemAtCell(Qt.point(target, 0))
+        if (item)
+            root.headerDropX = target < root.headerDragVisual ? item.x : item.x + item.width
+    }
+
+    /*! Ends a header drag and moves the dragged column to its drop target. */
+    function finishHeaderDrag() {
+        const from = root.headerDragVisual
+        const to = root.headerDropVisual
+        root.headerDragVisual = -1
+        root.headerDropVisual = -1
+        if (from >= 1 && to >= 1 && from !== to)
+            root.moveColumn(from, to)
     }
 
     /*! Moves the row-number column back to the first position after a drag displaced it. */
@@ -807,10 +860,28 @@ Rectangle {
             Layout.leftMargin: 4
             Layout.rightMargin: 4
             Layout.topMargin: 4
+            objectName: "dataHeader"
             syncView: tableView
             clip: true
-            // Dragging a header moves its column; a plain click still sorts.
-            movableColumns: true
+            // The header scrolls with the table; dragging inside it moves columns.
+            interactive: false
+
+            // Qt's own movableColumns is not used: in Qt 6.11 a click on a column
+            // border without moving leaves the resize handler active for good,
+            // after which no header can be dragged any more. Columns are moved by
+            // the DragHandler in the delegate instead.
+
+            Rectangle {
+                objectName: "headerDropIndicator"
+                // Shows where the dragged column will be inserted.
+                visible: root.headerDropVisual >= 1
+                         && root.headerDropVisual !== root.headerDragVisual
+                x: root.headerDropX - width / 2
+                z: 10
+                width: 3
+                height: headerView.height
+                color: Material.accent
+            }
 
             delegate: Rectangle {
                 id: headerCell
@@ -824,6 +895,10 @@ Rectangle {
 
                 implicitHeight: root.rowHeight
                 color: BsTheme.tableHeaderColor
+                // The header being dragged is dimmed until it is dropped.
+                opacity: root.headerDragVisual >= 0
+                         && root.headerDragVisual === root.visualColumn(headerCell.column)
+                         ? 0.5 : 1.0
 
                 Label {
                     anchors.fill: parent
@@ -850,9 +925,35 @@ Rectangle {
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
                     onTapped: {
-                        if (cppManagerOpcUa.dataViewModel) {
+                        if (cppManagerOpcUa.dataViewModel)
                             cppManagerOpcUa.dataViewModel.toggleSort(headerCell.column)
-                            root.saveState()
+                    }
+                }
+
+                // The middle of a header drags its column; the zones at both edges
+                // are left to the header view's column resizing. A drag cancels
+                // the TapHandler above, so moving a column does not sort.
+                Item {
+                    anchors.fill: parent
+                    anchors.leftMargin: root.headerResizeMargin
+                    anchors.rightMargin: root.headerResizeMargin
+
+                    DragHandler {
+                        target: null
+                        yAxis.enabled: false
+                        // The row-number column always stays first.
+                        enabled: headerCell.column !== 0
+                        grabPermissions: PointerHandler.CanTakeOverFromAnything
+
+                        onActiveChanged: {
+                            if (active)
+                                root.beginHeaderDrag(headerCell.column)
+                            else
+                                root.finishHeaderDrag()
+                        }
+                        onCentroidChanged: {
+                            if (active)
+                                root.updateHeaderDrag(centroid.scenePosition)
                         }
                     }
                 }
