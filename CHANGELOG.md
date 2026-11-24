@@ -17,6 +17,14 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [1.4.1] - 2026-11-24
+
+Patch release for the update check.
+
+### Fixed
+- **Check for updates dialog**: the dialog showed two *Close* buttons; it now
+  shows a single *Close* button next to *Check again*.
+
 ## [1.4.0] - 2026-11-10
 
 Feature release for the Data View: rows with the same name can be told apart
@@ -294,6 +302,8 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.4.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.4.1
+[1.4.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.4.0
 [1.3.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.1
 [1.3.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.2.0
