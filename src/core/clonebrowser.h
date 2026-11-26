@@ -109,7 +109,7 @@ Q_DECLARE_METATYPE(QList<CloneNode>)
 struct CloneOptions
 {
     /** Maximum number of captured nodes; reaching it marks the result Truncated. */
-    int maxNodes = 50000;
+    int maxNodes = 200000;
     /** Maximum depth below the root; deeper nodes are captured but not browsed. */
     int maxDepth = 64;
     /** Overall time limit in milliseconds; reaching it marks the result TimedOut. */

@@ -26,14 +26,21 @@ ServerNodeModel::Item *ServerNodeModel::itemFor(const QModelIndex &index) const
 
 /*!
  * \brief Rebuilds the tree from \a nodes.
+ * \param nodes Project nodes, in any order.
+ * \param structTypes Structure types the nodes reference; used for their type text.
  *
  * All items are created first, then linked to their parents by node id, so the
  * node list may be in any order. A node whose parent is empty or missing is
  * placed at the top level; child order follows the list order.
  */
-void ServerNodeModel::setNodes(const QList<Node> &nodes)
+void ServerNodeModel::setNodes(const QList<Node> &nodes,
+                               const QList<ServerProject::StructType> &structTypes)
 {
     beginResetModel();
+
+    m_structTypeNames.clear();
+    for (const ServerProject::StructType &structType : structTypes)
+        m_structTypeNames.insert(structType.nodeId, structType.name);
 
     m_root.reset(new Item);
 
@@ -142,6 +149,10 @@ QVariant ServerNodeModel::data(const QModelIndex &index, int role) const
         return node.writable;
     case IsVariableRole:
         return node.isVariable();
+    case TypeTextRole:
+        return node.isVariable()
+                   ? ServerProject::variableTypeText(node, m_structTypeNames.value(node.structTypeId))
+                   : QString();
     case IconNameRole:
         switch (node.kind) {
         case NodeKind::Folder:
@@ -170,6 +181,7 @@ QHash<int, QByteArray> ServerNodeModel::roleNames() const
         {BrowseNameRole, "browseName"},
         {DisplayNameRole, "displayName"},
         {DataTypeRole, "dataType"},
+        {TypeTextRole, "typeText"},
         {ValueRankRole, "valueRank"},
         {WritableRole, "writable"},
         {IsVariableRole, "isVariable"},

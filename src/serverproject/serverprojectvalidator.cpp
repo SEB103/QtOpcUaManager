@@ -5,6 +5,16 @@
 
 namespace ServerProject {
 
+namespace {
+
+/*!
+ * \internal
+ * \brief Highest array rank a variable may declare.
+ */
+constexpr int kMaxValueRank = 32;
+
+} // namespace
+
 /*!
  * \brief Validates \a data and collects human-readable errors.
  */
@@ -26,6 +36,32 @@ Validator::Result Validator::validate(const ProjectData &data)
         enumTypeIds.insert(enumType.nodeId);
         if (enumType.entries.isEmpty())
             result.errors.append(QStringLiteral("Enum '%1' has no values.").arg(label));
+    }
+
+    // Validate structure types; their ids must not collide with enum types.
+    QSet<QString> structTypeIds;
+    for (const StructType &structType : data.structTypes) {
+        const QString label = structType.name.isEmpty() ? QStringLiteral("<unnamed structure>")
+                                                        : structType.name;
+        const ParsedNodeId parsed = parseNodeId(structType.nodeId);
+        if (!parsed.valid) {
+            result.errors.append(
+                QStringLiteral("Structure type '%1' has a malformed node id.").arg(label));
+        } else if (parsed.ns > namespaceCount) {
+            result.errors.append(
+                QStringLiteral("Structure type '%1' references namespace index %2 but the "
+                               "project declares only %3 custom namespace(s).")
+                    .arg(label)
+                    .arg(parsed.ns)
+                    .arg(namespaceCount));
+        }
+        if (structType.name.trimmed().isEmpty())
+            result.errors.append(QStringLiteral("Structure type '%1' has no name.")
+                                     .arg(structType.nodeId));
+        if (structTypeIds.contains(structType.nodeId) || enumTypeIds.contains(structType.nodeId))
+            result.errors.append(
+                QStringLiteral("Duplicate data type node id '%1'.").arg(structType.nodeId));
+        structTypeIds.insert(structType.nodeId);
     }
 
     QSet<QString> seenNodeIds;
@@ -62,7 +98,19 @@ Validator::Result Validator::validate(const ProjectData &data)
 
         if (node.kind == NodeKind::Variable) {
             variableNodeIds.insert(node.nodeId);
-            if (!node.enumTypeId.isEmpty()) {
+            if (!node.structTypeId.isEmpty()) {
+                if (!structTypeIds.contains(node.structTypeId)) {
+                    result.errors.append(
+                        QStringLiteral("Variable '%1' references a missing structure type '%2'.")
+                            .arg(label, node.structTypeId));
+                }
+                if (node.simulation.kind != SimulationKind::Manual) {
+                    result.errors.append(
+                        QStringLiteral("Structure variable '%1' cannot be simulated; its members "
+                                       "are separate nodes.")
+                            .arg(label));
+                }
+            } else if (!node.enumTypeId.isEmpty()) {
                 if (!enumTypeIds.contains(node.enumTypeId)) {
                     result.errors.append(
                         QStringLiteral("Variable '%1' references a missing enum type '%2'.")
@@ -73,12 +121,39 @@ Validator::Result Validator::validate(const ProjectData &data)
                     QStringLiteral("Variable '%1' has an unsupported data type '%2'.")
                         .arg(label, node.dataType));
             }
-            if (node.valueRank != -1 && node.valueRank != 1) {
+            if (node.valueRank != -1 && (node.valueRank < 1 || node.valueRank > kMaxValueRank)) {
                 result.errors.append(
                     QStringLiteral("Variable '%1' has an unsupported value rank %2 "
-                                   "(only -1 scalar and 1 one-dimensional array are supported).")
+                                   "(-1 scalar or 1..%3 array dimensions are supported).")
                         .arg(label)
+                        .arg(node.valueRank)
+                        .arg(kMaxValueRank));
+            }
+            if (!node.arrayDimensions.isEmpty() && node.arrayDimensions.size() != node.valueRank) {
+                result.errors.append(
+                    QStringLiteral("Variable '%1' declares %2 array dimension(s) for value "
+                                   "rank %3.")
+                        .arg(label)
+                        .arg(node.arrayDimensions.size())
                         .arg(node.valueRank));
+            }
+            if (node.structTypeId.isEmpty() && node.valueRank > 1) {
+                // A multi-dimensional value is stored flat; its length must match.
+                qint64 expected = 1;
+                bool known = node.arrayDimensions.size() == node.valueRank;
+                for (const quint32 length : node.arrayDimensions) {
+                    known = known && length > 0;
+                    expected *= length;
+                }
+                const qsizetype actual = node.initialValue.toList().size();
+                if (known && node.initialValue.isValid() && actual != expected) {
+                    result.errors.append(
+                        QStringLiteral("Variable '%1' has %2 initial value(s) but its array "
+                                       "dimensions need %3.")
+                            .arg(label)
+                            .arg(actual)
+                            .arg(expected));
+                }
             }
             if (node.simulation.kind != SimulationKind::Manual) {
                 if (node.simulation.intervalMs <= 0.0) {

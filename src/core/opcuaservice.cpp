@@ -845,15 +845,21 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
 /*!
  * \brief Recursively browses the subtree under \a rootNodeId for a clone.
  *
+ * \a maxNodes overrides the node limit when positive; \a requestId is echoed in
+ * the result.
+ *
  * Runs a CloneBrowser in this worker thread and relays its result through
  * cloneSnapshotReady(). The browser owns its lifetime (it deletes itself once
  * finished), so no bookkeeping is needed here.
  */
-void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId)
+void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId, int maxNodes)
 {
     if (!isInObjectThread()) {
         QMetaObject::invokeMethod(
-            this, [this, rootNodeId, requestId]() { browseForClone(rootNodeId, requestId); },
+            this,
+            [this, rootNodeId, requestId, maxNodes]() {
+                browseForClone(rootNodeId, requestId, maxNodes);
+            },
             Qt::QueuedConnection);
         return;
     }
@@ -864,7 +870,10 @@ void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId)
         return;
     }
 
-    auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, CloneOptions(), this);
+    CloneOptions options;
+    if (maxNodes > 0)
+        options.maxNodes = maxNodes;
+    auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, options, this);
     m_cloneBrowser = browser;
     connect(browser, &CloneBrowser::progress, this, &OpcUaService::cloneProgress);
     connect(browser, &CloneBrowser::finished, this, &OpcUaService::cloneSnapshotReady);

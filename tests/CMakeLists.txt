@@ -561,10 +561,18 @@ qt_add_executable(tst_clonetraversal
 target_link_libraries(tst_clonetraversal
     PRIVATE
         OpcUaCore
+        OpcUaQmlApi
+        ServerProjectCore
         Qt6::OpcUa
         Qt6::Test
         open62541::open62541
 )
+
+target_compile_definitions(tst_clonetraversal
+    PRIVATE OPCUA_SERVER_RUNTIME_PATH="$<TARGET_FILE:OpcUaServerRuntime>"
+)
+
+add_dependencies(tst_clonetraversal OpcUaServerRuntime)
 
 add_test(NAME CloneTraversal.Integration COMMAND tst_clonetraversal)
 

@@ -153,6 +153,33 @@ RuleValueMode ruleValueModeFromString(const QString &text)
 }
 
 /*!
+ * \brief Returns the display text of the type of variable \a node.
+ * \param node Variable whose type is described.
+ * \param structTypeName Name of the node's StructType; used when it is structure-typed.
+ *
+ * Arrays append their dimensions: "[]" for one dimension of any length,
+ * "[2,3]" for known lengths, and "[,]" for two dimensions of unknown length.
+ */
+QString variableTypeText(const Node &node, const QString &structTypeName)
+{
+    QString base = node.isStructure()
+                       ? (structTypeName.isEmpty() ? QStringLiteral("Structure") : structTypeName)
+                       : node.dataType;
+    if (node.valueRank < 1)
+        return base;
+
+    bool known = node.arrayDimensions.size() == node.valueRank;
+    for (const quint32 length : node.arrayDimensions)
+        known = known && length > 0;
+    QStringList parts;
+    for (int i = 0; i < node.valueRank; ++i)
+        parts.append(known ? QString::number(node.arrayDimensions.at(i)) : QString());
+    if (node.valueRank == 1 && !known)
+        return base + QStringLiteral("[]");
+    return base + QLatin1Char('[') + parts.join(QLatin1Char(',')) + QLatin1Char(']');
+}
+
+/*!
  * \brief Returns the supported built-in scalar data type names.
  */
 QStringList builtinDataTypeNames()

@@ -1498,12 +1498,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+262"/>
+        <location line="+284"/>
         <source>Browse…</source>
         <translation>Огляд…</translation>
     </message>
     <message>
-        <location line="-256"/>
+        <location line="-278"/>
         <source>Full path:</source>
         <translation>Повний шлях:</translation>
     </message>
@@ -1543,7 +1543,7 @@
         <translation>Клонувати сервер до Server Studio</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>Увесь адресний простір Objects під&apos;єднаного сервера буде переглянуто, а значення його змінних зчитано в новий проєкт сервера.</translation>
     </message>
@@ -1556,6 +1556,31 @@
         <location line="+8"/>
         <source>When off, nodes are renamed by browse path under a single clone namespace.</source>
         <translation>Якщо вимкнено, вузли перейменовуються за шляхом огляду в єдиному просторі імен клону.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Node limit:</source>
+        <translation>Ліміт вузлів:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>50 000 nodes</source>
+        <translation>50 000 вузлів</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>200 000 nodes</source>
+        <translation>200 000 вузлів</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>1 000 000 nodes</source>
+        <translation>1 000 000 вузлів</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
+        <translation>Клон, що досяг ліміту, позначається як неповний. Великі ліміти тривають довше й більше навантажують сервер.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1629,7 +1654,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+840"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>До подання даних додано %n вузол.</numerusform>
@@ -1889,7 +1914,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+232"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
         <source>Stopped</source>
         <translation>Зупинено</translation>
     </message>
@@ -1929,7 +1954,7 @@
         <translation>Сеанси: %1 · Захищені канали: %2 · Час роботи: %3 с</translation>
     </message>
     <message>
-        <location line="+315"/>
+        <location line="+338"/>
         <source>Untitled Server</source>
         <translation>Сервер без назви</translation>
     </message>
@@ -1975,7 +2000,7 @@
         <translation>Імпортований сервер</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>Methods</source>
         <translation>Методи</translation>
     </message>
@@ -2016,12 +2041,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+576"/>
+        <location line="+672"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
-        <location line="-570"/>
+        <location line="-666"/>
         <source>A clone is already in progress.</source>
         <translation>Клонування вже виконується.</translation>
     </message>
@@ -2041,7 +2066,7 @@
         <translation>Нічого не клоновано. Під&apos;єднайтеся до сервера та повторіть спробу.</translation>
     </message>
     <message>
-        <location line="+131"/>
+        <location line="+221"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>Клоновано вузлів: %1; досягнуто ліміту в %2 вузлів, тому клон неповний.</translation>
     </message>
@@ -2061,27 +2086,27 @@
         <translation>Вузлів, які не вдалося повністю прочитати або переглянути: %1.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
-        <translation>Змінних із заміненим типом даних: %1 (структура, дата/час або непідтримуваний тип).</translation>
-    </message>
-    <message>
-        <location line="-10"/>
+        <location line="-5"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
     <message>
-        <location line="-142"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>
     <message>
-        <location line="-651"/>
+        <location line="-675"/>
         <source>%1 node(s) captured, %2 waiting for the server</source>
         <translation>Отримано вузлів: %1, очікують відповіді сервера: %2</translation>
     </message>
     <message>
-        <location line="+1074"/>
+        <location line="+917"/>
+        <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
+        <translation>Змінних із заміненим типом даних: %1 (дата/час або непідтримуваний тип).</translation>
+    </message>
+    <message>
+        <location line="+277"/>
         <source>Create or open a server project first.</source>
         <translation>Спочатку створіть або відкрийте проект сервера.</translation>
     </message>
@@ -2119,12 +2144,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+383"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
         <source>(none)</source>
         <translation>(немає)</translation>
     </message>
     <message>
-        <location line="-265"/>
+        <location line="-300"/>
         <source>(no values)</source>
         <translation>(немає значень)</translation>
     </message>
@@ -2176,12 +2201,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+827"/>
+        <location line="+864"/>
         <source>New Server Project</source>
         <translation>Новий проект сервера</translation>
     </message>
     <message>
-        <location line="-799"/>
+        <location line="-836"/>
         <source>+ Folder</source>
         <translation>+ Тека</translation>
     </message>
@@ -2192,12 +2217,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+491"/>
+        <location line="+528"/>
         <source>Remove</source>
         <translation>Видалити</translation>
     </message>
     <message>
-        <location line="-435"/>
+        <location line="-468"/>
         <source>Select a node to edit its properties.</source>
         <translation>Виберіть вузол, щоб змінити його властивості.</translation>
     </message>
@@ -2223,6 +2248,21 @@
     </message>
     <message>
         <location line="+7"/>
+        <source>Type:</source>
+        <translation>Тип:</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>%1 (structure; its members are the child nodes)</source>
+        <translation>%1 (структура; її члени — дочірні вузли)</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Source type:</source>
+        <translation>Вихідний тип:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Data type:</source>
         <translation>Тип даних:</translation>
     </message>
@@ -2237,7 +2277,7 @@
         <translation>Масив:</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>One-dimensional array</source>
         <translation>Одновимірний масив</translation>
     </message>

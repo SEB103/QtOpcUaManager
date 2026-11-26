@@ -43,16 +43,26 @@
 
     Variables keep the data type of the source server. Vendor type aliases, such as the
     CODESYS IEC types STRING or UINT, are resolved through the server's type hierarchy to
-    their OPC UA base type (String, UInt16, ...). Types a server project cannot model —
-    structures, date/time values and types that cannot be resolved — are created as String
-    variables; the status message after the clone states how many variables use such a
-    substitute type.
+    their OPC UA base type (String, UInt16, ...). Date/time values and types that cannot
+    be resolved are created as String variables; the status message after the clone
+    states how many variables use such a substitute type.
+
+    Structures keep their structure type. Its name is the name of the DataType node on
+    the server (for CODESYS, for example \c ST_HMI_Button); a string member called
+    \c structType is used only when the server does not name the type. The structure
+    variable has no value of its own: its members, and the elements of an array of
+    structures, are its child nodes, exactly as CODESYS publishes them. Arrays keep their
+    element type, rank and dimensions, so an array of structures, an array of a simple
+    type and a multi-dimensional array (for example \c{Int32[2,3]}) are reproduced as such.
+    The type column of the server tree shows these types, for example
+    \c{ST_HMI_Button[13]}.
 
     The clone runs with a progress dialog; \e{Cancel} stops it and leaves the current
-    server project unchanged. The browse is bounded to 50 000 nodes, a depth of 64 levels,
-    10 minutes in total and 30 seconds without a server response. When a limit ends the
-    clone, or some nodes cannot be read or browsed, the status message says so and the
-    clone is incomplete.
+    server project unchanged. The browse is bounded by the node limit chosen in the clone
+    dialog (50 000, 200 000 or 1 000 000 nodes; 200 000 by default), a depth of 64
+    levels, 10 minutes in total and 30 seconds without a server response. When a limit
+    ends the clone, or some nodes cannot be read or browsed, the status message says so
+    and the clone is incomplete.
 
     \section1 Exchange address spaces
 

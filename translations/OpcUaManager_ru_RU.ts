@@ -1498,12 +1498,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+262"/>
+        <location line="+284"/>
         <source>Browse…</source>
         <translation>Обзор…</translation>
     </message>
     <message>
-        <location line="-256"/>
+        <location line="-278"/>
         <source>Full path:</source>
         <translation>Полный путь:</translation>
     </message>
@@ -1543,7 +1543,7 @@
         <translation>Клонировать сервер в Server Studio</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>Всё адресное пространство Objects подключённого сервера будет просмотрено, а значения переменных считаны в новый проект сервера.</translation>
     </message>
@@ -1556,6 +1556,31 @@
         <location line="+8"/>
         <source>When off, nodes are renamed by browse path under a single clone namespace.</source>
         <translation>Если выключено, узлы переименовываются по пути обзора в едином пространстве имён клона.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Node limit:</source>
+        <translation>Лимит узлов:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>50 000 nodes</source>
+        <translation>50 000 узлов</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>200 000 nodes</source>
+        <translation>200 000 узлов</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>1 000 000 nodes</source>
+        <translation>1 000 000 узлов</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
+        <translation>Клон, достигший лимита, помечается как неполный. Большие лимиты занимают больше времени и сильнее нагружают сервер.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1629,7 +1654,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+840"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>В представление данных добавлен %n узел.</numerusform>
@@ -1889,7 +1914,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+232"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -1929,7 +1954,7 @@
         <translation>Сеансы: %1 · Защищённые каналы: %2 · Время работы: %3 с</translation>
     </message>
     <message>
-        <location line="+315"/>
+        <location line="+338"/>
         <source>Untitled Server</source>
         <translation>Сервер без имени</translation>
     </message>
@@ -1975,7 +2000,7 @@
         <translation>Импортированный сервер</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>Methods</source>
         <translation>Методы</translation>
     </message>
@@ -2016,12 +2041,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+576"/>
+        <location line="+672"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
-        <location line="-570"/>
+        <location line="-666"/>
         <source>A clone is already in progress.</source>
         <translation>Клонирование уже выполняется.</translation>
     </message>
@@ -2041,7 +2066,7 @@
         <translation>Ничего не клонировано. Подключитесь к серверу и повторите попытку.</translation>
     </message>
     <message>
-        <location line="+131"/>
+        <location line="+221"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>Клонировано узлов: %1; достигнут лимит в %2 узлов, поэтому клон неполный.</translation>
     </message>
@@ -2061,27 +2086,27 @@
         <translation>Узлов, которые не удалось полностью прочитать или просмотреть: %1.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
-        <translation>Переменных с заменённым типом данных: %1 (структура, дата/время или неподдерживаемый тип).</translation>
-    </message>
-    <message>
-        <location line="-10"/>
+        <location line="-5"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Клонировано узлов с сервера: %1.</translation>
     </message>
     <message>
-        <location line="-142"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location line="-651"/>
+        <location line="-675"/>
         <source>%1 node(s) captured, %2 waiting for the server</source>
         <translation>Получено узлов: %1, ожидают ответа сервера: %2</translation>
     </message>
     <message>
-        <location line="+1074"/>
+        <location line="+917"/>
+        <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
+        <translation>Переменных с заменённым типом данных: %1 (дата/время или неподдерживаемый тип).</translation>
+    </message>
+    <message>
+        <location line="+277"/>
         <source>Create or open a server project first.</source>
         <translation>Сначала создайте или откройте проект сервера.</translation>
     </message>
@@ -2119,12 +2144,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+383"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
         <source>(none)</source>
         <translation>(нет)</translation>
     </message>
     <message>
-        <location line="-265"/>
+        <location line="-300"/>
         <source>(no values)</source>
         <translation>(нет значений)</translation>
     </message>
@@ -2176,12 +2201,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+827"/>
+        <location line="+864"/>
         <source>New Server Project</source>
         <translation>Новый проект сервера</translation>
     </message>
     <message>
-        <location line="-799"/>
+        <location line="-836"/>
         <source>+ Folder</source>
         <translation>+ Папка</translation>
     </message>
@@ -2192,12 +2217,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+491"/>
+        <location line="+528"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location line="-435"/>
+        <location line="-468"/>
         <source>Select a node to edit its properties.</source>
         <translation>Выберите узел, чтобы изменить его свойства.</translation>
     </message>
@@ -2223,6 +2248,21 @@
     </message>
     <message>
         <location line="+7"/>
+        <source>Type:</source>
+        <translation>Тип:</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>%1 (structure; its members are the child nodes)</source>
+        <translation>%1 (структура; её члены — дочерние узлы)</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Source type:</source>
+        <translation>Исходный тип:</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Data type:</source>
         <translation>Тип данных:</translation>
     </message>
@@ -2237,7 +2277,7 @@
         <translation>Массив:</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>One-dimensional array</source>
         <translation>Одномерный массив</translation>
     </message>

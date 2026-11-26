@@ -2,9 +2,12 @@
 
 #include <QFile>
 #include <QHash>
+#include <QSet>
 #include <QVariantList>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+
+#include <algorithm>
 
 namespace ServerProject {
 
@@ -105,11 +108,63 @@ void writeReference(QXmlStreamWriter &xml, const QString &type, bool isForward,
     xml.writeEndElement();
 }
 
+/*!
+ * \internal
+ * \brief Returns \a nodeId as a NodeSet2 node id; namespace 0 uses the short "i=" form.
+ */
+QString nodeSetId(const QString &nodeId)
+{
+    return nodeId.startsWith(QLatin1String("ns=0;")) ? nodeId.mid(5) : nodeId;
+}
+
+/*!
+ * \internal
+ * \brief Returns \a dimensions as the comma-separated ArrayDimensions attribute text.
+ */
+QString dimensionsText(const QList<quint32> &dimensions)
+{
+    QStringList parts;
+    for (const quint32 length : dimensions)
+        parts.append(QString::number(length));
+    return parts.join(QLatin1Char(','));
+}
+
+/*!
+ * \internal
+ * \brief Parses the comma-separated ArrayDimensions attribute \a text.
+ */
+QList<quint32> dimensionsFromText(const QString &text)
+{
+    QList<quint32> dimensions;
+    const QStringList parts = text.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    for (const QString &part : parts)
+        dimensions.append(part.trimmed().toUInt());
+    return dimensions;
+}
+
 /*! Writes the Value element of a variable node. */
 void writeValue(QXmlStreamWriter &xml, const Node &node)
 {
+    if (node.isStructure())
+        return; // A structure's members are separate nodes.
     const QString typeName = uaxTypeName(node);
-    if (node.valueRank == 1) {
+    if (node.valueRank > 1) {
+        // A multi-dimensional value is a Matrix: dimensions plus flat elements.
+        if (!node.initialValue.isValid() || node.arrayDimensions.size() != node.valueRank)
+            return;
+        xml.writeStartElement(QStringLiteral("Value"));
+        xml.writeStartElement(kUaxNs, QStringLiteral("Matrix"));
+        xml.writeStartElement(kUaxNs, QStringLiteral("Dimensions"));
+        for (const quint32 length : node.arrayDimensions)
+            xml.writeTextElement(kUaxNs, QStringLiteral("Int32"), QString::number(length));
+        xml.writeEndElement();
+        xml.writeStartElement(kUaxNs, QStringLiteral("Elements"));
+        for (const QVariant &item : node.initialValue.toList())
+            xml.writeTextElement(kUaxNs, typeName, scalarToText(typeName, item));
+        xml.writeEndElement();
+        xml.writeEndElement(); // Matrix
+        xml.writeEndElement(); // Value
+    } else if (node.valueRank == 1) {
         xml.writeStartElement(QStringLiteral("Value"));
         xml.writeStartElement(kUaxNs, QStringLiteral("ListOf%1").arg(typeName));
         for (const QVariant &item : node.initialValue.toList())
@@ -133,13 +188,18 @@ void writeNode(QXmlStreamWriter &xml, const Node &node)
 
     if (isVariable) {
         QString dataTypeRef;
-        if (!node.enumTypeId.isEmpty())
+        if (node.isStructure())
+            dataTypeRef = nodeSetId(node.structTypeId);
+        else if (!node.enumTypeId.isEmpty())
             dataTypeRef = node.enumTypeId;
         else
             dataTypeRef = QStringLiteral("i=%1").arg(builtinToNs0Id(node.dataType));
         xml.writeAttribute(QStringLiteral("DataType"), dataTypeRef);
-        if (node.valueRank == 1)
-            xml.writeAttribute(QStringLiteral("ValueRank"), QStringLiteral("1"));
+        if (node.valueRank != -1)
+            xml.writeAttribute(QStringLiteral("ValueRank"), QString::number(node.valueRank));
+        if (!node.arrayDimensions.isEmpty())
+            xml.writeAttribute(QStringLiteral("ArrayDimensions"),
+                               dimensionsText(node.arrayDimensions));
     }
 
     xml.writeTextElement(QStringLiteral("DisplayName"),
@@ -190,6 +250,23 @@ void writeEnumType(QXmlStreamWriter &xml, const EnumType &enumType)
     xml.writeEndElement(); // UADataType
 }
 
+/*!
+ * \internal
+ * \brief Writes \a structType to \a xml as a Structure subtype without Definition.
+ */
+void writeStructType(QXmlStreamWriter &xml, const StructType &structType)
+{
+    xml.writeStartElement(QStringLiteral("UADataType"));
+    xml.writeAttribute(QStringLiteral("NodeId"), structType.nodeId);
+    xml.writeAttribute(QStringLiteral("BrowseName"),
+                       browseNameString(structType.nodeId, structType.name));
+    xml.writeTextElement(QStringLiteral("DisplayName"), structType.name);
+    xml.writeStartElement(QStringLiteral("References"));
+    writeReference(xml, QStringLiteral("HasSubtype"), false, QStringLiteral("i=22"));
+    xml.writeEndElement();
+    xml.writeEndElement(); // UADataType
+}
+
 // --- Import helpers --------------------------------------------------------
 
 /*! Parses a Value element into a QVariant, setting \a valueRank. */
@@ -198,7 +275,28 @@ QVariant readValue(QXmlStreamReader &xml, int &valueRank)
     QVariant result;
     while (xml.readNextStartElement()) {
         const QString element = xml.name().toString();
-        if (element.startsWith(QLatin1String("ListOf"))) {
+        if (element == QLatin1String("Matrix")) {
+            // Dimensions plus flat elements of a multi-dimensional value.
+            QVariantList list;
+            int rank = 0;
+            while (xml.readNextStartElement()) {
+                if (xml.name() == QLatin1String("Dimensions")) {
+                    while (xml.readNextStartElement()) {
+                        xml.readElementText();
+                        ++rank;
+                    }
+                } else if (xml.name() == QLatin1String("Elements")) {
+                    while (xml.readNextStartElement()) {
+                        const QString typeName = xml.name().toString();
+                        list.append(textToScalar(typeName, xml.readElementText()));
+                    }
+                } else {
+                    xml.skipCurrentElement();
+                }
+            }
+            valueRank = std::max(2, rank);
+            result = list;
+        } else if (element.startsWith(QLatin1String("ListOf"))) {
             const QString typeName = element.mid(6);
             QVariantList list;
             while (xml.readNextStartElement())
@@ -244,6 +342,11 @@ NodeSet::Result NodeSet::exportToFile(const QString &filePath, const ProjectData
 
     for (const EnumType &enumType : data.enumTypes)
         writeEnumType(xml, enumType);
+    // Standard (namespace 0) structure types already exist on every server.
+    for (const StructType &structType : data.structTypes) {
+        if (parseNodeId(structType.nodeId).ns != 0)
+            writeStructType(xml, structType);
+    }
     for (const Node &node : data.nodes)
         writeNode(xml, node);
 
@@ -307,6 +410,13 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
         return aliases.value(ref, ref);
     };
 
+    // Supertype of every UADataType, for structures derived from other structures.
+    QHash<QString, QString> dataTypeSupers;
+    // Data types without Definition whose supertype is not Structure itself.
+    QHash<QString, QString> pendingDataTypes;
+    // DataType reference of every imported variable, resolved after the pass.
+    QHash<QString, QString> variableDataTypes;
+
     QXmlStreamReader xml(&file);
     while (!xml.atEnd()) {
         if (xml.readNext() != QXmlStreamReader::StartElement)
@@ -328,14 +438,33 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
             enumType.nodeId = xml.attributes().value(QStringLiteral("NodeId")).toString();
             enumType.name =
                 browseNameLocal(xml.attributes().value(QStringLiteral("BrowseName")).toString());
-            bool isEnum = false;
+            bool hasDefinition = false;
+            bool hasStructureFields = false;
+            QString superType;
             while (xml.readNextStartElement()) {
                 if (xml.name() == QLatin1String("DisplayName")) {
                     enumType.name = xml.readElementText();
+                } else if (xml.name() == QLatin1String("References")) {
+                    while (xml.readNextStartElement()) {
+                        const bool isForward =
+                            xml.attributes().value(QStringLiteral("IsForward")).toString()
+                            != QLatin1String("false");
+                        const bool subtype = xml.name() == QLatin1String("Reference")
+                                             && xml.attributes()
+                                                        .value(QStringLiteral("ReferenceType"))
+                                                        .toString()
+                                                    == QLatin1String("HasSubtype");
+                        const QString target = resolveId(xml.readElementText());
+                        if (subtype && !isForward)
+                            superType = target;
+                    }
                 } else if (xml.name() == QLatin1String("Definition")) {
-                    isEnum = true;
+                    hasDefinition = true;
                     while (xml.readNextStartElement()) {
                         if (xml.name() == QLatin1String("Field")) {
+                            // Structure fields name a DataType; enum fields a Value.
+                            if (xml.attributes().hasAttribute(QStringLiteral("DataType")))
+                                hasStructureFields = true;
                             EnumEntry entry;
                             entry.name =
                                 xml.attributes().value(QStringLiteral("Name")).toString();
@@ -349,12 +478,18 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
                     xml.skipCurrentElement();
                 }
             }
-            if (isEnum && !enumType.nodeId.isEmpty()) {
-                result.enumTypes.append(enumType);
-            } else {
-                // A non-enumeration data type cannot be represented by the model.
+            dataTypeSupers.insert(enumType.nodeId, superType);
+            if (enumType.nodeId.isEmpty()) {
                 result.skippedKinds[QStringLiteral("UADataType")] += 1;
                 result.skippedCount += 1;
+            } else if (superType == QLatin1String("i=22") || hasStructureFields) {
+                // Members of a structure are modeled as child nodes, so the
+                // field list itself is not needed.
+                result.structTypes.append({enumType.name, enumType.nodeId, QString()});
+            } else if (hasDefinition) {
+                result.enumTypes.append(enumType);
+            } else {
+                pendingDataTypes.insert(enumType.nodeId, enumType.name);
             }
         } else if (element == QLatin1String("UAObject")
                    || element == QLatin1String("UAVariable")) {
@@ -372,8 +507,11 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
             if (isVariable) {
                 dataTypeRef =
                     resolveId(xml.attributes().value(QStringLiteral("DataType")).toString());
-                if (xml.attributes().value(QStringLiteral("ValueRank")).toInt() == 1)
-                    node.valueRank = 1;
+                const QStringView rankText = xml.attributes().value(QStringLiteral("ValueRank"));
+                if (!rankText.isEmpty() && rankText.toInt() >= 1)
+                    node.valueRank = rankText.toInt();
+                node.arrayDimensions = dimensionsFromText(
+                    xml.attributes().value(QStringLiteral("ArrayDimensions")).toString());
             }
 
             while (xml.readNextStartElement()) {
@@ -405,8 +543,8 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
                 } else if (xml.name() == QLatin1String("Value")) {
                     int rank = -1;
                     node.initialValue = readValue(xml, rank);
-                    if (rank == 1)
-                        node.valueRank = 1;
+                    if (rank >= 1 && node.valueRank < 1)
+                        node.valueRank = rank;
                 } else {
                     xml.skipCurrentElement();
                 }
@@ -434,6 +572,8 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
                     node.dataType = QStringLiteral("Int32");
             }
 
+            if (isVariable)
+                variableDataTypes.insert(node.nodeId, dataTypeRef);
             if (!node.nodeId.isEmpty())
                 result.nodes.append(node);
         } else if (element == QLatin1String("UAObjectType")
@@ -453,6 +593,44 @@ NodeSet::ImportResult NodeSet::importFromFile(const QString &filePath)
         result.errorString = QStringLiteral("Invalid NodeSet2 XML: %1").arg(xml.errorString());
         return result;
     }
+
+    // A data type without Definition whose supertype chain reaches a structure
+    // is a structure as well; the rest cannot be represented.
+    QSet<QString> structIds;
+    for (const StructType &structType : std::as_const(result.structTypes))
+        structIds.insert(structType.nodeId);
+    for (auto it = pendingDataTypes.cbegin(); it != pendingDataTypes.cend(); ++it) {
+        QString current = it.key();
+        QSet<QString> seen;
+        bool structure = false;
+        while (!current.isEmpty() && !seen.contains(current)) {
+            seen.insert(current);
+            current = dataTypeSupers.value(current);
+            if (current == QLatin1String("i=22") || structIds.contains(current)) {
+                structure = true;
+                break;
+            }
+        }
+        if (structure) {
+            result.structTypes.append({it.value(), it.key(), QString()});
+            structIds.insert(it.key());
+        } else {
+            result.skippedKinds[QStringLiteral("UADataType")] += 1;
+            result.skippedCount += 1;
+        }
+    }
+
+    // Variables of a structure type reference it instead of an enumeration.
+    for (Node &node : result.nodes) {
+        const QString dataTypeRef = variableDataTypes.value(node.nodeId);
+        if (node.isVariable() && structIds.contains(dataTypeRef)) {
+            node.structTypeId = dataTypeRef;
+            node.enumTypeId.clear();
+            node.dataType.clear();
+            node.initialValue = QVariant();
+        }
+    }
+
     result.ok = true;
     return result;
 }

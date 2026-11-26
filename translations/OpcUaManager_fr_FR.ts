@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+262"/>
+        <location line="+284"/>
         <source>Browse…</source>
         <translation>Parcourir…</translation>
     </message>
     <message>
-        <location line="-256"/>
+        <location line="-278"/>
         <source>Full path:</source>
         <translation>Chemin complet :</translation>
     </message>
@@ -1539,7 +1539,7 @@
         <translation>Cloner le serveur vers Server Studio</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>Tout l&apos;espace d&apos;adressage Objects du serveur connecté sera parcouru et les valeurs de ses variables lues dans un nouveau projet de serveur.</translation>
     </message>
@@ -1552,6 +1552,31 @@
         <location line="+8"/>
         <source>When off, nodes are renamed by browse path under a single clone namespace.</source>
         <translation>Si désactivé, les nœuds sont renommés selon le chemin de navigation sous un espace de noms de clone unique.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Node limit:</source>
+        <translation>Limite de nœuds :</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>50 000 nodes</source>
+        <translation>50 000 nœuds</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>200 000 nodes</source>
+        <translation>200 000 nœuds</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>1 000 000 nodes</source>
+        <translation>1 000 000 nœuds</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
+        <translation>Un clone qui atteint la limite est signalé comme incomplet. Les grandes limites prennent plus de temps et sollicitent davantage le serveur.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1625,7 +1650,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+840"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n nœud ajouté à la vue de données.</numerusform>
@@ -1883,7 +1908,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+232"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
         <source>Stopped</source>
         <translation>Arrêté</translation>
     </message>
@@ -1923,7 +1948,7 @@
         <translation>Sessions : %1 · Canaux sécurisés : %2 · Disponibilité : %3 s</translation>
     </message>
     <message>
-        <location line="+315"/>
+        <location line="+338"/>
         <source>Untitled Server</source>
         <translation>Serveur sans titre</translation>
     </message>
@@ -1969,7 +1994,7 @@
         <translation>Serveur importé</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>Methods</source>
         <translation>Méthodes</translation>
     </message>
@@ -2010,12 +2035,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+576"/>
+        <location line="+672"/>
         <source>No OPC UA client is available.</source>
         <translation>Aucun client OPC UA n’est disponible.</translation>
     </message>
     <message>
-        <location line="-570"/>
+        <location line="-666"/>
         <source>A clone is already in progress.</source>
         <translation>Un clonage est déjà en cours.</translation>
     </message>
@@ -2035,7 +2060,7 @@
         <translation>Rien n&apos;a été cloné. Connectez-vous à un serveur et réessayez.</translation>
     </message>
     <message>
-        <location line="+131"/>
+        <location line="+221"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>%1 nœud(s) cloné(s) ; la limite de %2 nœuds a été atteinte, le clone est donc incomplet.</translation>
     </message>
@@ -2055,27 +2080,27 @@
         <translation>%1 nœud(s) n’ont pas pu être lus ou parcourus entièrement.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
-        <translation>%1 variable(s) utilisent un type de données de substitution (structure, date/heure ou type non pris en charge).</translation>
-    </message>
-    <message>
-        <location line="-10"/>
+        <location line="-5"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>%1 nœud(s) cloné(s) depuis le serveur.</translation>
     </message>
     <message>
-        <location line="-142"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Serveur cloné</translation>
     </message>
     <message>
-        <location line="-651"/>
+        <location line="-675"/>
         <source>%1 node(s) captured, %2 waiting for the server</source>
         <translation>%1 nœud(s) capturé(s), %2 en attente du serveur</translation>
     </message>
     <message>
-        <location line="+1074"/>
+        <location line="+917"/>
+        <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
+        <translation>%1 variable(s) utilisent un type de données de substitution (date/heure ou type non pris en charge).</translation>
+    </message>
+    <message>
+        <location line="+277"/>
         <source>Create or open a server project first.</source>
         <translation>Créez ou ouvrez d’abord un projet de serveur.</translation>
     </message>
@@ -2113,12 +2138,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+383"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
         <source>(none)</source>
         <translation>(aucun)</translation>
     </message>
     <message>
-        <location line="-265"/>
+        <location line="-300"/>
         <source>(no values)</source>
         <translation>(aucune valeur)</translation>
     </message>
@@ -2170,12 +2195,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+827"/>
+        <location line="+864"/>
         <source>New Server Project</source>
         <translation>Nouveau projet de serveur</translation>
     </message>
     <message>
-        <location line="-799"/>
+        <location line="-836"/>
         <source>+ Folder</source>
         <translation>+ Dossier</translation>
     </message>
@@ -2186,12 +2211,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+491"/>
+        <location line="+528"/>
         <source>Remove</source>
         <translation>Supprimer</translation>
     </message>
     <message>
-        <location line="-435"/>
+        <location line="-468"/>
         <source>Select a node to edit its properties.</source>
         <translation>Sélectionnez un nœud pour modifier ses propriétés.</translation>
     </message>
@@ -2217,6 +2242,21 @@
     </message>
     <message>
         <location line="+7"/>
+        <source>Type:</source>
+        <translation>Type :</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>%1 (structure; its members are the child nodes)</source>
+        <translation>%1 (structure ; ses membres sont les nœuds enfants)</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Source type:</source>
+        <translation>Type source :</translation>
+    </message>
+    <message>
+        <location line="+13"/>
         <source>Data type:</source>
         <translation>Type de données :</translation>
     </message>
@@ -2231,7 +2271,7 @@
         <translation>Tableau :</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>One-dimensional array</source>
         <translation>Tableau unidimensionnel</translation>
     </message>

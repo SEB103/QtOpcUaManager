@@ -48,16 +48,28 @@
 
     Les variables conservent le type de données du serveur source. Les alias de types d’un
     fabricant, comme les types IEC CODESYS STRING ou UINT, sont ramenés à leur type de base
-    OPC UA (String, UInt16, ...) via la hiérarchie de types du serveur. Les types qu’un projet
-    serveur ne peut pas modéliser — structures, valeurs de date/heure et types non résolus —
-    sont créés comme variables String ; le message d’état après le clonage indique combien de
-    variables utilisent un tel type de substitution.
+    OPC UA (String, UInt16, ...) via la hiérarchie de types du serveur. Les valeurs de
+    date/heure et les types non résolus sont créés comme variables String ; le message
+    d’état après le clonage indique combien de variables utilisent un tel type de
+    substitution.
+
+    Les structures conservent leur type de structure. Son nom est celui du nœud DataType
+    sur le serveur (pour CODESYS, par exemple \c ST_HMI_Button) ; un membre chaîne nommé
+    \c structType n’est utilisé que lorsque le serveur ne nomme pas le type. La variable
+    de structure n’a pas de valeur propre : ses membres, et les éléments d’un tableau de
+    structures, sont ses nœuds enfants, exactement comme CODESYS les publie. Les tableaux
+    conservent leur type d’élément, leur rang et leurs dimensions ; un tableau de
+    structures, un tableau d’un type simple et un tableau multidimensionnel (par exemple
+    \c{Int32[2,3]}) sont reproduits comme tels. L’arborescence du serveur affiche ces
+    types, par exemple \c{ST_HMI_Button[13]}.
 
     Le clonage s’exécute avec une boîte de dialogue de progression ; \e{Annuler}
-    l’interrompt et laisse le projet serveur actuel inchangé. Le parcours est limité à
-    50 000 nœuds, une profondeur de 64 niveaux, 10 minutes au total et 30 secondes sans
-    réponse du serveur. Lorsqu’une limite met fin au clonage, ou que certains nœuds ne
-    peuvent pas être lus ou parcourus, le message d’état l’indique et le clone est incomplet.
+    l’interrompt et laisse le projet serveur actuel inchangé. Le parcours est limité par la
+    limite de nœuds choisie dans la boîte de dialogue de clonage (50 000, 200 000 ou
+    1 000 000 nœuds ; 200 000 par défaut), une profondeur de 64 niveaux, 10 minutes au
+    total et 30 secondes sans réponse du serveur. Lorsqu’une limite met fin au clonage, ou
+    que certains nœuds ne peuvent pas être lus ou parcourus, le message d’état l’indique et
+    le clone est incomplet.
 
     \section1 Échanger des espaces d’adressage
 

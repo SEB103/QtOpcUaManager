@@ -46,13 +46,23 @@
 
     Variablen behalten den Datentyp des Quellservers. Hersteller-Typaliase wie die
     CODESYS-IEC-Typen STRING oder UINT werden über die Typhierarchie des Servers auf ihren
-    OPC-UA-Basistyp (String, UInt16, ...) zurückgeführt. Typen, die ein Server-Projekt nicht
-    abbilden kann — Strukturen, Datums-/Zeitwerte und nicht auflösbare Typen —, werden als
-    String-Variablen angelegt; die Statusmeldung nach dem Klonen nennt, wie viele Variablen
-    einen solchen Ersatztyp verwenden.
+    OPC-UA-Basistyp (String, UInt16, ...) zurückgeführt. Datums-/Zeitwerte und nicht
+    auflösbare Typen werden als String-Variablen angelegt; die Statusmeldung nach dem
+    Klonen nennt, wie viele Variablen einen solchen Ersatztyp verwenden.
+
+    Strukturen behalten ihren Strukturtyp. Sein Name ist der Name des DataType-Knotens auf
+    dem Server (bei CODESYS zum Beispiel \c ST_HMI_Button); ein String-Mitglied namens
+    \c structType wird nur verwendet, wenn der Server den Typ nicht benennt. Die
+    Strukturvariable hat keinen eigenen Wert: Ihre Mitglieder und die Elemente eines
+    Arrays von Strukturen sind ihre Kindknoten, genau wie CODESYS sie veröffentlicht.
+    Arrays behalten Elementtyp, Rang und Dimensionen, sodass ein Array von Strukturen, ein
+    Array eines einfachen Typs und ein mehrdimensionales Array (zum Beispiel
+    \c{Int32[2,3]}) als solche nachgebildet werden. Der Serverbaum zeigt diese Typen an,
+    zum Beispiel \c{ST_HMI_Button[13]}.
 
     Das Klonen läuft mit einem Fortschrittsdialog; \e{Abbrechen} beendet es und lässt
-    das aktuelle Server-Projekt unverändert. Das Durchsuchen ist auf 50 000 Knoten, eine
+    das aktuelle Server-Projekt unverändert. Das Durchsuchen ist durch das im Klon-Dialog
+    gewählte Knotenlimit (50 000, 200 000 oder 1 000 000 Knoten; Standard 200 000), eine
     Tiefe von 64 Ebenen, insgesamt 10 Minuten und 30 Sekunden ohne Serverantwort begrenzt.
     Beendet ein Limit das Klonen oder können einzelne Knoten nicht gelesen oder durchsucht
     werden, nennt die Statusmeldung dies, und der Klon ist unvollständig.

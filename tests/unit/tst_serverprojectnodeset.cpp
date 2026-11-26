@@ -22,6 +22,9 @@ private slots:
     /*! Aliases resolve to real ids and unsupported node classes are reported. */
     void aliasesAndSkippedNodes();
 
+    /*! Structure types, structure variables and a 2-D array survive export and import. */
+    void roundTripsStructuresAndMatrices();
+
 private:
     static ProjectData makeProject();
 };
@@ -204,6 +207,75 @@ void ServerProjectNodeSetTest::aliasesAndSkippedNodes()
     QCOMPARE(imported.skippedKinds.value(QStringLiteral("UAMethod")), 1);
     QCOMPARE(imported.skippedKinds.value(QStringLiteral("UAObjectType")), 1);
     QCOMPARE(imported.skippedKinds.value(QStringLiteral("UADataType")), 1);
+}
+
+void ServerProjectNodeSetTest::roundTripsStructuresAndMatrices()
+{
+    ProjectData data;
+    data.namespaces.append({QStringLiteral("urn:opcuamanager:structures")});
+    data.structTypes.append({QStringLiteral("ST_Button"), QStringLiteral("ns=1;s=Type.Button"),
+                             QString()});
+
+    Node buttons;
+    buttons.kind = NodeKind::Variable;
+    buttons.nodeId = QStringLiteral("ns=1;s=Buttons");
+    buttons.browseName = QStringLiteral("Buttons");
+    buttons.structTypeId = QStringLiteral("ns=1;s=Type.Button");
+    buttons.valueRank = 1;
+    buttons.arrayDimensions = {2};
+    data.nodes.append(buttons);
+
+    Node element;
+    element.kind = NodeKind::Variable;
+    element.nodeId = QStringLiteral("ns=1;s=Buttons[1]");
+    element.parentNodeId = buttons.nodeId;
+    element.browseName = QStringLiteral("Buttons[1]");
+    element.structTypeId = buttons.structTypeId;
+    data.nodes.append(element);
+
+    Node matrix;
+    matrix.kind = NodeKind::Variable;
+    matrix.nodeId = QStringLiteral("ns=1;s=Matrix");
+    matrix.browseName = QStringLiteral("Matrix");
+    matrix.dataType = QStringLiteral("Int32");
+    matrix.valueRank = 2;
+    matrix.arrayDimensions = {2, 3};
+    matrix.initialValue = QVariantList{1, 2, 3, 4, 5, 6};
+    data.nodes.append(matrix);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("structures.xml"));
+    const NodeSet::Result exported = NodeSet::exportToFile(path, data);
+    QVERIFY2(exported.ok, qPrintable(exported.errorString));
+
+    const NodeSet::ImportResult imported = NodeSet::importFromFile(path);
+    QVERIFY2(imported.ok, qPrintable(imported.errorString));
+    QCOMPARE(imported.structTypes.size(), 1);
+    QCOMPARE(imported.structTypes.first().name, QStringLiteral("ST_Button"));
+    QVERIFY(imported.enumTypes.isEmpty());
+    QCOMPARE(imported.nodes.size(), 3);
+
+    const Node &buttonsCopy = imported.nodes.at(0);
+    QVERIFY(buttonsCopy.isStructure());
+    QCOMPARE(buttonsCopy.structTypeId, QStringLiteral("ns=1;s=Type.Button"));
+    QCOMPARE(buttonsCopy.valueRank, 1);
+    QCOMPARE(buttonsCopy.arrayDimensions, QList<quint32>{2});
+    QVERIFY(imported.nodes.at(1).isStructure());
+
+    const Node &matrixCopy = imported.nodes.at(2);
+    QCOMPARE(matrixCopy.dataType, QStringLiteral("Int32"));
+    QCOMPARE(matrixCopy.valueRank, 2);
+    QCOMPARE(matrixCopy.arrayDimensions, (QList<quint32>{2, 3}));
+    QCOMPARE(matrixCopy.initialValue.toList().size(), 6);
+    QCOMPARE(matrixCopy.initialValue.toList().value(5).toInt(), 6);
+
+    ProjectData reimported;
+    reimported.namespaces = imported.namespaces;
+    reimported.structTypes = imported.structTypes;
+    reimported.nodes = imported.nodes;
+    const Validator::Result validation = Validator::validate(reimported);
+    QVERIFY2(validation.errors.isEmpty(), qPrintable(validation.errors.join(QStringLiteral("; "))));
 }
 
 QTEST_GUILESS_MAIN(ServerProjectNodeSetTest)

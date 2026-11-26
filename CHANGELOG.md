@@ -22,12 +22,20 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 ### Added
 - **Clone to Server Studio**: a progress dialog shows the captured and pending nodes and
   can cancel the clone; a cancelled clone leaves the current server project unchanged.
+  The clone dialog offers a node limit of 50 000, 200 000 (default) or 1 000 000 nodes.
+- **Server Studio**: structure data types. A structure variable references its
+  structure type and has its members as child nodes (the way CODESYS publishes them);
+  the runtime serves the type as a `Structure` subtype. Variables may be
+  multi-dimensional arrays with `ArrayDimensions` (for example `Int32[2,3]`). The tree and
+  the property editor show these types, and NodeSet2 export/import keeps them. Projects
+  that use them are saved as `.uaserver` format version 2; all other projects stay
+  version 1.
 
 ### Fixed
 - **Clone to Server Studio**: an incomplete clone is no longer reported as complete. The
-  browse no longer stops at 5000 nodes or after a fixed 30 seconds: it is bounded to
-  50 000 nodes, a depth of 64, 10 minutes in total and 30 seconds without a server
-  response, and the status message names the limit or timeout that ended it and the
+  browse no longer stops at 5000 nodes or after a fixed 30 seconds: it is bounded by
+  the chosen node limit, a depth of 64, 10 minutes in total and 30 seconds without a
+  server response, and the status message names the limit or timeout that ended it and the
   nodes that could not be read or browsed. Members of a structure or array are now
   found even when the structure's own value cannot be read, attribute reads are batched,
   and at most a few requests are sent to the server at a time.
@@ -35,9 +43,14 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard
   subtypes such as `Duration`, `UtcTime` and `LocaleId`, keep their OPC UA base type
-  (`String`, `UInt16`, `Double`, …) and their values. Structures, date/time values and
-  unresolvable types become `String` variables, and the status message reports how many
-  variables use such a substitute type.
+  (`String`, `UInt16`, `Double`, …) and their values. Date/time values and unresolvable
+  types become `String` variables, and the status message reports how many variables use
+  such a substitute type.
+- **Clone to Server Studio**: structures are cloned as structures of their original type
+  (named after the server's DataType, for example `ST_HMI_Button`) instead of `String`,
+  arrays of structures as arrays of that type, and arrays keep their rank and
+  dimensions. One-element arrays (such as `ServerArray`) are no longer split into
+  characters, and a value that could not be read stays empty instead of becoming `0`.
 
 ## [1.4.1] - 2026-11-24
 

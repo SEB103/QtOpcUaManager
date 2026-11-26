@@ -43,6 +43,12 @@ Pane {
         space and Data Access View highlight.
     */
     readonly property color selectedRowColor: Base.BsTheme.selectedRowColor
+    /*!
+        Whether the selected node is a variable whose type, value and simulation
+        can be edited; a structure variable has none of its own.
+    */
+    readonly property bool selectedEditableVariable: cppServerStudio.selectedNode.isVariable === true
+                                                     && cppServerStudio.selectedNode.isStructure !== true
 
     /*!
         Runs \a action now, or, when the project has unsaved changes, defers it
@@ -128,7 +134,7 @@ Pane {
             "displayName": displayNameField.text,
             "description": descriptionField.text
         }
-        if (cppServerStudio.selectedNode.isVariable) {
+        if (studio.selectedEditableVariable) {
             fields["dataType"] = dataTypeCombo.currentText
             fields["valueRank"] = arrayCheck.checked ? 1 : -1
             fields["writable"] = writableCheck.checked
@@ -288,11 +294,15 @@ Pane {
                             required property string nodeId
                             required property string displayName
                             required property string kindName
+                            required property string typeText
 
                             implicitHeight: 30
                             contentItem: Label {
                                 text: treeDelegate.displayName
-                                      + " (" + treeDelegate.kindName + ")"
+                                      + " (" + treeDelegate.kindName
+                                      + (treeDelegate.typeText.length > 0
+                                         ? ": " + treeDelegate.typeText : "")
+                                      + ")"
                                 color: Material.foreground
                                 elide: Text.ElideRight
                             }
@@ -361,91 +371,124 @@ Pane {
                         }
 
                         Label {
+                            text: qsTr("Type:")
+                            visible: cppServerStudio.selectedNode.isStructure === true
+                                     || cppServerStudio.selectedNode.isMultiDimensional === true
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: cppServerStudio.selectedNode.isStructure === true
+                                     || cppServerStudio.selectedNode.isMultiDimensional === true
+                            text: cppServerStudio.selectedNode.isStructure === true
+                                  ? qsTr("%1 (structure; its members are the child nodes)")
+                                        .arg(cppServerStudio.selectedNode.typeText)
+                                  : cppServerStudio.selectedNode.typeText !== undefined
+                                    ? cppServerStudio.selectedNode.typeText : ""
+                            wrapMode: Text.Wrap
+                            color: Material.foreground
+                        }
+
+                        Label {
+                            text: qsTr("Source type:")
+                            visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
+                            text: cppServerStudio.selectedNode.sourceDataType || ""
+                            elide: Text.ElideMiddle
+                            opacity: 0.7
+                            color: Material.foreground
+                        }
+
+                        Label {
                             text: qsTr("Data type:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
                         ComboBox {
                             id: dataTypeCombo
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                             enabled: enumTypeCombo.currentIndex <= 0
                             model: cppServerStudio.dataTypeNames
                         }
 
                         Label {
                             text: qsTr("Enum type:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
                         ComboBox {
                             id: enumTypeCombo
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                             model: [qsTr("(none)")].concat(cppServerStudio.enumTypeNames)
                         }
 
                         Label {
                             text: qsTr("Array:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
+                                     && cppServerStudio.selectedNode.isMultiDimensional !== true
                         }
                         CheckBox {
                             id: arrayCheck
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
+                                     && cppServerStudio.selectedNode.isMultiDimensional !== true
                             text: qsTr("One-dimensional array")
                         }
 
                         Label {
                             text: qsTr("Writable:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
                         CheckBox {
                             id: writableCheck
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
 
                         Label {
                             text: qsTr("Initial value:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
                         TextField {
                             id: initialValueField
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                             placeholderText: arrayCheck.checked ? qsTr("comma-separated values")
                                                                 : qsTr("value")
                         }
 
                         Label {
                             text: qsTr("Simulation:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                         }
                         ComboBox {
                             id: simKindCombo
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                             model: cppServerStudio.simulationKindNames
                         }
 
                         Label {
                             text: qsTr("Interval (ms):")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText !== "Manual"
                         }
                         TextField {
                             id: simIntervalField
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText !== "Manual"
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
                         }
 
                         Label {
                             text: qsTr("Min / Max:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText !== "Manual"
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText !== "Manual"
                             spacing: 6
                             TextField {
@@ -462,27 +505,27 @@ Pane {
 
                         Label {
                             text: qsTr("Step:")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText === "Counter"
                         }
                         TextField {
                             id: simStepField
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && simKindCombo.currentText === "Counter"
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
                         }
 
                         Label {
                             text: qsTr("Period (ms):")
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && (simKindCombo.currentText === "Sine"
                                          || simKindCombo.currentText === "Ramp")
                         }
                         TextField {
                             id: simPeriodField
                             Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isVariable === true
+                            visible: studio.selectedEditableVariable
                                      && (simKindCombo.currentText === "Sine"
                                          || simKindCombo.currentText === "Ramp")
                             inputMethodHints: Qt.ImhFormattedNumbersOnly

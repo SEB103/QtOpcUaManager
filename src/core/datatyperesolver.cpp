@@ -218,6 +218,27 @@ ResolvedDataType DataTypeIds::resolveLocally(const QString &typeId)
 }
 
 /*!
+ * \brief Returns the type name embedded in the CODESYS DataType id \a typeId.
+ *
+ * CODESYS string DataType ids contain the marker "|type|" followed by the
+ * dotted path of the type ("...Application.AGX.ST_ValueList"), sometimes with
+ * a "#" before the name. The last segment is the user type name. Returns an
+ * empty string for every other id.
+ */
+QString DataTypeIds::nameFromTypeId(const QString &typeId)
+{
+    if (!typeId.contains(QLatin1String("|type|"), Qt::CaseInsensitive))
+        return {};
+    const qsizetype hash = typeId.lastIndexOf(QLatin1Char('#'));
+    const qsizetype dot = typeId.lastIndexOf(QLatin1Char('.'));
+    if (hash != -1 && hash > dot)
+        return typeId.mid(hash + 1);
+    if (dot != -1)
+        return typeId.mid(dot + 1);
+    return {};
+}
+
+/*!
  * \class DataTypeHierarchy
  * \inmodule OpcUaManager
  * \brief Supertype relations of DataType nodes collected from a server.

@@ -245,6 +245,11 @@ int main(int argc, char *argv[])
     }
 
     if (hasProject) {
+        // Structure variables (members are child nodes) and cloned variables
+        // whose value could not be read on the source server have no value.
+        // open62541 accepts an empty value only for BaseDataType unless allowed.
+        config->allowEmptyVariables = UA_RULEHANDLING_ACCEPT;
+
         QString buildError;
         if (!ProjectBuilder::build(server, project, buildError)) {
             std::fprintf(stderr, "ERROR %s\n", buildError.toLocal8Bit().constData());

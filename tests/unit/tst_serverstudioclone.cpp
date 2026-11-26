@@ -12,6 +12,7 @@
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/serverstudio.h"
 #include "serverproject/serverprojectserializer.h"
+#include "serverproject/serverprojectvalidator.h"
 
 using Resolution = ResolvedDataType::Resolution;
 
@@ -21,7 +22,10 @@ class ServerStudioCloneTest : public QObject
     Q_OBJECT
 
 private slots:
-    /*! Vendor aliases keep their base type; unsupported types are substituted and reported. */
+    /*!
+        Vendor aliases keep their base type, structures and arrays of structures
+        keep their structure type, and unsupported types are substituted and reported.
+    */
     void mapsResolvedBaseTypes();
 
     /*! Truncated, timed-out and partly failed clones are reported as incomplete. */
@@ -94,10 +98,36 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
     nodes.append(variable(QStringLiteral("uiButtonCount"), hmi, QStringLiteral("ns=3;i=3002"),
                           QStringLiteral("UInt16"), Resolution::Hierarchy,
                           QVariant::fromValue(quint16(4))));
-    // A user structure whose value is an ExtensionObject without text.
-    nodes.append(variable(QStringLiteral("stButton"), hmi,
-                          QStringLiteral("ns=4;s=|type|PLC.Application.STButton"),
+    // A user structure (base Structure) with its members as child nodes; the
+    // type name comes from the CODESYS "|type|" id because no BrowseName was set.
+    const QString buttonType = QStringLiteral("ns=4;s=|type|PLC.Application.ST_HMI_Button");
+    nodes.append(variable(QStringLiteral("stButton"), hmi, buttonType,
                           QStringLiteral("Structure"), Resolution::Hierarchy, QVariant()));
+    const QString button = nodes.last().nodeId;
+    nodes.append(variable(QStringLiteral("xPressed"), button, QStringLiteral("ns=0;i=1"),
+                          QStringLiteral("Boolean"), Resolution::BuiltIn, false));
+    nodes.append(variable(QStringLiteral("strText"), button, QStringLiteral("ns=3;i=3013"),
+                          QStringLiteral("String"), Resolution::Hierarchy,
+                          QStringLiteral("HMI Btn")));
+    // An array of the same structure type; its elements are child nodes.
+    nodes.append(variable(QStringLiteral("astButtons"), hmi, buttonType,
+                          QStringLiteral("Structure"), Resolution::Hierarchy,
+                          QVariantList{QVariant(), QVariant()}, 1));
+    nodes.last().arrayDimensions = {2};
+    nodes.append(variable(QStringLiteral("astButtons[1]"), nodes.last().nodeId, buttonType,
+                          QStringLiteral("Structure"), Resolution::Hierarchy, QVariant()));
+    // A structure whose type could not be resolved: recognized by its members,
+    // named by the structType member as a fallback.
+    nodes.append(variable(QStringLiteral("stLegacy"), hmi, QStringLiteral("ns=9;i=77"),
+                          QString(), Resolution::Unresolved, QVariant()));
+    const QString legacy = nodes.last().nodeId;
+    nodes.append(variable(QStringLiteral("structType"), legacy, QStringLiteral("ns=0;i=12"),
+                          QStringLiteral("String"), Resolution::BuiltIn,
+                          QStringLiteral("ST_Legacy")));
+    // A one-element string array that Qt OPC UA delivers as a scalar.
+    nodes.append(variable(QStringLiteral("ServerArray"), hmi, QStringLiteral("ns=0;i=12"),
+                          QStringLiteral("String"), Resolution::BuiltIn,
+                          QStringLiteral("urn:plc:server"), 1));
     // An unresolved type carrying a string value.
     nodes.append(variable(QStringLiteral("sUnknown"), hmi, QStringLiteral("ns=9;i=1"), QString(),
                           Resolution::Unresolved, QStringLiteral("abc")));
@@ -135,9 +165,48 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
     QCOMPARE(count->dataType, QStringLiteral("UInt16"));
     QCOMPARE(count->initialValue.toInt(), 4);
 
-    const ServerProject::Node *button = find(loaded.data, QStringLiteral("stButton"));
-    QVERIFY(button);
-    QCOMPARE(button->dataType, QStringLiteral("String"));
+    // Structures keep their own type and have no value; members stay typed.
+    const ServerProject::Node *buttonNode = find(loaded.data, QStringLiteral("stButton"));
+    QVERIFY(buttonNode);
+    QVERIFY(buttonNode->isStructure());
+    QVERIFY(!buttonNode->initialValue.isValid());
+    QVERIFY(!buttonNode->writable);
+    const auto typeName = [&loaded](const QString &typeId) {
+        for (const ServerProject::StructType &type : loaded.data.structTypes) {
+            if (type.nodeId == typeId)
+                return type.name;
+        }
+        return QString();
+    };
+    QCOMPARE(typeName(buttonNode->structTypeId), QStringLiteral("ST_HMI_Button"));
+    QCOMPARE(buttonNode->source.originalDataTypeId, buttonType);
+    QCOMPARE(find(loaded.data, QStringLiteral("strText"))->dataType, QStringLiteral("String"));
+    QCOMPARE(find(loaded.data, QStringLiteral("xPressed"))->dataType, QStringLiteral("Boolean"));
+
+    const ServerProject::Node *buttons = find(loaded.data, QStringLiteral("astButtons"));
+    QVERIFY(buttons);
+    QCOMPARE(buttons->structTypeId, buttonNode->structTypeId); // one type for both
+    QCOMPARE(buttons->valueRank, 1);
+    QCOMPARE(buttons->arrayDimensions, QList<quint32>{2});
+    QCOMPARE(ServerProject::variableTypeText(*buttons, typeName(buttons->structTypeId)),
+             QStringLiteral("ST_HMI_Button[2]"));
+    QVERIFY(find(loaded.data, QStringLiteral("astButtons[1]"))->isStructure());
+
+    const ServerProject::Node *legacyNode = find(loaded.data, QStringLiteral("stLegacy"));
+    QVERIFY(legacyNode);
+    QVERIFY(legacyNode->isStructure());
+    QCOMPARE(typeName(legacyNode->structTypeId), QStringLiteral("ST_Legacy"));
+    QCOMPARE(loaded.data.structTypes.size(), 2);
+
+    const ServerProject::Node *serverArray = find(loaded.data, QStringLiteral("ServerArray"));
+    QVERIFY(serverArray);
+    QCOMPARE(serverArray->valueRank, 1);
+    QCOMPARE(serverArray->initialValue.toList(), QVariantList{QStringLiteral("urn:plc:server")});
+
+    // The cloned project is valid for the runtime.
+    const auto validation = ServerProject::Validator::validate(loaded.data);
+    QVERIFY2(validation.errors.isEmpty(),
+             qPrintable(validation.errors.join(QStringLiteral("; "))));
 
     const ServerProject::Node *unknown = find(loaded.data, QStringLiteral("sUnknown"));
     QVERIFY(unknown);
@@ -155,11 +224,11 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
     QCOMPARE(locales->valueRank, 1);
     QCOMPARE(locales->initialValue.toList().value(1).toString(), QStringLiteral("de-DE"));
 
-    // stButton and sUnknown are substitutes; the report says so.
+    // Only sUnknown is a substitute (structures are exact now); the report says so.
     QVERIFY(!notificationSpy.isEmpty());
     bool reported = false;
     for (const QList<QVariant> &args : std::as_const(notificationSpy)) {
-        if (args.at(1).toString().contains(QLatin1String("2 variable(s) use a substitute")))
+        if (args.at(1).toString().contains(QLatin1String("1 variable(s) use a substitute")))
             reported = true;
     }
     QVERIFY2(reported, "clone notification does not report the substituted variables");
@@ -178,7 +247,7 @@ void ServerStudioCloneTest::reportsIncompleteClone_data()
     QTest::addColumn<QString>("expected");
 
     QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0
-                                << QStringLiteral("the limit of 50000 nodes was reached");
+                                << QStringLiteral("the limit of 200000 nodes was reached");
     QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0
                                  << QStringLiteral("at the depth limit of 64");
     QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0

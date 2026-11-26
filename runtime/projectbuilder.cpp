@@ -1,5 +1,6 @@
 #include "projectbuilder.h"
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -251,6 +252,57 @@ bool addEnumType(UA_Server *server, const ServerProject::EnumType &enumType,
  * \internal
  * \brief Adds one node to \a server, translating namespaces through \a nsMap.
  */
+/*!
+ * \internal
+ * \brief Adds the structure DataType node of \a structType to \a server.
+ *
+ * The type is a subtype of Structure without a DataTypeDefinition, the way
+ * CODESYS publishes its structures: members are child variables of each
+ * instance. A namespace-0 id refers to an existing standard type and is
+ * skipped.
+ */
+bool addStructType(UA_Server *server, const ServerProject::StructType &structType,
+                   const QHash<quint16, UA_UInt16> &nsMap, QString &error)
+{
+    const ParsedNodeId parsed = ServerProject::parseNodeId(structType.nodeId);
+    if (parsed.ns == 0)
+        return true;
+    const UA_UInt16 runtimeNs = nsMap.value(parsed.ns, 0);
+    const QByteArray nameBytes = structType.name.toUtf8();
+
+    UA_NodeId typeId = ProjectBuilder::toRuntimeNodeId(structType.nodeId, nsMap);
+    UA_DataTypeAttributes attr = UA_DataTypeAttributes_default;
+    attr.displayName =
+        UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>(nameBytes.constData()));
+    const UA_StatusCode status = UA_Server_addDataTypeNode(
+        server, typeId, UA_NODEID_NUMERIC(0, UA_NS0ID_STRUCTURE),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(runtimeNs, const_cast<char *>(nameBytes.constData())), attr, nullptr,
+        nullptr);
+    UA_NodeId_clear(&typeId);
+    if (status != UA_STATUSCODE_GOOD) {
+        error = QStringLiteral("Failed to add structure type '%1': %2")
+                    .arg(structType.name, QString::fromUtf8(UA_StatusCode_name(status)));
+        return false;
+    }
+    return true;
+}
+
+/*!
+ * \internal
+ * \brief Returns whether \a dimensions gives a positive length for each of \a valueRank dimensions.
+ */
+bool hasKnownDimensions(const QList<quint32> &dimensions, int valueRank)
+{
+    if (valueRank < 1 || dimensions.size() != valueRank)
+        return false;
+    for (const quint32 length : dimensions) {
+        if (length == 0)
+            return false;
+    }
+    return true;
+}
+
 bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16> &nsMap,
              QString &error)
 {
@@ -285,9 +337,12 @@ bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16
         UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>(displayBytes.constData()));
 
     UA_StatusCode status = UA_STATUSCODE_GOOD;
-    const bool isEnumVariable = node.kind == NodeKind::Variable && !node.enumTypeId.isEmpty();
+    const bool isStructVariable = node.isStructure();
+    const bool isEnumVariable =
+        node.kind == NodeKind::Variable && !isStructVariable && !node.enumTypeId.isEmpty();
     if (node.kind == NodeKind::Variable) {
-        const int typeIndex = isEnumVariable ? UA_TYPES_INT32 : uaTypeIndexFor(node.dataType);
+        const int typeIndex = isEnumVariable || isStructVariable ? UA_TYPES_INT32
+                                                                 : uaTypeIndexFor(node.dataType);
         if (typeIndex < 0) {
             error = QStringLiteral("Unsupported data type '%1' for node '%2'.")
                         .arg(node.dataType, node.nodeId);
@@ -296,34 +351,61 @@ bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16
 
         // An enum variable is Int32 on the wire but its DataType attribute points
         // at the custom enum type node so clients can resolve the value names.
+        // A structure variable points at its structure type; it has no value of
+        // its own because its members are child nodes.
         UA_NodeId enumDataType = UA_NODEID_NULL;
         if (isEnumVariable)
             enumDataType = ProjectBuilder::toRuntimeNodeId(node.enumTypeId, nsMap);
+        else if (isStructVariable)
+            enumDataType = ProjectBuilder::toRuntimeNodeId(node.structTypeId, nsMap);
 
         UA_VariableAttributes attr = UA_VariableAttributes_default;
         attr.displayName = displayName;
         if (!node.description.isEmpty())
             attr.description = UA_LOCALIZEDTEXT(const_cast<char *>("en-US"),
                                                const_cast<char *>(descriptionBytes.constData()));
-        attr.dataType = isEnumVariable ? enumDataType : UA_TYPES[typeIndex].typeId;
+        attr.dataType = isEnumVariable || isStructVariable ? enumDataType
+                                                          : UA_TYPES[typeIndex].typeId;
         attr.valueRank = isEnumVariable ? -1 : node.valueRank;
-        // A one-dimensional array must declare ArrayDimensions matching its
-        // ValueRank, or open62541 rejects the node with BadTypeMismatch. A single
-        // zero means "any length". Kept in scope until after the add call below.
-        UA_UInt32 arrayDimensions[1] = {0};
-        if (!isEnumVariable && node.valueRank == 1) {
-            attr.arrayDimensions = arrayDimensions;
-            attr.arrayDimensionsSize = 1;
+        // An array must declare ArrayDimensions matching its ValueRank, or
+        // open62541 rejects the node with BadTypeMismatch; zero means "any
+        // length". Kept in scope until after the add call below.
+        const bool knownDimensions = hasKnownDimensions(node.arrayDimensions, node.valueRank);
+        std::vector<UA_UInt32> arrayDimensions;
+        if (!isEnumVariable && node.valueRank >= 1) {
+            for (int i = 0; i < node.valueRank; ++i)
+                arrayDimensions.push_back(knownDimensions ? node.arrayDimensions.at(i) : 0);
+            attr.arrayDimensions = arrayDimensions.data();
+            attr.arrayDimensionsSize = arrayDimensions.size();
         }
         attr.accessLevel = UA_ACCESSLEVELMASK_READ;
-        if (node.writable)
+        if (node.writable && !isStructVariable)
             attr.accessLevel |= UA_ACCESSLEVELMASK_WRITE;
 
-        if (isEnumVariable) {
+        if (isStructVariable) {
+            // No value: the members are the child nodes.
+        } else if (isEnumVariable) {
             UA_Int32 enumValue = node.initialValue.isValid() ? node.initialValue.toInt() : 0;
             UA_Variant_setScalarCopy(&attr.value, &enumValue, &UA_TYPES[UA_TYPES_INT32]);
         } else if (node.valueRank == 1) {
             setArray(attr.value, node.dataType, node.initialValue.toList());
+        } else if (node.valueRank > 1) {
+            // A multi-dimensional value needs its dimensions; without them the
+            // variable starts empty rather than with a mis-shaped value.
+            const QVariantList flat = node.initialValue.toList();
+            qint64 expected = 1;
+            for (const UA_UInt32 length : arrayDimensions)
+                expected *= length;
+            if (knownDimensions && node.initialValue.isValid() && flat.size() == expected) {
+                setArray(attr.value, node.dataType, flat);
+                attr.value.arrayDimensions = static_cast<UA_UInt32 *>(
+                    UA_Array_new(arrayDimensions.size(), &UA_TYPES[UA_TYPES_UINT32]));
+                if (attr.value.arrayDimensions) {
+                    std::copy(arrayDimensions.cbegin(), arrayDimensions.cend(),
+                              attr.value.arrayDimensions);
+                    attr.value.arrayDimensionsSize = arrayDimensions.size();
+                }
+            }
         } else if (node.initialValue.isValid()) {
             setScalar(attr.value, node.dataType, node.initialValue);
         }
@@ -333,7 +415,7 @@ bool addNode(UA_Server *server, const Node &node, const QHash<quint16, UA_UInt16
             UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, nullptr, nullptr);
 
         UA_Variant_clear(&attr.value);
-        if (isEnumVariable)
+        if (isEnumVariable || isStructVariable)
             UA_NodeId_clear(&enumDataType);
     } else {
         UA_ObjectAttributes attr = UA_ObjectAttributes_default;
@@ -397,6 +479,11 @@ bool build(UA_Server *server, const ProjectData &project, QString &error)
     // Custom enumeration types must exist before variables reference them.
     for (const ServerProject::EnumType &enumType : project.enumTypes) {
         if (!addEnumType(server, enumType, nsMap, error))
+            return false;
+    }
+    // Structure types likewise precede the structure variables.
+    for (const ServerProject::StructType &structType : project.structTypes) {
+        if (!addStructType(server, structType, nsMap, error))
             return false;
     }
 

@@ -14,6 +14,48 @@ namespace {
 
 /*!
  * \internal
+ * \brief Returns \a dimensions as a JSON array.
+ */
+QJsonArray dimensionsToJson(const QList<quint32> &dimensions)
+{
+    QJsonArray array;
+    for (const quint32 length : dimensions)
+        array.append(qint64(length));
+    return array;
+}
+
+/*!
+ * \internal
+ * \brief Returns the dimensions stored in JSON array \a array.
+ */
+QList<quint32> dimensionsFromJson(const QJsonArray &array)
+{
+    QList<quint32> dimensions;
+    for (const QJsonValue &value : array)
+        dimensions.append(quint32(value.toInteger()));
+    return dimensions;
+}
+
+/*!
+ * \internal
+ * \brief Returns whether \a data uses a feature introduced with format version 2.
+ *
+ * Projects without structure types, multi-dimensional arrays or array
+ * dimensions are written as version 1 so older builds can still read them.
+ */
+bool needsVersion2(const ProjectData &data)
+{
+    if (!data.structTypes.isEmpty())
+        return true;
+    for (const Node &node : data.nodes) {
+        if (node.isStructure() || node.valueRank > 1 || !node.arrayDimensions.isEmpty())
+            return true;
+    }
+    return false;
+}
+
+/*!
+ * \internal
  * \brief Serializes one node to a JSON object.
  */
 QJsonObject nodeToJson(const Node &node)
@@ -31,7 +73,11 @@ QJsonObject nodeToJson(const Node &node)
         obj["dataType"] = node.dataType;
         if (!node.enumTypeId.isEmpty())
             obj["enumTypeId"] = node.enumTypeId;
+        if (!node.structTypeId.isEmpty())
+            obj["structTypeId"] = node.structTypeId;
         obj["valueRank"] = node.valueRank;
+        if (!node.arrayDimensions.isEmpty())
+            obj["arrayDimensions"] = dimensionsToJson(node.arrayDimensions);
         obj["writable"] = node.writable;
         if (node.initialValue.isValid())
             obj["initialValue"] = QJsonValue::fromVariant(node.initialValue);
@@ -46,6 +92,23 @@ QJsonObject nodeToJson(const Node &node)
             sim["periodMs"] = node.simulation.periodMs;
             obj["simulation"] = sim;
         }
+    }
+
+    if (!node.source.isEmpty()) {
+        QJsonObject source;
+        if (!node.source.originalNodeId.isEmpty())
+            source["originalNodeId"] = node.source.originalNodeId;
+        if (!node.source.originalDataTypeId.isEmpty())
+            source["originalDataTypeId"] = node.source.originalDataTypeId;
+        if (!node.source.originalDataTypeName.isEmpty())
+            source["originalDataTypeName"] = node.source.originalDataTypeName;
+        if (!node.source.builtInBase.isEmpty())
+            source["builtInBase"] = node.source.builtInBase;
+        if (node.kind == NodeKind::Variable)
+            source["originalValueRank"] = node.source.originalValueRank;
+        if (node.source.substituted)
+            source["substituted"] = true;
+        obj["source"] = source;
     }
     return obj;
 }
@@ -67,7 +130,9 @@ Node nodeFromJson(const QJsonObject &obj)
     if (node.kind == NodeKind::Variable) {
         node.dataType = obj.value("dataType").toString();
         node.enumTypeId = obj.value("enumTypeId").toString();
+        node.structTypeId = obj.value("structTypeId").toString();
         node.valueRank = obj.value("valueRank").toInt(-1);
+        node.arrayDimensions = dimensionsFromJson(obj.value("arrayDimensions").toArray());
         node.writable = obj.value("writable").toBool(false);
         if (obj.contains("initialValue"))
             node.initialValue = obj.value("initialValue").toVariant();
@@ -80,6 +145,14 @@ Node nodeFromJson(const QJsonObject &obj)
         node.simulation.step = sim.value("step").toDouble(1.0);
         node.simulation.periodMs = sim.value("periodMs").toDouble(10000.0);
     }
+
+    const QJsonObject source = obj.value("source").toObject();
+    node.source.originalNodeId = source.value("originalNodeId").toString();
+    node.source.originalDataTypeId = source.value("originalDataTypeId").toString();
+    node.source.originalDataTypeName = source.value("originalDataTypeName").toString();
+    node.source.builtInBase = source.value("builtInBase").toString();
+    node.source.originalValueRank = source.value("originalValueRank").toInt(-1);
+    node.source.substituted = source.value("substituted").toBool(false);
     return node;
 }
 
@@ -91,7 +164,8 @@ Node nodeFromJson(const QJsonObject &obj)
 QJsonObject Serializer::toJson(const ProjectData &data)
 {
     QJsonObject root;
-    root["formatVersion"] = data.formatVersion;
+    // Version 1 whenever possible, so older builds keep reading the file.
+    root["formatVersion"] = needsVersion2(data) ? 2 : 1;
     root["displayName"] = data.displayName;
 
     QJsonObject server;
@@ -126,6 +200,19 @@ QJsonObject Serializer::toJson(const ProjectData &data)
         enumTypes.append(enumObj);
     }
     root["enumTypes"] = enumTypes;
+
+    if (!data.structTypes.isEmpty()) {
+        QJsonArray structTypes;
+        for (const StructType &structType : data.structTypes) {
+            QJsonObject structObj;
+            structObj["name"] = structType.name;
+            structObj["nodeId"] = structType.nodeId;
+            if (!structType.originalNodeId.isEmpty())
+                structObj["originalNodeId"] = structType.originalNodeId;
+            structTypes.append(structObj);
+        }
+        root["structTypes"] = structTypes;
+    }
 
     QJsonArray nodes;
     for (const Node &node : data.nodes)
@@ -215,6 +302,18 @@ bool Serializer::fromJson(const QJsonObject &root, ProjectData &data, QString &e
             enumType.entries.append(entry);
         }
         data.enumTypes.append(enumType);
+    }
+
+    // Structure types are optional (format version 2); older files have none.
+    data.structTypes.clear();
+    const QJsonArray structTypes = root.value("structTypes").toArray();
+    for (const QJsonValue &value : structTypes) {
+        const QJsonObject structObj = value.toObject();
+        StructType structType;
+        structType.name = structObj.value("name").toString();
+        structType.nodeId = structObj.value("nodeId").toString();
+        structType.originalNodeId = structObj.value("originalNodeId").toString();
+        data.structTypes.append(structType);
     }
 
     data.nodes.clear();

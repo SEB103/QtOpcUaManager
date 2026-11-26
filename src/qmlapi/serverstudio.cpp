@@ -1,6 +1,7 @@
 #include "serverstudio.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -8,6 +9,12 @@
 #include <QSet>
 #include <QStandardPaths>
 #include <QUrl>
+#include <QUuid>
+
+#include <QOpcUaExtensionObject>
+#include <QOpcUaLocalizedText>
+#include <QOpcUaMultiDimensionalArray>
+#include <QOpcUaQualifiedName>
 
 #include "core/clonebrowser.h"
 #include "core/datatyperesolver.h"
@@ -89,6 +96,118 @@ QString cloneBaseType(const CloneNode &source)
     if (source.resolvedDataType.resolution != ResolvedDataType::Resolution::None)
         return source.resolvedDataType.builtInBase;
     return DataTypeIds::resolveLocally(source.dataTypeId).builtInBase;
+}
+
+/*!
+ * \internal
+ * \brief Returns whether \a value is an ExtensionObject or an array of them.
+ */
+bool holdsExtensionObject(const QVariant &value)
+{
+    const QMetaType extensionObject = QMetaType::fromType<QOpcUaExtensionObject>();
+    if (value.metaType() == extensionObject)
+        return true;
+    if (value.typeId() == QMetaType::QVariantList) {
+        const QVariantList list = value.toList();
+        return !list.isEmpty() && list.first().metaType() == extensionObject;
+    }
+    return false;
+}
+
+/*!
+ * \internal
+ * \brief Captured value split into its elements and array dimensions.
+ */
+struct UnpackedValue
+{
+    bool valid = false;           //!< Whether a value was captured.
+    bool isArray = false;         //!< Whether the value is an array.
+    QVariantList elements;        //!< Scalar: one element; array: all elements, row-major.
+    QList<quint32> dimensions;    //!< Dimensions of a multi-dimensional value; else empty.
+};
+
+/*!
+ * \internal
+ * \brief Splits the captured value of \a source into elements without losing shape.
+ *
+ * Qt OPC UA returns a one-element array as a scalar and a multi-dimensional
+ * array as QOpcUaMultiDimensionalArray; both are turned back into arrays here,
+ * using the ValueRank read from the server.
+ */
+UnpackedValue unpackValue(const CloneNode &source)
+{
+    UnpackedValue result;
+    const QVariant &value = source.value;
+    if (!value.isValid())
+        return result;
+    result.valid = true;
+
+    if (value.metaType() == QMetaType::fromType<QOpcUaMultiDimensionalArray>()) {
+        const auto array = value.value<QOpcUaMultiDimensionalArray>();
+        result.isArray = true;
+        result.elements = array.valueArray();
+        result.dimensions = array.arrayDimensions();
+    } else if (value.typeId() == QMetaType::QVariantList) {
+        result.isArray = true;
+        result.elements = value.toList();
+    } else {
+        result.isArray = source.valueRank >= 1;
+        result.elements = {value};
+    }
+    return result;
+}
+
+/*!
+ * \internal
+ * \brief Returns the text of one captured element \a element for Server Studio.
+ *
+ * OPC UA value types without a Qt string conversion are mapped explicitly;
+ * an ExtensionObject has no text.
+ */
+QString elementText(const QVariant &element)
+{
+    if (element.metaType() == QMetaType::fromType<QOpcUaLocalizedText>())
+        return element.value<QOpcUaLocalizedText>().text();
+    if (element.metaType() == QMetaType::fromType<QOpcUaQualifiedName>())
+        return element.value<QOpcUaQualifiedName>().name();
+    if (element.metaType() == QMetaType::fromType<QOpcUaExtensionObject>())
+        return {};
+    switch (element.typeId()) {
+    case QMetaType::QDateTime:
+        return element.toDateTime().toString(Qt::ISODateWithMs);
+    case QMetaType::QByteArray:
+        return QString::fromLatin1(element.toByteArray().toBase64());
+    case QMetaType::QUuid:
+        return element.toUuid().toString(QUuid::WithoutBraces);
+    default:
+        return element.toString();
+    }
+}
+
+/*!
+ * \internal
+ * \brief Returns the structure type name of the structured variable \a source.
+ * \param source Captured structure variable.
+ * \param memberTypeHint Value of a "structType"/"strStructType" member, if any.
+ *
+ * The OPC UA type name is authoritative: the BrowseName of the DataType node
+ * read from the server, then the name embedded in a CODESYS "|type|" id. A
+ * string member called structType is a PLC-project convention, not a rule, so
+ * it is only a fallback for servers that do not name the type. An anonymous
+ * structure is called "Structure".
+ */
+QString structureTypeName(const CloneNode &source, const QString &memberTypeHint)
+{
+    const QString serverName = source.resolvedDataType.typeName;
+    if (!serverName.isEmpty() && serverName != QLatin1String("Structure")
+        && serverName != QLatin1String("BaseDataType"))
+        return serverName;
+    const QString idName = DataTypeIds::nameFromTypeId(source.dataTypeId);
+    if (!idName.isEmpty())
+        return idName;
+    if (!memberTypeHint.trimmed().isEmpty())
+        return memberTypeHint.trimmed();
+    return QStringLiteral("Structure");
 }
 
 } // namespace
@@ -574,7 +693,30 @@ QVariantMap ServerStudio::selectedNode() const
             }
         }
         map["enumTypeName"] = enumName;
+
+        QString structName;
+        for (const ServerProject::StructType &structType : m_project.structTypes) {
+            if (structType.nodeId == node->structTypeId) {
+                structName = structType.name;
+                break;
+            }
+        }
+        map["isStructure"] = node->isStructure();
+        map["structTypeName"] = structName;
+        map["typeText"] = ServerProject::variableTypeText(*node, structName);
+        map["isMultiDimensional"] = node->valueRank > 1;
+
+        // Origin of a cloned variable: the original DataType name and id.
+        QString sourceType = node->source.originalDataTypeName;
+        if (!node->source.originalDataTypeId.isEmpty()) {
+            sourceType = sourceType.isEmpty()
+                             ? node->source.originalDataTypeId
+                             : QStringLiteral("%1 (%2)").arg(sourceType,
+                                                             node->source.originalDataTypeId);
+        }
+        map["sourceDataType"] = sourceType;
     }
+    map["sourceNodeId"] = node->source.originalNodeId;
     return map;
 }
 
@@ -725,6 +867,7 @@ bool ServerStudio::importNodeSet(const QString &path)
     if (!result.namespaces.isEmpty())
         m_project.namespaces = result.namespaces;
     m_project.enumTypes = result.enumTypes;
+    m_project.structTypes = result.structTypes;
     m_project.nodes = result.nodes;
     // The imported file replaces the address space, so any prior rules would
     // dangle; drop them.
@@ -778,7 +921,7 @@ bool ServerStudio::importNodeSet(const QString &path)
     return true;
 }
 
-bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
+bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
 {
     if (!m_opcUaManager) {
         notify(Diagnostics::Error, [this] {
@@ -798,7 +941,7 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
     notify(Diagnostics::Info, [this] {
         return tr("Cloning the server address space…");
     });
-    m_opcUaManager->requestCloneSnapshot();
+    m_opcUaManager->requestCloneSnapshot(maxNodes);
     return true;
 }
 
@@ -862,6 +1005,60 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     QSet<QString> usedIds;
     int substitutedCount = 0; // variables whose type Server Studio cannot model exactly
 
+    // Which captured nodes have child variables, and the value of a string
+    // member called structType/strStructType (a PLC-project naming hint).
+    QSet<QString> withChildVariables;
+    QHash<QString, QString> memberTypeHints;
+    for (const CloneNode &source : nodes) {
+        if (!source.isVariable || source.parentNodeId.isEmpty())
+            continue;
+        withChildVariables.insert(source.parentNodeId);
+        if ((source.browseName == QLatin1String("structType")
+             || source.browseName == QLatin1String("strStructType"))
+            && source.value.typeId() == QMetaType::QString)
+            memberTypeHints.insert(source.parentNodeId, source.value.toString());
+    }
+
+    // Structure types are created once per source DataType. A namespace-0 type
+    // (for example ServerStatusDataType) already exists in every server.
+    QHash<QString, QString> structTypeIds; // source DataType id (or name) -> project type id
+    QSet<QString> usedTypeIds;
+    const auto structTypeFor = [&](const CloneNode &source) -> QString {
+        const QString name = structureTypeName(source, memberTypeHints.value(source.nodeId));
+        const QString key = source.dataTypeId.isEmpty() ? QStringLiteral("name:") + name
+                                                        : source.dataTypeId;
+        const auto known = structTypeIds.constFind(key);
+        if (known != structTypeIds.constEnd())
+            return known.value();
+
+        QString typeId;
+        const ServerProject::ParsedNodeId parsed = ServerProject::parseNodeId(source.dataTypeId);
+        if (parsed.valid && parsed.ns == 0) {
+            typeId = source.dataTypeId;
+        } else if (m_clonePreserveIds && parsed.valid) {
+            if (!nsIndexMap.contains(parsed.ns)) {
+                const QString uri = parsed.ns < namespaceUris.size()
+                                        ? namespaceUris.at(parsed.ns)
+                                        : QStringLiteral("urn:opcuamanager:clone-ns%1")
+                                              .arg(parsed.ns);
+                project.namespaces.append({uri});
+                nsIndexMap.insert(parsed.ns, static_cast<quint16>(project.namespaces.size()));
+            }
+            typeId = remapId(source.dataTypeId);
+        }
+        if (typeId.isEmpty() || usedTypeIds.contains(typeId)) {
+            const QString base = QStringLiteral("ns=1;s=Type.%1").arg(slug(name));
+            typeId = base;
+            int suffix = 2;
+            while (usedTypeIds.contains(typeId))
+                typeId = QStringLiteral("%1_%2").arg(base).arg(suffix++);
+        }
+        usedTypeIds.insert(typeId);
+        structTypeIds.insert(key, typeId);
+        project.structTypes.append({name, typeId, source.dataTypeId});
+        return typeId;
+    };
+
     for (const CloneNode &source : nodes) {
         // Only folders/objects and variables are cloneable.
         constexpr int kObject = 1;
@@ -895,29 +1092,65 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
             source.parentNodeId.isEmpty() ? QString() : idMap.value(source.parentNodeId);
         node.browseName = source.browseName.isEmpty() ? segment : source.browseName;
         node.displayName = source.displayName.isEmpty() ? node.browseName : source.displayName;
+        node.source.originalNodeId = source.nodeId;
         if (source.isVariable) {
             node.kind = NodeKind::Variable;
+            const QString base = cloneBaseType(source);
+            const UnpackedValue value = unpackValue(source);
+            node.source.originalDataTypeId = source.dataTypeId;
+            node.source.originalDataTypeName = source.resolvedDataType.typeName;
+            node.source.builtInBase = base;
+            node.source.originalValueRank = source.valueRank;
+
+            // Rank and dimensions as on the server. ValueRank 0, -2 and -3 are
+            // "any"/"scalar or array" ranks; the captured value decides.
+            int rank = source.valueRank;
+            if (rank < 1)
+                rank = value.isArray ? int(std::max<qsizetype>(1, value.dimensions.size())) : -1;
+            node.valueRank = rank;
+            if (source.arrayDimensions.size() == rank)
+                node.arrayDimensions = source.arrayDimensions;
+            else if (value.dimensions.size() == rank)
+                node.arrayDimensions = value.dimensions;
+
+            // A structure keeps its own type; its members are the child nodes,
+            // so it carries no value. A structure is recognized by its base type,
+            // by an ExtensionObject value, or - when the type is unknown - by
+            // member variables without a value of its own.
+            const bool structured = base == QLatin1String("Structure")
+                                    || holdsExtensionObject(source.value)
+                                    || (base.isEmpty() && withChildVariables.contains(source.nodeId)
+                                        && !value.valid);
+            if (structured) {
+                node.structTypeId = structTypeFor(source);
+                node.writable = false;
+                project.nodes.append(node);
+                continue;
+            }
+
             // The resolved base type keeps vendor aliases (for example a CODESYS
             // STRING type) exact; unsupported or unknown types get a substitute
             // derived from the captured value and are counted for the report.
             const ServerProject::CloneDataTypeChoice choice =
-                ServerProject::cloneDataTypeFor(cloneBaseType(source), source.value);
+                ServerProject::cloneDataTypeFor(base, source.value);
             node.dataType = choice.dataType;
+            node.source.substituted = choice.substituted;
             if (choice.substituted)
                 ++substitutedCount;
-            node.valueRank = source.valueRank >= 1 ? 1 : -1;
             // Writable by default so the cloned server can be edited/exercised.
             node.writable = true;
-            // Coerce the captured value to the chosen type, keeping it JSON-safe
-            // (an ExtensionObject value has no text and falls back to the type default).
-            if (node.valueRank == 1) {
-                QVariantList out;
-                const QVariantList elements = source.value.toList();
-                for (const QVariant &element : elements)
-                    out.append(scalarFromText(node.dataType, element.toString()));
-                node.initialValue = out;
-            } else {
-                node.initialValue = scalarFromText(node.dataType, source.value.toString());
+            // A value that was not read stays absent instead of becoming 0.
+            if (value.valid) {
+                if (rank >= 1) {
+                    QVariantList out;
+                    out.reserve(value.elements.size());
+                    for (const QVariant &element : value.elements)
+                        out.append(scalarFromText(node.dataType, elementText(element)));
+                    node.initialValue = out;
+                } else {
+                    node.initialValue =
+                        scalarFromText(node.dataType, elementText(value.elements.value(0)));
+                }
             }
         } else {
             node.kind = source.isFolder ? NodeKind::Folder : NodeKind::Object;
@@ -975,8 +1208,8 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
                }
                if (substitutedCount > 0) {
                    text += QLatin1Char(' ')
-                           + tr("%1 variable(s) use a substitute data type (structure, "
-                                "date/time or unsupported type).")
+                           + tr("%1 variable(s) use a substitute data type (date/time or "
+                                "unsupported type).")
                                  .arg(substitutedCount);
                }
                return text;
@@ -1070,14 +1303,20 @@ void ServerStudio::updateNode(const QString &nodeId, const QVariantMap &fields)
         if (fields.contains(QStringLiteral("description")))
             node.description = fields.value(QStringLiteral("description")).toString();
 
-        if (node.isVariable()) {
+        // A structure variable has no type, value or simulation of its own to edit.
+        if (node.isVariable() && !node.isStructure()) {
             if (fields.contains(QStringLiteral("dataType"))) {
                 const QString type = fields.value(QStringLiteral("dataType")).toString();
                 if (dataTypeNames().contains(type))
                     node.dataType = type;
             }
-            if (fields.contains(QStringLiteral("valueRank")))
+            // The editor toggles scalar/one-dimensional only; a multi-dimensional
+            // rank (from a clone or NodeSet2) is kept.
+            if (fields.contains(QStringLiteral("valueRank")) && node.valueRank <= 1) {
                 node.valueRank = fields.value(QStringLiteral("valueRank")).toInt() == 1 ? 1 : -1;
+                if (node.valueRank != 1)
+                    node.arrayDimensions.clear();
+            }
             if (fields.contains(QStringLiteral("writable")))
                 node.writable = fields.value(QStringLiteral("writable")).toBool();
             if (fields.contains(QStringLiteral("initialValue"))) {
@@ -1387,13 +1626,13 @@ void ServerStudio::setDirty(bool dirty)
 
 void ServerStudio::refreshModel()
 {
-    m_nodeModel->setNodes(m_project.nodes);
+    m_nodeModel->setNodes(m_project.nodes, m_project.structTypes);
     emit nodesChanged();
 }
 
 QVariant ServerStudio::parseInitialValue(const QString &dataType, int valueRank, const QString &text)
 {
-    if (valueRank == 1) {
+    if (valueRank >= 1) {
         QVariantList list;
         const QStringList parts = text.split(QLatin1Char(','), Qt::SkipEmptyParts);
         for (const QString &part : parts)

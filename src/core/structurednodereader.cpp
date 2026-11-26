@@ -1,5 +1,7 @@
 #include "structurednodereader.h"
 
+#include "datatyperesolver.h"
+
 #include <QLoggingCategory>
 #include <QMetaType>
 #include <QOpcUaClient>
@@ -71,18 +73,7 @@ QString scalarTypeName(const QVariant &value)
  */
 QString structTypeName(const QString &dataTypeId)
 {
-    if (dataTypeId.isEmpty())
-        return {};
-
-    if (dataTypeId.contains(QLatin1String("|type|"), Qt::CaseInsensitive)) {
-        const int hash = dataTypeId.lastIndexOf(QLatin1Char('#'));
-        const int dot = dataTypeId.lastIndexOf(QLatin1Char('.'));
-        if (hash != -1 && hash > dot)
-            return dataTypeId.mid(hash + 1);
-        if (dot != -1)
-            return dataTypeId.mid(dot + 1);
-    }
-    return {};
+    return DataTypeIds::nameFromTypeId(dataTypeId);
 }
 
 /*!

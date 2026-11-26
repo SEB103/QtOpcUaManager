@@ -4,12 +4,18 @@
 // an unreadable variable with a child, a vendor String subtype, and the node
 // limit, depth limit, timeout and cancel outcomes.
 
+#include <QElapsedTimer>
+#include <QProcess>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include <QOpcUaClient>
 #include <QOpcUaEndpointDescription>
+#include <QOpcUaMultiDimensionalArray>
+#include <QOpcUaNode>
 #include <QOpcUaProvider>
+#include <QOpcUaQualifiedName>
 
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server.h>
@@ -20,6 +26,14 @@
 #include <thread>
 
 #include "core/clonebrowser.h"
+#include "qmlapi/opcuamanager.h"
+#include "qmlapi/serverstudio.h"
+#include "serverproject/serverprojectserializer.h"
+#include "serverproject/serverprojectvalidator.h"
+
+#ifndef OPCUA_SERVER_RUNTIME_PATH
+#define OPCUA_SERVER_RUNTIME_PATH ""
+#endif
 
 using State = CloneCompletion::State;
 
@@ -43,6 +57,18 @@ constexpr int kBulkCount = 5200;
  */
 constexpr UA_UInt32 kVendorStringId = 5000;
 
+/*!
+ * \internal
+ * \brief Numeric id of the structure type ST_Button (no DataTypeDefinition).
+ */
+constexpr UA_UInt32 kButtonTypeId = 6000;
+
+/*!
+ * \internal
+ * \brief TCP port of the Server Studio runtime started from the cloned project.
+ */
+constexpr quint16 kRuntimePort = 48442;
+
 } // namespace
 
 /*!
@@ -56,6 +82,10 @@ constexpr UA_UInt32 kVendorStringId = 5000;
  * \li Plant/Locked (Int32, AccessLevel 0) with the readable child Locked/Inner.
  * \li Plant/Label (VendorString, a subtype of String, value "abc").
  * \li Objects/Bulk (folder) with kBulkCount Int32 variables.
+ * \li Objects/Structs (folder) with Button (ST_Button, members xPressed and
+ *     strText), Buttons (ST_Button[2], elements Buttons[1] and Buttons[2]) and
+ *     Matrix (Int32[2,3]); ST_Button is a Structure subtype without definition,
+ *     like the structures of CODESYS.
  * \endlist
  */
 class EmbeddedServer
@@ -72,6 +102,8 @@ public:
         config.logging = UA_Log_Stdout_new(UA_LOGLEVEL_ERROR);
         if (UA_ServerConfig_setMinimal(&config, kPort, nullptr) != UA_STATUSCODE_GOOD)
             return false;
+        // Structure variables carry no value of their own, like on CODESYS.
+        config.allowEmptyVariables = UA_RULEHANDLING_ACCEPT;
         m_server = UA_Server_newWithConfig(&config);
         if (!m_server)
             return false;
@@ -209,10 +241,110 @@ private:
                     nullptr)
                     == UA_STATUSCODE_GOOD;
 
+        ok = ok && buildStructures();
+
         for (int i = 0; ok && i < kBulkCount; ++i) {
             const QByteArray name = QByteArrayLiteral("Bulk.V") + QByteArray::number(i);
             ok = addInt32(name.constData(), bulk, i, readWrite, hasComponent);
         }
+        return ok;
+    }
+
+    /*!
+     * \brief Adds a variable \a name of \a dataType and \a valueRank without a value.
+     */
+    bool addEmptyVariable(const char *name, const UA_NodeId &parent, const UA_NodeId &dataType,
+                          UA_Int32 valueRank, UA_UInt32 length)
+    {
+        UA_VariableAttributes attr = UA_VariableAttributes_default;
+        attr.displayName = UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>(name));
+        attr.dataType = dataType;
+        attr.valueRank = valueRank;
+        UA_UInt32 dimensions[1] = {length};
+        if (valueRank == 1) {
+            attr.arrayDimensions = dimensions;
+            attr.arrayDimensionsSize = 1;
+        }
+        attr.accessLevel = UA_ACCESSLEVELMASK_READ;
+        const UA_StatusCode status = UA_Server_addVariableNode(
+            m_server, UA_NODEID_STRING(m_ns, const_cast<char *>(name)), parent,
+            UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+            UA_QUALIFIEDNAME(m_ns, const_cast<char *>(name)),
+            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, nullptr, nullptr);
+        if (status != UA_STATUSCODE_GOOD)
+            qWarning("adding %s failed: %s", name, UA_StatusCode_name(status));
+        return status == UA_STATUSCODE_GOOD;
+    }
+
+    /*!
+     * \brief Adds the Structs folder: a structure, an array of structures and a 2-D array.
+     */
+    bool buildStructures()
+    {
+        const UA_NodeId structs = UA_NODEID_STRING(m_ns, const_cast<char *>("Structs"));
+        const UA_NodeId buttonType = UA_NODEID_NUMERIC(m_ns, kButtonTypeId);
+        const UA_NodeId hasComponent = UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT);
+        if (!addFolder("Structs", UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER)))
+            return false;
+
+        UA_DataTypeAttributes typeAttr = UA_DataTypeAttributes_default;
+        typeAttr.displayName =
+            UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>("ST_Button"));
+        if (UA_Server_addDataTypeNode(m_server, buttonType,
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_STRUCTURE),
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+                                      UA_QUALIFIEDNAME(m_ns, const_cast<char *>("ST_Button")),
+                                      typeAttr, nullptr, nullptr)
+            != UA_STATUSCODE_GOOD)
+            return false;
+
+        const UA_Byte readOnly = UA_ACCESSLEVELMASK_READ;
+        bool ok = addEmptyVariable("Button", structs, buttonType, UA_VALUERANK_SCALAR, 0);
+        const UA_NodeId button = UA_NODEID_STRING(m_ns, const_cast<char *>("Button"));
+        ok = ok && addInt32("Button.Count", button, 3, readOnly, hasComponent);
+
+        UA_VariableAttributes textAttr = UA_VariableAttributes_default;
+        textAttr.displayName =
+            UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>("strText"));
+        textAttr.dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+        textAttr.valueRank = UA_VALUERANK_SCALAR;
+        textAttr.accessLevel = readOnly;
+        UA_String text = UA_STRING(const_cast<char *>("HMI Btn"));
+        UA_Variant_setScalar(&textAttr.value, &text, &UA_TYPES[UA_TYPES_STRING]);
+        ok = ok
+             && UA_Server_addVariableNode(
+                    m_server, UA_NODEID_STRING(m_ns, const_cast<char *>("Button.strText")),
+                    button, hasComponent, UA_QUALIFIEDNAME(m_ns, const_cast<char *>("strText")),
+                    UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), textAttr, nullptr,
+                    nullptr)
+                    == UA_STATUSCODE_GOOD;
+
+        ok = ok && addEmptyVariable("Buttons", structs, buttonType, 1, 2);
+        const UA_NodeId buttons = UA_NODEID_STRING(m_ns, const_cast<char *>("Buttons"));
+        ok = ok && addEmptyVariable("Buttons[1]", buttons, buttonType, UA_VALUERANK_SCALAR, 0)
+             && addEmptyVariable("Buttons[2]", buttons, buttonType, UA_VALUERANK_SCALAR, 0);
+
+        // Int32[2,3] with ArrayDimensions on both the node and the value.
+        UA_VariableAttributes matrixAttr = UA_VariableAttributes_default;
+        matrixAttr.displayName =
+            UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>("Matrix"));
+        matrixAttr.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+        matrixAttr.valueRank = 2;
+        UA_UInt32 dimensions[2] = {2, 3};
+        matrixAttr.arrayDimensions = dimensions;
+        matrixAttr.arrayDimensionsSize = 2;
+        matrixAttr.accessLevel = readOnly;
+        UA_Int32 values[6] = {1, 2, 3, 4, 5, 6};
+        UA_Variant_setArray(&matrixAttr.value, values, 6, &UA_TYPES[UA_TYPES_INT32]);
+        matrixAttr.value.arrayDimensions = dimensions;
+        matrixAttr.value.arrayDimensionsSize = 2;
+        ok = ok
+             && UA_Server_addVariableNode(
+                    m_server, UA_NODEID_STRING(m_ns, const_cast<char *>("Matrix")), structs,
+                    hasComponent, UA_QUALIFIEDNAME(m_ns, const_cast<char *>("Matrix")),
+                    UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), matrixAttr, nullptr,
+                    nullptr)
+                    == UA_STATUSCODE_GOOD;
         return ok;
     }
 
@@ -253,6 +385,12 @@ private slots:
 
     /*! cancel() ends the traversal as Cancelled. */
     void reportsCancel();
+
+    /*!
+        Structures, arrays of structures and a 2-D array are cloned with their
+        types and shapes, and the cloned project runs in the Server Studio runtime.
+    */
+    void clonesStructuresIntoRuntime();
 
     void cleanupTestCase();
 
@@ -435,6 +573,135 @@ void CloneTraversalTest::reportsCancel()
     const Result result = run(m_server.nodeId("Bulk"), CloneOptions(), true);
     QVERIFY(result.finished);
     QCOMPARE(result.completion.state, State::Cancelled);
+}
+
+void CloneTraversalTest::clonesStructuresIntoRuntime()
+{
+    const Result result = run(m_server.nodeId("Structs"));
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+
+    // Build the Server Studio project from the clone result.
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    emit manager.cloneSnapshotReady(0, result.nodes, m_client->namespaceArray(),
+                                    result.completion);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("structs.uaserver"));
+    QVERIFY(studio.saveProjectAs(path));
+    ServerProject::Serializer::LoadResult loaded = ServerProject::Serializer::load(path);
+    QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
+    ServerProject::ProjectData &project = loaded.data;
+    const auto validation = ServerProject::Validator::validate(project);
+    QVERIFY2(validation.errors.isEmpty(), qPrintable(validation.errors.join(QStringLiteral("; "))));
+
+    const auto findNode = [&project](const QString &browseName) -> const ServerProject::Node * {
+        for (const ServerProject::Node &node : project.nodes) {
+            if (node.browseName == browseName)
+                return &node;
+        }
+        return nullptr;
+    };
+    QCOMPARE(project.structTypes.size(), 1);
+    QCOMPARE(project.structTypes.first().name, QStringLiteral("ST_Button"));
+
+    const ServerProject::Node *button = findNode(QStringLiteral("Button"));
+    QVERIFY(button && button->isStructure());
+    QCOMPARE(findNode(QStringLiteral("strText"))->dataType, QStringLiteral("String"));
+    const ServerProject::Node *buttons = findNode(QStringLiteral("Buttons"));
+    QVERIFY(buttons && buttons->isStructure());
+    QCOMPARE(buttons->valueRank, 1);
+    QCOMPARE(buttons->arrayDimensions, QList<quint32>{2});
+    QVERIFY(findNode(QStringLiteral("Buttons[1]"))->isStructure());
+    const ServerProject::Node *matrix = findNode(QStringLiteral("Matrix"));
+    QVERIFY(matrix);
+    QCOMPARE(matrix->dataType, QStringLiteral("Int32"));
+    QCOMPARE(matrix->valueRank, 2);
+    QCOMPARE(matrix->arrayDimensions, (QList<quint32>{2, 3}));
+    QCOMPARE(matrix->initialValue.toList().size(), 6);
+
+    // Run the cloned project in the Server Studio runtime and read it back.
+    const QString runtimePath = QStringLiteral(OPCUA_SERVER_RUNTIME_PATH);
+    if (runtimePath.isEmpty() || !QFileInfo::exists(runtimePath))
+        QSKIP("OpcUaServerRuntime executable is not available.");
+    project.server.endpoint.port = kRuntimePort;
+    QVERIFY(ServerProject::Serializer::save(path, project).ok);
+
+    QProcess runtime;
+    runtime.setProcessChannelMode(QProcess::MergedChannels);
+    runtime.start(runtimePath, {QStringLiteral("--project"), path, QStringLiteral("--port"),
+                                QString::number(kRuntimePort)});
+    QVERIFY2(runtime.waitForStarted(5000), "runtime failed to start");
+    QString output;
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < 10000 && !output.contains(QLatin1String("READY endpoint="))
+           && runtime.state() == QProcess::Running) {
+        if (runtime.waitForReadyRead(500))
+            output += QString::fromUtf8(runtime.readAll());
+    }
+    QVERIFY2(output.contains(QLatin1String("READY endpoint=")), qPrintable(output));
+
+    QOpcUaClient *client = m_provider.createClient(QStringLiteral("open62541"));
+    QVERIFY(client);
+    QSignalSpy endpointsSpy(client, &QOpcUaClient::endpointsRequestFinished);
+    client->requestEndpoints(QUrl(QStringLiteral("opc.tcp://127.0.0.1:%1").arg(kRuntimePort)));
+    QVERIFY(endpointsSpy.wait(10000));
+    const auto endpoints = endpointsSpy.takeFirst().at(0).value<QList<QOpcUaEndpointDescription>>();
+    QVERIFY(!endpoints.isEmpty());
+    QSignalSpy connectedSpy(client, &QOpcUaClient::connected);
+    client->connectToEndpoint(endpoints.first());
+    QVERIFY(connectedSpy.wait(10000));
+    client->updateNamespaceArray();
+    QTRY_VERIFY(client->namespaceArray().size() > 1);
+    const int ns = int(client->namespaceArray().indexOf(project.namespaces.first().uri));
+    QVERIFY(ns > 0);
+
+    // Reads attributes of the runtime node for project node id projectId.
+    const auto read = [client, ns](const QString &projectId, QOpcUa::NodeAttributes attributes) {
+        const QString runtimeId =
+            QStringLiteral("ns=%1;%2").arg(ns).arg(projectId.section(QLatin1Char(';'), 1));
+        QOpcUaNode *node = client->node(runtimeId);
+        QSignalSpy readSpy(node, &QOpcUaNode::attributeRead);
+        node->readAttributes(attributes);
+        readSpy.wait(5000);
+        return node;
+    };
+
+    QOpcUaNode *buttonsNode = read(buttons->nodeId, QOpcUa::NodeAttribute::DataType
+                                                         | QOpcUa::NodeAttribute::ValueRank
+                                                         | QOpcUa::NodeAttribute::ArrayDimensions);
+    QCOMPARE(buttonsNode->attribute(QOpcUa::NodeAttribute::ValueRank).toInt(), 1);
+    const QString typeId = buttonsNode->attribute(QOpcUa::NodeAttribute::DataType).toString();
+    QOpcUaNode *typeNode = client->node(typeId);
+    QSignalSpy typeSpy(typeNode, &QOpcUaNode::attributeRead);
+    typeNode->readAttributes(QOpcUa::NodeAttribute::BrowseName);
+    QVERIFY(typeSpy.wait(5000));
+    QCOMPARE(typeNode->attribute(QOpcUa::NodeAttribute::BrowseName)
+                 .value<QOpcUaQualifiedName>()
+                 .name(),
+             QStringLiteral("ST_Button"));
+
+    QOpcUaNode *matrixNode = read(matrix->nodeId, QOpcUa::NodeAttribute::Value
+                                                       | QOpcUa::NodeAttribute::ValueRank);
+    QCOMPARE(matrixNode->attribute(QOpcUa::NodeAttribute::ValueRank).toInt(), 2);
+    const auto matrixValue =
+        matrixNode->attribute(QOpcUa::NodeAttribute::Value).value<QOpcUaMultiDimensionalArray>();
+    QCOMPARE(matrixValue.arrayDimensions(), (QList<quint32>{2, 3}));
+    QCOMPARE(matrixValue.valueArray().value(5).toInt(), 6);
+
+    delete buttonsNode;
+    delete typeNode;
+    delete matrixNode;
+    QSignalSpy disconnectedSpy(client, &QOpcUaClient::disconnected);
+    client->disconnectFromEndpoint();
+    disconnectedSpy.wait(5000);
+    delete client;
+    runtime.kill();
+    runtime.waitForFinished(5000);
 }
 
 void CloneTraversalTest::cleanupTestCase()

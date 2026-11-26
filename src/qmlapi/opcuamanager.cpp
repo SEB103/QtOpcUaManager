@@ -307,12 +307,13 @@ OpcUaModel *OpcUaManager::treeModel() const
 
 /*!
  * \brief Requests a recursive clone browse of the connected server's Objects.
+ * \param maxNodes Node limit of the browse; 0 uses the default limit.
  */
-void OpcUaManager::requestCloneSnapshot()
+void OpcUaManager::requestCloneSnapshot(int maxNodes)
 {
     // The clone always starts at the standard Objects folder; a single clone is
     // in flight at a time, so the request id is unused.
-    emit cloneBrowseRequested(QStringLiteral("ns=0;i=85"), 0);
+    emit cloneBrowseRequested(QStringLiteral("ns=0;i=85"), 0, maxNodes);
 }
 
 /*!

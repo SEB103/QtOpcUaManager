@@ -24,8 +24,14 @@
  */
 namespace ServerProject {
 
-/** Current .uaserver JSON schema version written by this build. */
-inline constexpr int kServerProjectFormatVersion = 1;
+/**
+ * Highest .uaserver JSON schema version this build reads.
+ *
+ * Version 2 adds structure data types, multi-dimensional arrays and array
+ * dimensions. A project that uses none of them is still written as version 1,
+ * so older builds keep reading it.
+ */
+inline constexpr int kServerProjectFormatVersion = 2;
 
 /** Kind of an address-space node supported in this phase. */
 enum class NodeKind {
@@ -86,6 +92,15 @@ NodeKind nodeKindFromString(const QString &text);
  */
 QStringList builtinDataTypeNames();
 
+struct Node;
+
+/**
+ * Returns the type text of variable \a node for display, e.g. "UInt16",
+ * "String[]", "Int32[2,3]" or "ST_HMI_Button[2]"; \a structTypeName is the name
+ * of the node's StructType when it is structure-typed.
+ */
+QString variableTypeText(const Node &node, const QString &structTypeName = QString());
+
 /** Result of parsing a canonical node-id string. */
 struct ParsedNodeId
 {
@@ -141,6 +156,56 @@ struct EnumType
     QList<EnumEntry> entries;
 };
 
+/**
+ * A structure data type whose members are modeled as child nodes.
+ *
+ * Servers such as CODESYS publish a structure's members and an array's
+ * elements as child variables and do not provide a DataTypeDefinition. A
+ * StructType reproduces that: the runtime creates a DataType node (a subtype of
+ * Structure without definition), structure-typed variables reference it, carry
+ * no value of their own, and their members are ordinary child nodes. A node id
+ * in namespace 0 refers to an existing standard structure type, which the
+ * runtime does not create.
+ */
+struct StructType
+{
+    /** Display name / browse name of the structure type, e.g. "ST_HMI_Button". */
+    QString name;
+    /** Canonical node id of the DataType node, e.g. "ns=1;s=Type.ST_HMI_Button". */
+    QString nodeId;
+    /** DataType node id on the server the type was cloned from; informational. */
+    QString originalNodeId;
+};
+
+/**
+ * Where a cloned node came from; informational, not used by the runtime.
+ *
+ * Keeps the original identifiers next to the Server Studio model so a
+ * substituted type or a renamed node stays traceable to the source server.
+ */
+struct NodeSource
+{
+    /** Node id on the source server. */
+    QString originalNodeId;
+    /** DataType node id on the source server. */
+    QString originalDataTypeId;
+    /** BrowseName of the source DataType, e.g. "STRING" or "ST_HMI_Button". */
+    QString originalDataTypeName;
+    /** OPC UA base type of the source DataType, e.g. "String" or "Structure". */
+    QString builtInBase;
+    /** ValueRank on the source server. */
+    int originalValueRank = -1;
+    /** Whether the Server Studio data type replaces one it cannot model exactly. */
+    bool substituted = false;
+
+    /** Returns whether no field is set. */
+    bool isEmpty() const
+    {
+        return originalNodeId.isEmpty() && originalDataTypeId.isEmpty()
+               && originalDataTypeName.isEmpty() && builtInBase.isEmpty() && !substituted;
+    }
+};
+
 /** A custom OPC UA namespace declared by the project. */
 struct Namespace
 {
@@ -188,8 +253,25 @@ struct Node
      */
     QString enumTypeId;
 
-    /** Value rank: -1 scalar, 1 one-dimensional array; ignored for non-variables. */
+    /**
+     * Node id of a StructType this variable is an instance of. When set, the
+     * variable is structure-typed: \c dataType and \c initialValue are ignored
+     * and its members are child nodes.
+     */
+    QString structTypeId;
+
+    /** Value rank: -1 scalar, N >= 1 an N-dimensional array; ignored for non-variables. */
     int valueRank = -1;
+
+    /**
+     * ArrayDimensions of an array variable, one length per dimension (0 = any
+     * length); empty when unknown. A multi-dimensional initial value is stored
+     * flat in row-major order.
+     */
+    QList<quint32> arrayDimensions;
+
+    /** Origin of a cloned node; empty for designed nodes. */
+    NodeSource source;
 
     /** Whether the variable is writable (CurrentWrite in addition to CurrentRead). */
     bool writable = false;
@@ -202,6 +284,9 @@ struct Node
 
     /** Returns whether this node is a variable. */
     bool isVariable() const { return kind == NodeKind::Variable; }
+
+    /** Returns whether this node is a structure-typed variable. */
+    bool isStructure() const { return isVariable() && !structTypeId.isEmpty(); }
 };
 
 /** Endpoint configuration for the server's single opc.tcp endpoint. */
@@ -351,6 +436,9 @@ struct ProjectData
 
     /** Custom enumeration data types. */
     QList<EnumType> enumTypes;
+
+    /** Structure data types whose members are child nodes. */
+    QList<StructType> structTypes;
 
     /** Address-space nodes belonging to the project. */
     QList<Node> nodes;

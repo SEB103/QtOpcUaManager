@@ -46,16 +46,27 @@
 
     Le variabili mantengono il tipo di dati del server di origine. Gli alias di tipo di un
     produttore, come i tipi IEC CODESYS STRING o UINT, vengono ricondotti al loro tipo base
-    OPC UA (String, UInt16, ...) tramite la gerarchia dei tipi del server. I tipi che un
-    progetto server non può modellare — strutture, valori data/ora e tipi non risolvibili —
-    vengono creati come variabili String; il messaggio di stato dopo la clonazione indica
-    quante variabili usano un tale tipo sostitutivo.
+    OPC UA (String, UInt16, ...) tramite la gerarchia dei tipi del server. I valori
+    data/ora e i tipi non risolvibili vengono creati come variabili String; il messaggio di
+    stato dopo la clonazione indica quante variabili usano un tale tipo sostitutivo.
 
-    La clonazione si svolge con una finestra di avanzamento; \e{Annulla} la interrompe
-    e lascia invariato il progetto server attuale. L’esplorazione è limitata a 50 000 nodi,
-    una profondità di 64 livelli, 10 minuti in totale e 30 secondi senza risposta del server.
-    Quando un limite termina la clonazione, o alcuni nodi non possono essere letti o
-    esplorati, il messaggio di stato lo indica e il clone è incompleto.
+    Le strutture mantengono il loro tipo di struttura. Il suo nome è quello del nodo
+    DataType sul server (per CODESYS, ad esempio \c ST_HMI_Button); un membro stringa
+    chiamato \c structType viene usato solo quando il server non nomina il tipo. La
+    variabile di struttura non ha un valore proprio: i suoi membri, e gli elementi di un
+    array di strutture, sono i suoi nodi figli, esattamente come li pubblica CODESYS. Gli
+    array mantengono tipo di elemento, rango e dimensioni, così un array di strutture, un
+    array di un tipo semplice e un array multidimensionale (ad esempio \c{Int32[2,3]})
+    vengono riprodotti come tali. L’albero del server mostra questi tipi, ad esempio
+    \c{ST_HMI_Button[13]}.
+
+    La clonazione si svolge con una finestra di avanzamento; \e{Annulla} la interrompe e
+    lascia invariato il progetto server attuale. L’esplorazione è limitata dal limite di
+    nodi scelto nella finestra di clonazione (50 000, 200 000 o 1 000 000 nodi; 200 000
+    per impostazione predefinita), una profondità di 64 livelli, 10 minuti in totale e 30
+    secondi senza risposta del server. Quando un limite termina la clonazione, o alcuni
+    nodi non possono essere letti o esplorati, il messaggio di stato lo indica e il clone è
+    incompleto.
 
     \section1 Scambiare spazi degli indirizzi
 

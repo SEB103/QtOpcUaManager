@@ -34,7 +34,8 @@ public:
         ValueRankRole,
         WritableRole,
         IsVariableRole,
-        IconNameRole
+        IconNameRole,
+        TypeTextRole     /**< Variable type for display, e.g. "UInt16" or "ST_HMI_Button[2]". */
     };
     Q_ENUM(Roles)
 
@@ -42,8 +43,12 @@ public:
     explicit ServerNodeModel(QObject *parent = nullptr);
     ~ServerNodeModel() override;
 
-    /** Replaces the model contents with \a nodes, rebuilding the tree. */
-    void setNodes(const QList<ServerProject::Node> &nodes);
+    /**
+     * Replaces the model contents with \a nodes, rebuilding the tree;
+     * \a structTypes names the structure types the nodes reference.
+     */
+    void setNodes(const QList<ServerProject::Node> &nodes,
+                  const QList<ServerProject::StructType> &structTypes = {});
 
     // QAbstractItemModel interface.
     QModelIndex index(int row, int column,
@@ -67,6 +72,9 @@ private:
 
     /** Invisible root whose children are the top-level nodes. */
     QScopedPointer<Item> m_root;
+
+    /** Structure type names keyed by their node id. */
+    QHash<QString, QString> m_structTypeNames;
 };
 
 #endif // SERVERNODEMODEL_H

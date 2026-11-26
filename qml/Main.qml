@@ -846,7 +846,9 @@ ApplicationWindow {
         closePolicy: Popup.CloseOnEscape
 
         onAccepted: {
-            if (cppServerStudio.cloneFromClient(preserveIdsCheck.checked))
+            const limits = [50000, 200000, 1000000]
+            if (cppServerStudio.cloneFromClient(preserveIdsCheck.checked,
+                                                limits[nodeLimitCombo.currentIndex]))
                 mainWindow.serverStudioActive = true
         }
 
@@ -872,6 +874,26 @@ ApplicationWindow {
                 font.pixelSize: 12
                 text: qsTr("When off, nodes are renamed by browse path under a single clone "
                            + "namespace.")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: qsTr("Node limit:") }
+                ComboBox {
+                    id: nodeLimitCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("50 000 nodes"), qsTr("200 000 nodes"), qsTr("1 000 000 nodes")]
+                    currentIndex: 1
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: qsTr("A clone that reaches the limit is reported as incomplete. Large "
+                           + "limits take longer and load the server more.")
             }
         }
     }

@@ -1,6 +1,8 @@
 // Unit tests for the .uaserver project serializer: round-trip fidelity and
 // typed error reporting, mirroring tst_projectserializer for the client format.
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -32,6 +34,12 @@ private slots:
 
     /*! Behavior rules and their actions round-trip with mode, literal and delay. */
     void roundTripPreservesRules();
+
+    /*! Structure types, structure variables, array dimensions and clone origins round-trip. */
+    void roundTripPreservesStructuresAndArrays();
+
+    /*! A project without version-2 features is written as format version 1. */
+    void writesVersionOneWhenPossible();
 
 private:
     /*! Builds a representative project with a folder, scalar and array variable. */
@@ -119,7 +127,8 @@ void ServerProjectSerializerTest::roundTripPreservesData()
     QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
 
     const ProjectData &copy = loaded.data;
-    QCOMPARE(copy.formatVersion, kServerProjectFormatVersion);
+    // No structure types or multi-dimensional arrays: still format version 1.
+    QCOMPARE(copy.formatVersion, 1);
     QCOMPARE(copy.displayName, original.displayName);
     QCOMPARE(copy.server.applicationName, original.server.applicationName);
     QCOMPARE(copy.server.endpoint.port, original.server.endpoint.port);
@@ -242,6 +251,85 @@ void ServerProjectSerializerTest::roundTripPreservesRules()
     QCOMPARE(literal.valueMode, RuleValueMode::Literal);
     QCOMPARE(literal.literalValue.toInt(), 7);
     QCOMPARE(literal.delayMs, 150.0);
+}
+
+void ServerProjectSerializerTest::roundTripPreservesStructuresAndArrays()
+{
+    ProjectData data;
+    data.displayName = QStringLiteral("Structures");
+    data.namespaces.append({QStringLiteral("urn:opcuamanager:structures")});
+    data.structTypes.append({QStringLiteral("ST_HMI_Button"), QStringLiteral("ns=1;s=Type.Button"),
+                             QStringLiteral("ns=4;s=|type|PLC.Application.ST_HMI_Button")});
+
+    Node button;
+    button.kind = NodeKind::Variable;
+    button.nodeId = QStringLiteral("ns=1;s=Buttons");
+    button.browseName = QStringLiteral("Buttons");
+    button.structTypeId = QStringLiteral("ns=1;s=Type.Button");
+    button.valueRank = 1;
+    button.arrayDimensions = {2};
+    button.source.originalNodeId = QStringLiteral("ns=4;s=|var|PLC.Application.astButtons");
+    button.source.originalDataTypeName = QStringLiteral("ST_HMI_Button");
+    button.source.builtInBase = QStringLiteral("Structure");
+    button.source.originalValueRank = 1;
+    data.nodes.append(button);
+
+    Node matrix;
+    matrix.kind = NodeKind::Variable;
+    matrix.nodeId = QStringLiteral("ns=1;s=Matrix");
+    matrix.browseName = QStringLiteral("Matrix");
+    matrix.dataType = QStringLiteral("Int32");
+    matrix.valueRank = 2;
+    matrix.arrayDimensions = {2, 3};
+    matrix.initialValue = QVariantList{1, 2, 3, 4, 5, 6};
+    matrix.source.substituted = true;
+    data.nodes.append(matrix);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("structures.uaserver"));
+    const Serializer::SaveResult saved = Serializer::save(path, data);
+    QVERIFY2(saved.ok, qPrintable(saved.errorString));
+    const Serializer::LoadResult loaded = Serializer::load(path);
+    QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
+    const ProjectData &copy = loaded.data;
+
+    QCOMPARE(copy.formatVersion, 2);
+    QCOMPARE(copy.structTypes.size(), 1);
+    QCOMPARE(copy.structTypes.first().name, QStringLiteral("ST_HMI_Button"));
+    QCOMPARE(copy.structTypes.first().originalNodeId,
+             QStringLiteral("ns=4;s=|type|PLC.Application.ST_HMI_Button"));
+
+    const Node &buttonCopy = copy.nodes.at(0);
+    QVERIFY(buttonCopy.isStructure());
+    QCOMPARE(buttonCopy.structTypeId, QStringLiteral("ns=1;s=Type.Button"));
+    QCOMPARE(buttonCopy.valueRank, 1);
+    QCOMPARE(buttonCopy.arrayDimensions, QList<quint32>{2});
+    QCOMPARE(buttonCopy.source.originalNodeId, button.source.originalNodeId);
+    QCOMPARE(buttonCopy.source.builtInBase, QStringLiteral("Structure"));
+    QCOMPARE(variableTypeText(buttonCopy, QStringLiteral("ST_HMI_Button")),
+             QStringLiteral("ST_HMI_Button[2]"));
+
+    const Node &matrixCopy = copy.nodes.at(1);
+    QCOMPARE(matrixCopy.valueRank, 2);
+    QCOMPARE(matrixCopy.arrayDimensions, (QList<quint32>{2, 3}));
+    QCOMPARE(matrixCopy.initialValue.toList().size(), 6);
+    QVERIFY(matrixCopy.source.substituted);
+    QCOMPARE(variableTypeText(matrixCopy), QStringLiteral("Int32[2,3]"));
+}
+
+void ServerProjectSerializerTest::writesVersionOneWhenPossible()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("plain.uaserver"));
+    QVERIFY(Serializer::save(path, makeSampleProject()).ok);
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    QCOMPARE(root.value(QStringLiteral("formatVersion")).toInt(), 1);
+    QVERIFY(!root.contains(QStringLiteral("structTypes")));
 }
 
 QTEST_GUILESS_MAIN(ServerProjectSerializerTest)

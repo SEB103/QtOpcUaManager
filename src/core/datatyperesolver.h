@@ -78,6 +78,12 @@ QString knownSubtypeBase(const QString &typeId);
 /** Resolves \a typeId from the namespace-0 tables only; Resolution::None when not covered. */
 ResolvedDataType resolveLocally(const QString &typeId);
 
+/**
+ * Returns the type name embedded in a CODESYS DataType id such as
+ * "ns=4;s=|type|PLC.Application.ST_HMI_Button", or an empty string.
+ */
+QString nameFromTypeId(const QString &typeId);
+
 } // namespace DataTypeIds
 
 /**

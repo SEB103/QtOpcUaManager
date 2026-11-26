@@ -33,6 +33,7 @@ public:
         QString errorString;
         QList<Namespace> namespaces;
         QList<EnumType> enumTypes;
+        QList<StructType> structTypes;
         QList<Node> nodes;
 
         /** Total number of top-level nodes the model cannot represent. */

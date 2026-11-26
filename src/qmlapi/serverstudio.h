@@ -148,7 +148,7 @@ public:
      * the project is built when the browse completes (a notification reports the
      * outcome).
      */
-    Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds);
+    Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds, int maxNodes = 0);
 
     /** Cancels the clone in progress; the current project stays unchanged. */
     Q_INVOKABLE void cancelClone();
