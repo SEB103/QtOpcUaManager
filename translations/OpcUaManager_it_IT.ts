@@ -1918,7 +1918,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
         <source>Stopped</source>
         <translation>Arrestato</translation>
     </message>
@@ -2100,17 +2100,32 @@
         <translation>Clonati %1 nodo/i dal server.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-928"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 nodo/i acquisito/i</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>In coda: %1 da esplorare, %2 letture di metadati, %3 letture di valori, %4 in attesa di tipi di dati</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In corso: %1 esplorazione/i, %2 richiesta/e di lettura</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Ricerca di %1 tipo/i di dati</translation>
+    </message>
+    <message>
+        <location line="+683"/>
         <source>Cloned Server</source>
         <translation>Server clonato</translation>
     </message>
     <message>
-        <location line="-683"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>%1 nodo/i acquisito/i, %2 in attesa del server</translation>
-    </message>
-    <message>
-        <location line="+925"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 variabile/i usano un tipo di dati sostitutivo (data/ora o tipo non supportato).</translation>
     </message>

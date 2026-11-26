@@ -22,6 +22,7 @@
 #include <open62541/server_config_default.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <thread>
 
@@ -114,8 +115,13 @@ public:
             return false;
         m_running = true;
         m_thread = std::thread([this]() {
-            while (m_running)
+            while (m_running) {
                 UA_Server_run_iterate(m_server, true);
+                // An artificial delay after each iteration makes every request
+                // wait, like a busy embedded PLC.
+                if (const int delay = m_delayMs.load())
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+            }
         });
         return true;
     }
@@ -135,6 +141,11 @@ public:
             m_server = nullptr;
         }
     }
+
+    /*!
+     * \brief Delays every server iteration by \a delayMs milliseconds; 0 turns it off.
+     */
+    void setDelayMs(int delayMs) { m_delayMs = delayMs; }
 
     /*!
      * \brief Returns the Qt OPC UA node id string of \a name in the test namespace.
@@ -351,6 +362,7 @@ private:
     UA_Server *m_server = nullptr;      //!< The embedded server.
     UA_UInt16 m_ns = 0;                 //!< Index of the test namespace.
     std::atomic<bool> m_running{false}; //!< Keeps the event loop running.
+    std::atomic<int> m_delayMs{0};      //!< Artificial delay per iteration.
     std::thread m_thread;               //!< Runs the event loop.
 };
 
@@ -388,6 +400,15 @@ private slots:
 
     /*! The completion carries the endpoint and the server's BuildInfo. */
     void readsServerIdentity();
+
+    /*! On a slow server, structures still get no Value read and members do. */
+    void skipsStructureValuesOnSlowServer();
+
+    /*!
+        A DataType whose lookups keep timing out leaves its variables without a
+        value and with an error instead of reading a possible structure value.
+    */
+    void leavesValueUnreadWhenTypeLookupTimesOut();
 
     /*! The node limit ends the traversal as Truncated. */
     void reportsNodeLimit();
@@ -650,6 +671,47 @@ void CloneTraversalTest::readsServerIdentity()
     QVERIFY(!server.productName.isEmpty());
     QVERIFY(!server.softwareVersion.isEmpty());
     QVERIFY(server.buildDate.isValid());
+}
+
+void CloneTraversalTest::skipsStructureValuesOnSlowServer()
+{
+    m_server.setDelayMs(30);
+    const Result result = run(m_server.nodeId("Structs"));
+    m_server.setDelayMs(0);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QCOMPARE(result.completion.failedReads, 0);
+
+    const CloneNode button = find(result.nodes, m_server.nodeId("Button"));
+    QVERIFY(button.valueSkipped);
+    QCOMPARE(button.resolvedDataType.builtInBase, QStringLiteral("Structure"));
+    QCOMPARE(find(result.nodes, m_server.nodeId("Button.Count")).value.toInt(), 3);
+}
+
+void CloneTraversalTest::leavesValueUnreadWhenTypeLookupTimesOut()
+{
+    CloneOptions options;
+    options.typeLookupTimeoutMs = 20; // far below the server's response time
+    options.typeLookupAttempts = 2;
+    m_server.setDelayMs(100);
+    const Result result = run(m_server.nodeId("Structs"), options);
+    m_server.setDelayMs(0);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QVERIFY(result.completion.failedReads > 0);
+
+    for (const char *name : {"Button", "Buttons"}) {
+        const CloneNode structure = find(result.nodes, m_server.nodeId(name));
+        QVERIFY2(!structure.value.isValid(), name);
+        QVERIFY2(!structure.valueSkipped, name);
+        QVERIFY2(structure.attributeErrors.join(QLatin1Char(';'))
+                     .contains(QLatin1String("DataType lookup timed out")),
+                 name);
+    }
+
+    // Variables of namespace-0 types need no lookup and keep their values.
+    QCOMPARE(find(result.nodes, m_server.nodeId("Button.Count")).value.toInt(), 3);
+    QVERIFY(find(result.nodes, m_server.nodeId("Matrix")).value.isValid());
 }
 
 void CloneTraversalTest::reportsNodeLimit()

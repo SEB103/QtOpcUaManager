@@ -1918,7 +1918,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
         <source>Stopped</source>
         <translation>Stopped</translation>
     </message>
@@ -2100,17 +2100,32 @@
         <translation>Cloned %1 node(s) from the server.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-928"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 node(s) captured</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In progress: %1 browse(s), %2 read request(s)</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Looking up %1 data type(s)</translation>
+    </message>
+    <message>
+        <location line="+683"/>
         <source>Cloned Server</source>
         <translation>Cloned Server</translation>
     </message>
     <message>
-        <location line="-683"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>%1 node(s) captured, %2 waiting for the server</translation>
-    </message>
-    <message>
-        <location line="+925"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 variable(s) use a substitute data type (date/time or unsupported type).</translation>
     </message>

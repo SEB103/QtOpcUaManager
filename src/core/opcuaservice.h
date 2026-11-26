@@ -167,8 +167,8 @@ signals:
      */
     void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
                             const QStringList &namespaceUris, const CloneCompletion &completion);
-    /** Emitted periodically during a clone browse with the \a captured node count and \a pending work. */
-    void cloneProgress(quint64 requestId, int captured, int pending);
+    /** Emitted periodically during a clone browse with the breakdown of its work in \a progress. */
+    void cloneProgress(quint64 requestId, const CloneProgress &progress);
 
 private slots:
     /** Applies a FindServers result for \a requestUrl. */

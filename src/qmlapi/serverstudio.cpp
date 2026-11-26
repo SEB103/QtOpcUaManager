@@ -275,12 +275,11 @@ void ServerStudio::setOpcUaManager(OpcUaManager *manager)
                     applyCloneSnapshot(nodes, namespaceUris, completion);
                 });
         connect(m_opcUaManager, &OpcUaManager::cloneProgress, this,
-                [this](quint64 requestId, int captured, int pending) {
+                [this](quint64 requestId, const CloneProgress &progress) {
                     // After Cancel, late progress must not reopen the progress dialog.
                     if (!m_cloneInProgress || m_cloneCancelling || requestId != m_cloneRequestId)
                         return;
-                    m_cloneCaptured = captured;
-                    m_clonePending = pending;
+                    m_cloneProgress = progress;
                     emit cloneProgressChanged();
                 });
     }
@@ -295,7 +294,24 @@ QString ServerStudio::cloneProgressText() const
 {
     if (!m_cloneInProgress)
         return {};
-    return tr("%1 node(s) captured, %2 waiting for the server").arg(m_cloneCaptured).arg(m_clonePending);
+    // The breakdown shows where a slow clone waits: browsing, metadata or value
+    // reads, or DataType lookups.
+    const CloneProgress &p = m_cloneProgress;
+    QString text = tr("%1 node(s) captured").arg(p.captured);
+    text += QLatin1Char('\n')
+            + tr("Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for "
+                 "data types")
+                  .arg(p.browseQueued)
+                  .arg(p.metadataQueued)
+                  .arg(p.valuesQueued)
+                  .arg(p.waitingForType);
+    text += QLatin1Char('\n')
+            + tr("In progress: %1 browse(s), %2 read request(s)")
+                  .arg(p.browsing)
+                  .arg(p.readRequests);
+    if (p.typeLookups > 0)
+        text += QLatin1Char('\n') + tr("Looking up %1 data type(s)").arg(p.typeLookups);
+    return text;
 }
 
 /*!
@@ -306,8 +322,7 @@ void ServerStudio::setCloneInProgress(bool inProgress)
 {
     m_cloneInProgress = inProgress;
     m_cloneCancelling = false;
-    m_cloneCaptured = 0;
-    m_clonePending = 0;
+    m_cloneProgress = CloneProgress();
     emit cloneProgressChanged();
 }
 

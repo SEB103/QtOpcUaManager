@@ -1924,7 +1924,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -2106,17 +2106,32 @@
         <translation>Клонировано узлов с сервера: %1.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-928"/>
+        <source>%1 node(s) captured</source>
+        <translation>Получено узлов: %1</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>В очереди: обход %1, описания %2, значения %3, ждут типа данных %4</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>Выполняется: обход %1, запросов чтения %2</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Определяются типы данных: %1</translation>
+    </message>
+    <message>
+        <location line="+683"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location line="-683"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>Получено узлов: %1, ожидают ответа сервера: %2</translation>
-    </message>
-    <message>
-        <location line="+925"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Переменных с заменённым типом данных: %1 (дата/время или неподдерживаемый тип).</translation>
     </message>

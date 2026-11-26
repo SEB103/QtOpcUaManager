@@ -1924,7 +1924,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
         <source>Stopped</source>
         <translation>Зупинено</translation>
     </message>
@@ -2106,17 +2106,32 @@
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-928"/>
+        <source>%1 node(s) captured</source>
+        <translation>Отримано вузлів: %1</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>У черзі: обхід %1, описи %2, значення %3, чекають типу даних %4</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>Виконується: обхід %1, запитів читання %2</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Визначаються типи даних: %1</translation>
+    </message>
+    <message>
+        <location line="+683"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>
     <message>
-        <location line="-683"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>Отримано вузлів: %1, очікують відповіді сервера: %2</translation>
-    </message>
-    <message>
-        <location line="+925"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Змінних із заміненим типом даних: %1 (дата/час або непідтримуваний тип).</translation>
     </message>

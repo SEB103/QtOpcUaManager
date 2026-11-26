@@ -1,5 +1,7 @@
 #include "datatyperesolver.h"
 
+#include <algorithm>
+
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaNode>
@@ -360,6 +362,7 @@ ResolvedDataType DataTypeHierarchy::resolve(const QString &typeId) const
 DataTypeResolver::DataTypeResolver(QOpcUaClient *client, QObject *parent)
     : QObject(parent)
     , m_client(client)
+    , m_timeoutMs(kTimeoutMs)
 {
 }
 
@@ -388,13 +391,14 @@ void DataTypeResolver::resolve(const QStringList &typeIds)
     m_timeout->setSingleShot(true);
     connect(m_timeout, &QTimer::timeout, this, [this]() {
         // Report every unanswered lookup as failed so resolve() still settles.
+        m_timedOut = true;
         const QStringList pending = m_inFlight.keys() + m_queue;
         for (const QString &typeId : pending)
             m_hierarchy.addFailure(typeId, m_inFlight.value(typeId).typeName,
                                    QStringLiteral("DataType lookup timed out"));
         finish();
     });
-    m_timeout->start(kTimeoutMs);
+    m_timeout->start(m_timeoutMs);
 
     for (const QString &typeId : typeIds)
         enqueue(DataTypeIds::normalize(typeId));
@@ -402,6 +406,19 @@ void DataTypeResolver::resolve(const QStringList &typeIds)
     startNext();
     // Defer the idle check so finished() never fires inside resolve().
     QTimer::singleShot(0, this, &DataTypeResolver::finishIfIdle);
+}
+
+/*!
+ * \brief Sets the safety timeout of resolve() to \a timeoutMs milliseconds.
+ * \param timeoutMs Duration after which unanswered lookups are reported as failed;
+ *        values below 1 are raised to 1. The default is kTimeoutMs.
+ *
+ * A lookup that runs while the server is busy with other requests, such as
+ * during a clone traversal, needs a longer timeout than one on an idle server.
+ */
+void DataTypeResolver::setTimeoutMs(int timeoutMs)
+{
+    m_timeoutMs = std::max(1, timeoutMs);
 }
 
 /*!

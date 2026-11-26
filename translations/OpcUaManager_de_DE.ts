@@ -1918,7 +1918,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
@@ -2100,17 +2100,32 @@
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-928"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 Knoten erfasst</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>Warteschlange: %1 zu durchsuchen, %2 Metadaten-Lesevorgänge, %3 Wert-Lesevorgänge, %4 warten auf Datentypen</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In Arbeit: %1 Durchsuchung(en), %2 Leseanfrage(n)</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>%1 Datentyp(en) werden ermittelt</translation>
+    </message>
+    <message>
+        <location line="+683"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location line="-683"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>%1 Knoten erfasst, %2 warten auf den Server</translation>
-    </message>
-    <message>
-        <location line="+925"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
     </message>

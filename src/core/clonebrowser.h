@@ -130,6 +130,10 @@ struct CloneOptions
     int variablesPerRead = 16;
     /** Variables per Value read request. */
     int valuesPerRead = 64;
+    /** Timeout of one DataType lookup round during the traversal, in milliseconds. */
+    int typeLookupTimeoutMs = 120000;
+    /** Lookup rounds per DataType before its variables are left without a value. */
+    int typeLookupAttempts = 3;
     /** Whether variable values are read; false captures structure and metadata only. */
     bool readValues = true;
     /** Whether the root node itself is captured as the first node. */
@@ -162,6 +166,37 @@ struct ServerIdentity
     /** BuildInfo BuildDate; invalid when not read. */
     QDateTime buildDate;
 };
+
+/** Breakdown of the work of a running clone traversal. */
+struct CloneProgress
+{
+    /** Captured nodes. */
+    int captured = 0;
+    /** Nodes waiting to be browsed. */
+    int browseQueued = 0;
+    /** Browse requests in flight. */
+    int browsing = 0;
+    /** Variables waiting for the metadata read. */
+    int metadataQueued = 0;
+    /** Variables waiting for the Value read. */
+    int valuesQueued = 0;
+    /** Variables waiting for a DataType lookup. */
+    int waitingForType = 0;
+    /** Variables in read requests in flight. */
+    int reading = 0;
+    /** Read requests in flight. */
+    int readRequests = 0;
+    /** DataType ids in the running lookup round; 0 when none runs. */
+    int typeLookups = 0;
+
+    /** Returns the number of nodes whose browse or read is queued or in flight. */
+    int pending() const
+    {
+        return browseQueued + browsing + metadataQueued + valuesQueued + waitingForType + reading;
+    }
+};
+
+Q_DECLARE_METATYPE(CloneProgress)
 
 /** Outcome of one clone traversal. */
 struct CloneCompletion
@@ -237,8 +272,8 @@ public:
     void cancel();
 
 signals:
-    /** Emitted about twice a second with the \a captured node count and \a pending work. */
-    void progress(quint64 requestId, int captured, int pending);
+    /** Emitted about twice a second with the breakdown of the work in \a progress. */
+    void progress(quint64 requestId, const CloneProgress &progress);
 
     /**
      * Emitted once at the end. \a nodes lists every captured node, parents before
@@ -296,6 +331,8 @@ private:
     void publishIfReady();
     void publishResult();
     int pendingCount() const;
+    CloneProgress progressSnapshot() const;
+    void failTypeLookup(const QString &typeId);
 
     QOpcUaClient *m_client = nullptr;         //!< Client owning the protocol nodes.
     QString m_rootNodeId;                     //!< Node id of the browse root.
@@ -314,6 +351,9 @@ private:
     QStringList m_typeLookupIds;              //!< DataType ids of the running lookup.
     DataTypeResolver *m_typeLookup = nullptr; //!< Type lookup running during the traversal.
     int m_loggedReadFailures = 0;             //!< Read failures written to the log so far.
+    QHash<QString, int> m_typeLookupRounds;   //!< Lookup rounds that timed out, per DataType id.
+    QSet<QString> m_typeLookupGivenUp;        //!< DataType ids whose lookups kept timing out.
+    int m_progressTicks = 0;                  //!< Progress reports since the last log line.
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 
