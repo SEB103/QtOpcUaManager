@@ -845,20 +845,22 @@ void OpcUaService::browseChildren(const QString &parentNodeId, quint64 requestId
 /*!
  * \brief Recursively browses the subtree under \a rootNodeId for a clone.
  *
- * \a maxNodes overrides the node limit when positive; \a requestId is echoed in
+ * \a options sets the limits and what is captured; \a requestId is echoed in
  * the result.
  *
  * Runs a CloneBrowser in this worker thread and relays its result through
  * cloneSnapshotReady(). The browser owns its lifetime (it deletes itself once
- * finished), so no bookkeeping is needed here.
+ * finished), so no bookkeeping is needed here. Only one browse runs at a time;
+ * a second request is answered at once with a Failed completion.
  */
-void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId, int maxNodes)
+void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId,
+                                  const CloneOptions &options)
 {
     if (!isInObjectThread()) {
         QMetaObject::invokeMethod(
             this,
-            [this, rootNodeId, requestId, maxNodes]() {
-                browseForClone(rootNodeId, requestId, maxNodes);
+            [this, rootNodeId, requestId, options]() {
+                browseForClone(rootNodeId, requestId, options);
             },
             Qt::QueuedConnection);
         return;
@@ -870,9 +872,12 @@ void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId, 
         return;
     }
 
-    CloneOptions options;
-    if (maxNodes > 0)
-        options.maxNodes = maxNodes;
+    if (m_cloneBrowser) {
+        setLastError(QStringLiteral("An address-space browse is already running."));
+        emit cloneSnapshotReady(requestId, {}, {}, CloneCompletion());
+        return;
+    }
+
     auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, options, this);
     m_cloneBrowser = browser;
     connect(browser, &CloneBrowser::progress, this, &OpcUaService::cloneProgress);

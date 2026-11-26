@@ -209,6 +209,16 @@ OpcUaManager::OpcUaManager(const QString &initialUrl, QObject *parent)
 {
     m_dataViewModel->setSourceModel(m_dataModel);
 
+    // The address-space browse slot is released by the relayed result itself.
+    // Connected first, this runs before every consumer, so a consumer may start
+    // the next browse from its result handler.
+    connect(this, &OpcUaManager::cloneSnapshotReady, this, [this](quint64 requestId) {
+        if (requestId != 0 && requestId == m_activeAddressSpaceRequestId) {
+            m_activeAddressSpaceRequestId = 0;
+            emit addressSpaceBrowseInProgressChanged();
+        }
+    });
+
     // The status bar shows how many nodes the project watches, so republish the
     // count whenever the table gains or loses rows.
     connect(m_dataModel, &QAbstractItemModel::rowsInserted,
@@ -308,12 +318,44 @@ OpcUaModel *OpcUaManager::treeModel() const
 /*!
  * \brief Requests a recursive clone browse of the connected server's Objects.
  * \param maxNodes Node limit of the browse; 0 uses the default limit.
+ * \return The request id echoed in the result, or 0 when another browse is running.
  */
-void OpcUaManager::requestCloneSnapshot(int maxNodes)
+quint64 OpcUaManager::requestCloneSnapshot(int maxNodes)
 {
-    // The clone always starts at the standard Objects folder; a single clone is
-    // in flight at a time, so the request id is unused.
-    emit cloneBrowseRequested(QStringLiteral("ns=0;i=85"), 0, maxNodes);
+    CloneOptions options;
+    if (maxNodes > 0)
+        options.maxNodes = maxNodes;
+    return requestAddressSpaceBrowse(QStringLiteral("ns=0;i=85"), options);
+}
+
+/*!
+ * \brief Requests a recursive browse under \a rootNodeId with \a options.
+ * \param rootNodeId Node whose subtree is captured.
+ * \param options Limits and what is captured.
+ * \return The request id echoed in cloneProgress() and cloneSnapshotReady(), or 0
+ *         when another clone or snapshot browse is running.
+ *
+ * Clone and snapshot share one worker browse, so only one runs at a time. Each
+ * request gets its own id, and every consumer applies only the result of the
+ * request it started.
+ */
+quint64 OpcUaManager::requestAddressSpaceBrowse(const QString &rootNodeId,
+                                                const CloneOptions &options)
+{
+    if (m_activeAddressSpaceRequestId != 0)
+        return 0;
+    m_activeAddressSpaceRequestId = ++m_lastAddressSpaceRequestId;
+    emit addressSpaceBrowseInProgressChanged();
+    emit cloneBrowseRequested(rootNodeId, m_activeAddressSpaceRequestId, options);
+    return m_activeAddressSpaceRequestId;
+}
+
+/*!
+ * \brief Returns whether a clone or snapshot browse is running.
+ */
+bool OpcUaManager::addressSpaceBrowseInProgress() const
+{
+    return m_activeAddressSpaceRequestId != 0;
 }
 
 /*!
@@ -1807,7 +1849,8 @@ void OpcUaManager::attachService(OpcUaService *service)
             this, &OpcUaManager::applyAuthMode, Qt::QueuedConnection);
     connect(service, &OpcUaService::browseChildrenReady,
             this, &OpcUaManager::applyBrowseChildren, Qt::QueuedConnection);
-    // The clone result is relayed straight to GUI consumers (Server Studio).
+    // The clone result is relayed straight to GUI consumers (Server Studio,
+    // snapshots), which pick their own request by id.
     connect(service, &OpcUaService::cloneSnapshotReady,
             this, &OpcUaManager::cloneSnapshotReady, Qt::QueuedConnection);
     connect(service, &OpcUaService::cloneProgress,

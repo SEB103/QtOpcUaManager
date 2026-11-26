@@ -266,14 +266,18 @@ void ServerStudio::setOpcUaManager(OpcUaManager *manager)
     m_opcUaManager = manager;
     if (m_opcUaManager) {
         connect(m_opcUaManager, &OpcUaManager::cloneSnapshotReady, this,
-                [this](quint64 /*requestId*/, const QList<CloneNode> &nodes,
+                [this](quint64 requestId, const QList<CloneNode> &nodes,
                        const QStringList &namespaceUris, const CloneCompletion &completion) {
+                    // Only the result of this studio's own clone request is
+                    // applied; a snapshot browse must never replace the project.
+                    if (!m_cloneInProgress || requestId != m_cloneRequestId)
+                        return;
                     applyCloneSnapshot(nodes, namespaceUris, completion);
                 });
         connect(m_opcUaManager, &OpcUaManager::cloneProgress, this,
-                [this](quint64 /*requestId*/, int captured, int pending) {
+                [this](quint64 requestId, int captured, int pending) {
                     // After Cancel, late progress must not reopen the progress dialog.
-                    if (!m_cloneInProgress || m_cloneCancelling)
+                    if (!m_cloneInProgress || m_cloneCancelling || requestId != m_cloneRequestId)
                         return;
                     m_cloneCaptured = captured;
                     m_clonePending = pending;
@@ -936,12 +940,20 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
         return false;
     }
 
+    const quint64 requestId = m_opcUaManager->requestCloneSnapshot(maxNodes);
+    if (requestId == 0) {
+        notify(Diagnostics::Warning, [this] {
+            return tr("Another clone or snapshot of the server is already running.");
+        });
+        return false;
+    }
+
+    m_cloneRequestId = requestId;
     m_clonePreserveIds = preserveOriginalIds;
     setCloneInProgress(true);
     notify(Diagnostics::Info, [this] {
         return tr("Cloning the server address space…");
     });
-    m_opcUaManager->requestCloneSnapshot(maxNodes);
     return true;
 }
 

@@ -1660,7 +1660,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+883"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n Knoten zur Datenansicht hinzugefügt.</numerusform>
@@ -1732,7 +1732,7 @@
         <translation>%1 ist schreibgeschützt: Der Server gewährt kein CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+357"/>
+        <location line="+358"/>
         <source>The stored server was not found during discovery.</source>
         <translation>Der gespeicherte Server wurde bei der Suche nicht gefunden.</translation>
     </message>
@@ -1918,7 +1918,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
@@ -2045,22 +2045,27 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+677"/>
+        <location line="+685"/>
         <source>No OPC UA client is available.</source>
         <translation>Es ist kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
-        <location line="-671"/>
+        <location line="-679"/>
         <source>A clone is already in progress.</source>
         <translation>Ein Klonvorgang läuft bereits.</translation>
     </message>
     <message>
         <location line="+8"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Ein anderer Klon oder Snapshot des Servers läuft bereits.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <source>Cloning the server address space…</source>
         <translation>Serveradressraum wird geklont…</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+13"/>
         <source>Clone cancelled; the server project was not changed.</source>
         <translation>Klonen abgebrochen; das Server-Projekt wurde nicht geändert.</translation>
     </message>
@@ -2100,12 +2105,12 @@
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location line="-675"/>
+        <location line="-683"/>
         <source>%1 node(s) captured, %2 waiting for the server</source>
         <translation>%1 Knoten erfasst, %2 warten auf den Server</translation>
     </message>
     <message>
-        <location line="+917"/>
+        <location line="+925"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
     </message>
@@ -2148,12 +2153,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+434"/>
         <source>(none)</source>
         <translation>(keine)</translation>
     </message>
     <message>
-        <location line="-300"/>
+        <location line="-310"/>
         <source>(no values)</source>
         <translation>(keine Werte)</translation>
     </message>
@@ -2205,12 +2210,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+864"/>
+        <location line="+873"/>
         <source>New Server Project</source>
         <translation>Neues Serverprojekt</translation>
     </message>
     <message>
-        <location line="-836"/>
+        <location line="-845"/>
         <source>+ Folder</source>
         <translation>+ Ordner</translation>
     </message>
@@ -2221,12 +2226,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+528"/>
+        <location line="+537"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Select a node to edit its properties.</source>
         <translation>Wählen Sie einen Knoten, um seine Eigenschaften zu bearbeiten.</translation>
     </message>
@@ -2302,13 +2307,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+324"/>
+        <location line="+323"/>
         <location line="+148"/>
         <source>value</source>
         <translation>Wert</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Simulation:</source>
         <translation>Simulation:</translation>
     </message>
@@ -2338,7 +2343,7 @@
         <translation>Anwenden</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+20"/>
         <source>Security</source>
         <translation>Sicherheit</translation>
     </message>

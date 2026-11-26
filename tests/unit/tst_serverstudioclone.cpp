@@ -35,7 +35,16 @@ private slots:
     /*! A cancelled clone leaves the open project unchanged. */
     void cancelledCloneKeepsProject();
 
+    /*!
+        Results of other browse requests (such as a snapshot) are ignored, and a
+        second browse is refused while one runs.
+    */
+    void ignoresForeignBrowseResults();
+
 private:
+    /*! Starts a clone of \a studio through \a manager and returns its request id. */
+    static quint64 startClone(ServerStudio &studio, OpcUaManager &manager);
+
     /*! Returns the last notification text in \a spy, or an empty string. */
     static QString lastMessage(const QSignalSpy &spy);
 
@@ -48,6 +57,14 @@ private:
     static const ServerProject::Node *find(const ServerProject::ProjectData &project,
                                            const QString &name);
 };
+
+quint64 ServerStudioCloneTest::startClone(ServerStudio &studio, OpcUaManager &manager)
+{
+    QSignalSpy requestSpy(&manager, &OpcUaManager::cloneBrowseRequested);
+    if (!studio.cloneFromClient(false) || requestSpy.isEmpty())
+        return 0;
+    return requestSpy.first().at(1).toULongLong();
+}
 
 CloneNode ServerStudioCloneTest::variable(const QString &name, const QString &parent,
                                           const QString &typeId, const QString &base,
@@ -146,7 +163,9 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
     CloneCompletion completion;
     completion.state = CloneCompletion::State::Complete;
     completion.nodeCount = int(nodes.size());
-    emit manager.cloneSnapshotReady(0, nodes, {}, completion);
+    const quint64 requestId = startClone(studio, manager);
+    QVERIFY(requestId != 0);
+    emit manager.cloneSnapshotReady(requestId, nodes, {}, completion);
 
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -280,7 +299,9 @@ void ServerStudioCloneTest::reportsIncompleteClone()
     ServerStudio studio;
     studio.setOpcUaManager(&manager);
     QSignalSpy notificationSpy(&studio, &ServerStudio::notification);
-    emit manager.cloneSnapshotReady(0, nodes, {}, completion);
+    const quint64 requestId = startClone(studio, manager);
+    QVERIFY(requestId != 0);
+    emit manager.cloneSnapshotReady(requestId, nodes, {}, completion);
 
     QVERIFY(studio.hasProject());
     const QString message = lastMessage(notificationSpy);
@@ -303,11 +324,50 @@ void ServerStudioCloneTest::cancelledCloneKeepsProject()
     CloneCompletion completion;
     completion.state = CloneCompletion::State::Cancelled;
     QSignalSpy notificationSpy(&studio, &ServerStudio::notification);
-    emit manager.cloneSnapshotReady(0, {folder}, {}, completion);
+    const quint64 requestId = startClone(studio, manager);
+    QVERIFY(requestId != 0);
+    emit manager.cloneSnapshotReady(requestId, {folder}, {}, completion);
 
     QCOMPARE(studio.projectName(), QStringLiteral("Kept"));
     QVERIFY(lastMessage(notificationSpy).contains(QLatin1String("cancelled")));
     QVERIFY(!studio.cloneInProgress());
+}
+
+void ServerStudioCloneTest::ignoresForeignBrowseResults()
+{
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    studio.newProject(QStringLiteral("Kept"));
+
+    const quint64 requestId = startClone(studio, manager);
+    QVERIFY(requestId != 0);
+    QVERIFY(manager.addressSpaceBrowseInProgress());
+
+    // A second browse is refused while the first one runs.
+    QCOMPARE(manager.requestCloneSnapshot(), quint64(0));
+    QVERIFY(!studio.cloneFromClient(false));
+
+    CloneNode folder;
+    folder.nodeId = QStringLiteral("ns=1;s=A");
+    folder.browseName = QStringLiteral("A");
+    folder.nodeClass = 1;
+    CloneCompletion completion;
+    completion.state = CloneCompletion::State::Complete;
+    completion.nodeCount = 1;
+
+    // A result of another request (e.g. a snapshot) leaves the project alone.
+    emit manager.cloneSnapshotReady(requestId + 100, {folder}, {}, completion);
+    QCOMPARE(studio.projectName(), QStringLiteral("Kept"));
+    QVERIFY(studio.cloneInProgress());
+    QVERIFY(manager.addressSpaceBrowseInProgress());
+
+    emit manager.cloneSnapshotReady(requestId, {folder}, {}, completion);
+    QVERIFY(!studio.cloneInProgress());
+    QVERIFY(studio.projectName() != QStringLiteral("Kept"));
+
+    // The own result releases the browse slot.
+    QVERIFY(!manager.addressSpaceBrowseInProgress());
 }
 
 QTEST_GUILESS_MAIN(ServerStudioCloneTest)

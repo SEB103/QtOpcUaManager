@@ -374,6 +374,9 @@ private:
     /** Whether a clone browse is currently in flight. */
     bool m_cloneInProgress = false;
 
+    /** Request id of this studio's clone browse; results of other requests are ignored. */
+    quint64 m_cloneRequestId = 0;
+
     /** Whether cancelling the clone in flight was requested. */
     bool m_cloneCancelling = false;
 

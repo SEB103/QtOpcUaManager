@@ -53,6 +53,9 @@ struct CloneNode
     /** Integer value of QOpcUa::NodeClass. */
     int nodeClass = 0;
 
+    /** Reference type of the parent reference, e.g. "ns=0;i=47" (HasComponent); empty for a captured root. */
+    QString referenceTypeId;
+
     /** TypeDefinition node id from the browse reference, e.g. "ns=0;i=63". */
     QString typeDefinitionId;
 
@@ -127,6 +130,37 @@ struct CloneOptions
     int variablesPerRead = 16;
     /** Variables per Value read request. */
     int valuesPerRead = 64;
+    /** Whether variable values are read; false captures structure and metadata only. */
+    bool readValues = true;
+    /** Whether the root node itself is captured as the first node. */
+    bool captureRoot = false;
+};
+
+Q_DECLARE_METATYPE(CloneOptions)
+
+/** Identity of the server a traversal ran against; empty fields were not available. */
+struct ServerIdentity
+{
+    /** Endpoint URL of the session. */
+    QString endpointUrl;
+    /** Message security mode of the session: "None", "Sign" or "SignAndEncrypt". */
+    QString securityMode;
+    /** Security policy URI of the session. */
+    QString securityPolicy;
+    /** First entry of the ServerArray: the server's application URI. */
+    QString applicationUri;
+    /** BuildInfo ProductUri. */
+    QString productUri;
+    /** BuildInfo ProductName. */
+    QString productName;
+    /** BuildInfo ManufacturerName. */
+    QString manufacturerName;
+    /** BuildInfo SoftwareVersion. */
+    QString softwareVersion;
+    /** BuildInfo BuildNumber. */
+    QString buildNumber;
+    /** BuildInfo BuildDate; invalid when not read. */
+    QDateTime buildDate;
 };
 
 /** Outcome of one clone traversal. */
@@ -164,6 +198,8 @@ struct CloneCompletion
     CloneOptions options;
     /** Duration of the traversal in milliseconds. */
     qint64 elapsedMs = 0;
+    /** Server the traversal ran against; not read for a cancelled traversal. */
+    ServerIdentity server;
 
     /** Returns whether the traversal finished within its limits. */
     bool isComplete() const { return state == State::Complete; }
@@ -220,12 +256,19 @@ private:
         int depth = 0;  //!< Depth below the root (root = 0).
     };
 
+    /** Kind of an attribute read request. */
+    enum class ReadKind {
+        Metadata, //!< DataType, ValueRank, ArrayDimensions and access levels.
+        Values,   //!< Value only.
+        RootInfo  //!< NodeClass, BrowseName and DisplayName of a captured root.
+    };
+
     /** One attribute read request in flight. */
     struct ReadBatch
     {
-        QStringList nodeIds;  //!< Variables in this request.
-        QSet<QString> keySet; //!< Same ids, used to claim the shared result signal.
-        bool values = false;  //!< Value read (true) or metadata read (false).
+        QStringList nodeIds;               //!< Nodes in this request.
+        QSet<QString> keySet;              //!< Same ids, used to claim the shared result signal.
+        ReadKind kind = ReadKind::Metadata; //!< What the request reads.
     };
 
     void pump();
@@ -234,7 +277,8 @@ private:
                       const QList<QOpcUaReferenceDescription> &references,
                       QOpcUa::UaStatusCode status);
     void markBrowseError(const QString &nodeId, const QString &reason);
-    void startRead(const QStringList &nodeIds, bool values);
+    void startRead(const QStringList &nodeIds, ReadKind kind);
+    void applyRootInfo(const QList<QOpcUaReadResult> &results);
     void routeValueRead(const QString &nodeId);
     void queueValueRead(CloneNode &node, const ResolvedDataType &type);
     void startTypeLookup();
@@ -247,6 +291,9 @@ private:
     void touch();
     void finishIfIdle();
     void finish(CloneCompletion::State state);
+    void startIdentityRead();
+    void applyIdentity(const QList<QOpcUaReadResult> &results);
+    void publishIfReady();
     void publishResult();
     int pendingCount() const;
 
@@ -273,6 +320,10 @@ private:
     CloneCompletion m_completion;             //!< Outcome assembled at the end.
     QStringList m_resultNamespaces;           //!< Namespace array captured at the end.
     DataTypeResolver *m_resolver = nullptr;   //!< Resolves the captured DataType ids.
+    QMetaObject::Connection m_identityConnection; //!< Claims the server identity read.
+    bool m_resolverPending = false;           //!< Final type resolution still running.
+    bool m_identityPending = false;           //!< Server identity read still running.
+    bool m_published = false;                 //!< finished() was emitted.
     QTimer *m_overallTimer = nullptr;         //!< Overall time limit.
     QTimer *m_idleTimer = nullptr;            //!< Restarted on every response.
     QTimer *m_progressTimer = nullptr;        //!< Periodic progress reports.

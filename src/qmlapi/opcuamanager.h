@@ -59,6 +59,10 @@ class OpcUaManager : public QObject
     /** Whether an OPC UA session is currently connected. */
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
 
+    /** Whether a clone or snapshot browse of the address space is running. */
+    Q_PROPERTY(bool addressSpaceBrowseInProgress READ addressSpaceBrowseInProgress
+                   NOTIFY addressSpaceBrowseInProgressChanged)
+
     /** Whether discovery, endpoint lookup, connect, or disconnect is active. */
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
@@ -277,9 +281,21 @@ public:
 
     /**
      * Requests a recursive clone browse of the connected server's Objects
-     * subtree on the worker service. The result arrives via cloneSnapshotReady().
+     * subtree on the worker service, limited to maxNodes (0: default limit).
+     * Returns the request id that cloneSnapshotReady() echoes, or 0 when
+     * another browse is running.
      */
-    void requestCloneSnapshot(int maxNodes = 0);
+    quint64 requestCloneSnapshot(int maxNodes = 0);
+
+    /**
+     * Requests a recursive browse under rootNodeId with options on the worker
+     * service. Returns the request id that cloneProgress() and
+     * cloneSnapshotReady() echo, or 0 when another browse is running.
+     */
+    quint64 requestAddressSpaceBrowse(const QString &rootNodeId, const CloneOptions &options);
+
+    /** Returns whether a clone or snapshot browse is running. */
+    bool addressSpaceBrowseInProgress() const;
 
     /** Cancels the clone browse in progress; its result arrives as Cancelled. */
     void cancelCloneSnapshot();
@@ -563,6 +579,8 @@ signals:
     void endpointsChanged();
     /** Emitted when the connected state changes. */
     void connectedChanged();
+    /** Emitted when a clone or snapshot browse starts or ends. */
+    void addressSpaceBrowseInProgressChanged();
     /** Emitted when the derived busy state changes. */
     void busyChanged();
     /** Emitted when the current operation state changes. */
@@ -676,8 +694,9 @@ signals:
     void unsubscribeNodeRequested(const QString &nodeId);
     /** Requests writing \a value to \a nodeId on the worker service. */
     void writeValueRequested(const QString &nodeId, const QVariant &value);
-    /** Requests a recursive clone browse under \a rootNodeId for \a requestId, up to \a maxNodes. */
-    void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId, int maxNodes);
+    /** Requests a recursive browse under \a rootNodeId for \a requestId with \a options. */
+    void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId,
+                              const CloneOptions &options);
     /** Requests cancelling the clone browse in progress on the worker service. */
     void cloneCancelRequested();
     /**
@@ -872,6 +891,11 @@ private:
     QHash<quint64, BrowseRoute> m_browseRouting;
     /** Monotonic browse id shared by both models and sent to the service. */
     quint64 m_nextBrowseRequestId {0};
+
+    /** Last id handed out for an address-space browse (clone or snapshot). */
+    quint64 m_lastAddressSpaceRequestId {0};
+    /** Id of the address-space browse in flight; 0 when none runs. */
+    quint64 m_activeAddressSpaceRequestId {0};
 
     /** Discovery URL of the most recent connection attempt, persisted on success. */
     QString m_lastDiscoveryUrl;

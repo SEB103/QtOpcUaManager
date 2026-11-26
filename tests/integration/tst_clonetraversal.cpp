@@ -377,6 +377,18 @@ private slots:
     /*! Structure variables get no Value read; their members and other variables do. */
     void skipsValueOfStructures();
 
+    /*! captureRoot captures an object root first and records reference types. */
+    void capturesObjectRoot();
+
+    /*! captureRoot on a variable reads the root's own metadata as well. */
+    void capturesVariableRoot();
+
+    /*! readValues off captures metadata only and reads no value at all. */
+    void skipsAllValuesWhenDisabled();
+
+    /*! The completion carries the endpoint and the server's BuildInfo. */
+    void readsServerIdentity();
+
     /*! The node limit ends the traversal as Truncated. */
     void reportsNodeLimit();
 
@@ -565,6 +577,81 @@ void CloneTraversalTest::skipsValueOfStructures()
     QVERIFY(matrix.value.isValid());
 }
 
+void CloneTraversalTest::capturesObjectRoot()
+{
+    CloneOptions options;
+    options.captureRoot = true;
+    const QString structs = m_server.nodeId("Structs");
+    const Result result = run(structs, options);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+
+    const CloneNode root = result.nodes.first();
+    QCOMPARE(root.nodeId, structs);
+    QCOMPARE(root.browseName, QStringLiteral("Structs"));
+    QCOMPARE(root.displayName, QStringLiteral("Structs"));
+    QCOMPARE(root.nodeClass, int(QOpcUa::NodeClass::Object));
+    QVERIFY(!root.isVariable);
+    QVERIFY(root.parentNodeId.isEmpty());
+    QVERIFY(root.referenceTypeId.isEmpty());
+
+    const CloneNode button = find(result.nodes, m_server.nodeId("Button"));
+    QCOMPARE(button.parentNodeId, structs);
+    QCOMPARE(button.referenceTypeId, QStringLiteral("ns=0;i=47")); // HasComponent
+}
+
+void CloneTraversalTest::capturesVariableRoot()
+{
+    CloneOptions options;
+    options.captureRoot = true;
+    const QString buttonId = m_server.nodeId("Button");
+    const Result result = run(buttonId, options);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+
+    const CloneNode root = result.nodes.first();
+    QCOMPARE(root.nodeId, buttonId);
+    QVERIFY(root.isVariable);
+    QCOMPARE(root.resolvedDataType.builtInBase, QStringLiteral("Structure"));
+    QVERIFY(root.valueSkipped);
+
+    const CloneNode count = find(result.nodes, m_server.nodeId("Button.Count"));
+    QCOMPARE(count.parentNodeId, buttonId);
+    QCOMPARE(count.value.toInt(), 3);
+}
+
+void CloneTraversalTest::skipsAllValuesWhenDisabled()
+{
+    CloneOptions options;
+    options.readValues = false;
+    const Result result = run(m_server.nodeId("Area"), options);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    // Locked is not readable; without Value reads it is no longer a failure.
+    QCOMPARE(result.completion.failedReads, 0);
+
+    const CloneNode label = find(result.nodes, m_server.nodeId("Label"));
+    QVERIFY(label.isVariable);
+    QVERIFY(!label.value.isValid());
+    QVERIFY(!label.valueSkipped);
+    QCOMPARE(label.resolvedDataType.builtInBase, QStringLiteral("String"));
+}
+
+void CloneTraversalTest::readsServerIdentity()
+{
+    const Result result = run(m_server.nodeId("Area"));
+    QVERIFY(result.finished);
+    const ServerIdentity &server = result.completion.server;
+    QVERIFY2(server.endpointUrl.startsWith(QLatin1String("opc.tcp://")),
+             qPrintable(server.endpointUrl));
+    QCOMPARE(server.securityMode, QStringLiteral("None"));
+    QVERIFY(!server.securityPolicy.isEmpty());
+    QVERIFY(!server.applicationUri.isEmpty());
+    QVERIFY(!server.productName.isEmpty());
+    QVERIFY(!server.softwareVersion.isEmpty());
+    QVERIFY(server.buildDate.isValid());
+}
+
 void CloneTraversalTest::reportsNodeLimit()
 {
     CloneOptions options;
@@ -614,8 +701,11 @@ void CloneTraversalTest::clonesStructuresIntoRuntime()
     OpcUaManager manager;
     ServerStudio studio;
     studio.setOpcUaManager(&manager);
-    emit manager.cloneSnapshotReady(0, result.nodes, m_client->namespaceArray(),
-                                    result.completion);
+    QSignalSpy requestSpy(&manager, &OpcUaManager::cloneBrowseRequested);
+    QVERIFY(studio.cloneFromClient(false));
+    QCOMPARE(requestSpy.size(), 1);
+    emit manager.cloneSnapshotReady(requestSpy.first().at(1).toULongLong(), result.nodes,
+                                    m_client->namespaceArray(), result.completion);
 
     QTemporaryDir dir;
     QVERIFY(dir.isValid());

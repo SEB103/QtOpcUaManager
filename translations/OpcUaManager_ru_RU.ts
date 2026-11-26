@@ -1664,7 +1664,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+883"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>В представление данных добавлен %n узел.</numerusform>
@@ -1738,7 +1738,7 @@
         <translation>%1 доступен только для чтения: сервер не предоставляет CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+357"/>
+        <location line="+358"/>
         <source>The stored server was not found during discovery.</source>
         <translation>Сохранённый сервер не найден при обнаружении.</translation>
     </message>
@@ -1924,7 +1924,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -2051,22 +2051,27 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+677"/>
+        <location line="+685"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
-        <location line="-671"/>
+        <location line="-679"/>
         <source>A clone is already in progress.</source>
         <translation>Клонирование уже выполняется.</translation>
     </message>
     <message>
         <location line="+8"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Другое клонирование или снапшот сервера уже выполняется.</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <source>Cloning the server address space…</source>
         <translation>Клонирование адресного пространства сервера…</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="+13"/>
         <source>Clone cancelled; the server project was not changed.</source>
         <translation>Клонирование отменено; серверный проект не изменён.</translation>
     </message>
@@ -2106,12 +2111,12 @@
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location line="-675"/>
+        <location line="-683"/>
         <source>%1 node(s) captured, %2 waiting for the server</source>
         <translation>Получено узлов: %1, ожидают ответа сервера: %2</translation>
     </message>
     <message>
-        <location line="+917"/>
+        <location line="+925"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Переменных с заменённым типом данных: %1 (дата/время или неподдерживаемый тип).</translation>
     </message>
@@ -2154,12 +2159,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+434"/>
         <source>(none)</source>
         <translation>(нет)</translation>
     </message>
     <message>
-        <location line="-300"/>
+        <location line="-310"/>
         <source>(no values)</source>
         <translation>(нет значений)</translation>
     </message>
@@ -2211,12 +2216,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+864"/>
+        <location line="+873"/>
         <source>New Server Project</source>
         <translation>Новый проект сервера</translation>
     </message>
     <message>
-        <location line="-836"/>
+        <location line="-845"/>
         <source>+ Folder</source>
         <translation>+ Папка</translation>
     </message>
@@ -2227,12 +2232,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+528"/>
+        <location line="+537"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Select a node to edit its properties.</source>
         <translation>Выберите узел, чтобы изменить его свойства.</translation>
     </message>
@@ -2308,13 +2313,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+324"/>
+        <location line="+323"/>
         <location line="+148"/>
         <source>value</source>
         <translation>значение</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Simulation:</source>
         <translation>Симуляция:</translation>
     </message>
@@ -2344,7 +2349,7 @@
         <translation>Применить</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+20"/>
         <source>Security</source>
         <translation>Безопасность</translation>
     </message>

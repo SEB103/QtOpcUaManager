@@ -2,6 +2,8 @@
 
 #include <QLoggingCategory>
 #include <QOpcUaClient>
+#include <QOpcUaEndpointDescription>
+#include <QOpcUaLocalizedText>
 #include <QOpcUaNode>
 #include <QOpcUaQualifiedName>
 #include <QOpcUaReadItem>
@@ -74,6 +76,61 @@ const QList<QOpcUa::NodeAttribute> kMetadataAttributes = {
     QOpcUa::NodeAttribute::ArrayDimensions, QOpcUa::NodeAttribute::AccessLevel,
     QOpcUa::NodeAttribute::UserAccessLevel,
 };
+
+/*!
+ * \internal
+ * \brief Attributes read for a captured root node, in request order.
+ */
+const QList<QOpcUa::NodeAttribute> kRootInfoAttributes = {
+    QOpcUa::NodeAttribute::NodeClass,
+    QOpcUa::NodeAttribute::BrowseName,
+    QOpcUa::NodeAttribute::DisplayName,
+};
+
+/*!
+ * \internal
+ * \brief Namespace-0 variables read for the server identity, in request order.
+ *
+ * ServerArray, then the BuildInfo members ProductName, ProductUri,
+ * ManufacturerName, SoftwareVersion, BuildNumber and BuildDate.
+ */
+const QStringList kIdentityNodeIds = {
+    QStringLiteral("ns=0;i=2254"), QStringLiteral("ns=0;i=2261"), QStringLiteral("ns=0;i=2262"),
+    QStringLiteral("ns=0;i=2263"), QStringLiteral("ns=0;i=2264"), QStringLiteral("ns=0;i=2265"),
+    QStringLiteral("ns=0;i=2266"),
+};
+
+/*!
+ * \internal
+ * \brief Time in milliseconds the server identity read may take before it is abandoned.
+ */
+constexpr int kIdentityTimeoutMs = 5000;
+
+/*!
+ * \internal
+ * \brief Returns the text of message security \a mode as used in snapshots.
+ */
+QString securityModeName(QOpcUaEndpointDescription::MessageSecurityMode mode)
+{
+    switch (mode) {
+    case QOpcUaEndpointDescription::MessageSecurityMode::None: return QStringLiteral("None");
+    case QOpcUaEndpointDescription::MessageSecurityMode::Sign: return QStringLiteral("Sign");
+    case QOpcUaEndpointDescription::MessageSecurityMode::SignAndEncrypt:
+        return QStringLiteral("SignAndEncrypt");
+    default: return QString();
+    }
+}
+
+/*!
+ * \internal
+ * \brief Returns \a value as text; a LocalizedText yields its text.
+ */
+QString identityText(const QVariant &value)
+{
+    if (value.metaType() == QMetaType::fromType<QOpcUaLocalizedText>())
+        return value.value<QOpcUaLocalizedText>().text();
+    return value.toString();
+}
 
 /*!
  * \internal
@@ -221,6 +278,16 @@ void CloneBrowser::start()
     m_readConnection = connect(m_client, &QOpcUaClient::readNodeAttributesFinished, this,
                                &CloneBrowser::handleReadResults);
 
+    // A captured root is the first node; its own attributes are read once,
+    // and its children name it as their parent.
+    if (m_options.captureRoot) {
+        CloneNode root;
+        root.nodeId = m_rootNodeId;
+        m_index.insert(m_rootNodeId, 0);
+        m_nodes.append(root);
+        startRead({m_rootNodeId}, ReadKind::RootInfo);
+    }
+
     m_browseQueue.enqueue({m_rootNodeId, 0});
     pump();
 }
@@ -265,7 +332,7 @@ void CloneBrowser::pump()
         const qsizetype count = std::min<qsizetype>(perRead, queue.size());
         const QStringList batch = queue.mid(0, count);
         queue.remove(0, count);
-        startRead(batch, values);
+        startRead(batch, values ? ReadKind::Values : ReadKind::Metadata);
     }
 
     startTypeLookup();
@@ -329,7 +396,7 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
     }
 
     const bool parentIsRoot = item.depth == 0;
-    const QString parentId = parentIsRoot ? QString() : item.nodeId;
+    const QString parentId = parentIsRoot && !m_options.captureRoot ? QString() : item.nodeId;
     for (const QOpcUaReferenceDescription &reference : references) {
         const QString childId = reference.targetNodeId().nodeId();
         if (childId.isEmpty() || childId == m_rootNodeId)
@@ -358,6 +425,7 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
         child.browseNameNamespace = reference.browseName().namespaceIndex();
         child.displayName = reference.displayName().text();
         child.nodeClass = static_cast<int>(reference.nodeClass());
+        child.referenceTypeId = reference.refTypeId();
         child.typeDefinitionId = reference.typeDefinition().nodeId();
         child.isVariable = reference.nodeClass() == QOpcUa::NodeClass::Variable;
         child.isFolder = reference.nodeClass() == QOpcUa::NodeClass::Object
@@ -398,30 +466,75 @@ void CloneBrowser::markBrowseError(const QString &nodeId, const QString &reason)
  * \internal
  * \brief Issues one batched read for the variables \a nodeIds.
  *
- * Reads the Value attribute when \a values is true, otherwise the metadata
- * attributes.
+ * \a kind selects the Value attribute, the metadata attributes or the root
+ * information attributes.
  */
-void CloneBrowser::startRead(const QStringList &nodeIds, bool values)
+void CloneBrowser::startRead(const QStringList &nodeIds, ReadKind kind)
 {
-    QList<QOpcUaReadItem> items;
-    if (values) {
-        items.reserve(nodeIds.size());
-        for (const QString &nodeId : nodeIds)
-            items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
-    } else {
-        items.reserve(nodeIds.size() * kMetadataAttributes.size());
-        for (const QString &nodeId : nodeIds) {
-            for (const QOpcUa::NodeAttribute attribute : kMetadataAttributes)
-                items.append(QOpcUaReadItem(nodeId, attribute));
-        }
+    QList<QOpcUa::NodeAttribute> attributes;
+    switch (kind) {
+    case ReadKind::Metadata: attributes = kMetadataAttributes; break;
+    case ReadKind::Values: attributes = {QOpcUa::NodeAttribute::Value}; break;
+    case ReadKind::RootInfo: attributes = kRootInfoAttributes; break;
     }
 
-    m_reading.append({nodeIds, QSet<QString>(nodeIds.cbegin(), nodeIds.cend()), values});
+    QList<QOpcUaReadItem> items;
+    items.reserve(nodeIds.size() * attributes.size());
+    for (const QString &nodeId : nodeIds) {
+        for (const QOpcUa::NodeAttribute attribute : std::as_const(attributes))
+            items.append(QOpcUaReadItem(nodeId, attribute));
+    }
+
+    m_reading.append({nodeIds, QSet<QString>(nodeIds.cbegin(), nodeIds.cend()), kind});
     if (!m_client->readNodeAttributes(items)) {
         m_reading.removeLast();
-        failRead(nodeIds, values ? QStringLiteral("Value: read request could not be started")
-                                 : QStringLiteral("Read: read request could not be started"));
+        failRead(nodeIds, kind == ReadKind::Values
+                              ? QStringLiteral("Value: read request could not be started")
+                              : QStringLiteral("Read: read request could not be started"));
     }
+}
+
+/*!
+ * \internal
+ * \brief Stores the NodeClass, BrowseName and DisplayName of the captured root.
+ *
+ * A variable root is then queued for its metadata read like any other variable.
+ */
+void CloneBrowser::applyRootInfo(const QList<QOpcUaReadResult> &results)
+{
+    CloneNode &root = m_nodes[0];
+    for (const QOpcUaReadResult &result : results) {
+        if (isBad(result.statusCode())) {
+            const QString error = QStringLiteral("%1: %2").arg(
+                result.attribute() == QOpcUa::NodeAttribute::NodeClass ? QStringLiteral("NodeClass")
+                : result.attribute() == QOpcUa::NodeAttribute::BrowseName
+                    ? QStringLiteral("BrowseName")
+                    : QStringLiteral("DisplayName"),
+                QOpcUa::statusToString(result.statusCode()));
+            root.attributeErrors.append(error);
+            logReadFailure(root.nodeId, error);
+            continue;
+        }
+        switch (result.attribute()) {
+        case QOpcUa::NodeAttribute::NodeClass:
+            root.nodeClass = result.value().toInt();
+            break;
+        case QOpcUa::NodeAttribute::BrowseName: {
+            const auto name = result.value().value<QOpcUaQualifiedName>();
+            root.browseName = name.name();
+            root.browseNameNamespace = name.namespaceIndex();
+            break;
+        }
+        case QOpcUa::NodeAttribute::DisplayName:
+            root.displayName = result.value().value<QOpcUaLocalizedText>().text();
+            break;
+        default:
+            break;
+        }
+    }
+    root.isVariable = root.nodeClass == static_cast<int>(QOpcUa::NodeClass::Variable);
+    if (root.isVariable)
+        m_readQueue.prepend(root.nodeId);
 }
 
 /*!
@@ -449,7 +562,7 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         if (serviceResult == QOpcUa::UaStatusCode::BadTooManyOperations
             && batch.nodeIds.size() > 1) {
             const int half = std::max<int>(1, int(batch.nodeIds.size() / 2));
-            if (batch.values) {
+            if (batch.kind == ReadKind::Values) {
                 m_options.valuesPerRead = half;
                 m_valueQueue = batch.nodeIds + m_valueQueue;
             } else {
@@ -458,9 +571,10 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
             }
         } else {
             failRead(batch.nodeIds,
-                     QStringLiteral("%1: %2").arg(batch.values ? QStringLiteral("Value")
-                                                              : QStringLiteral("Read"),
-                                                 QOpcUa::statusToString(serviceResult)));
+                     QStringLiteral("%1: %2").arg(batch.kind == ReadKind::Values
+                                                      ? QStringLiteral("Value")
+                                                      : QStringLiteral("Read"),
+                                                  QOpcUa::statusToString(serviceResult)));
         }
         pump();
         return;
@@ -469,10 +583,13 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
     QSet<QString> resultIds;
     for (const QOpcUaReadResult &result : results)
         resultIds.insert(result.nodeId());
-    const bool valueResults = results.first().attribute() == QOpcUa::NodeAttribute::Value;
+    const QOpcUa::NodeAttribute first = results.first().attribute();
+    const ReadKind kind = first == QOpcUa::NodeAttribute::Value       ? ReadKind::Values
+                          : first == QOpcUa::NodeAttribute::NodeClass ? ReadKind::RootInfo
+                                                                      : ReadKind::Metadata;
     const auto batch = std::find_if(m_reading.begin(), m_reading.end(),
-                                    [&resultIds, valueResults](const ReadBatch &candidate) {
-                                        return candidate.values == valueResults
+                                    [&resultIds, kind](const ReadBatch &candidate) {
+                                        return candidate.kind == kind
                                                && candidate.keySet == resultIds;
                                     });
     if (batch == m_reading.end())
@@ -481,12 +598,18 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
     m_reading.erase(batch);
     touch();
 
+    if (kind == ReadKind::RootInfo) {
+        applyRootInfo(results);
+        pump();
+        return;
+    }
+
     for (const QOpcUaReadResult &result : results) {
         const auto it = m_index.constFind(result.nodeId());
         if (it != m_index.constEnd())
             applyReadResult(m_nodes[it.value()], result);
     }
-    if (!valueResults) {
+    if (kind == ReadKind::Metadata) {
         for (const QString &nodeId : nodeIds)
             routeValueRead(nodeId);
     }
@@ -517,10 +640,13 @@ void CloneBrowser::failRead(const QStringList &nodeIds, const QString &reason)
  * A variable whose DataType attribute could not be read gets no Value read:
  * without a type it cannot be recreated faithfully, and its metadata error is
  * already recorded. A DataType outside the namespace-0 tables is queued for a
- * lookup; the variable waits until startTypeLookup() has resolved it.
+ * lookup; the variable waits until startTypeLookup() has resolved it. With
+ * CloneOptions::readValues off no Value is read at all.
  */
 void CloneBrowser::routeValueRead(const QString &nodeId)
 {
+    if (!m_options.readValues)
+        return;
     const auto index = m_index.constFind(nodeId);
     if (index == m_index.constEnd())
         return;
@@ -721,8 +847,10 @@ void CloneBrowser::finishIfIdle()
  * \brief Ends the traversal with \a state and resolves the captured DataType ids.
  *
  * Responses arriving afterwards are ignored. A root that could not be browsed
- * with nothing captured turns the result into Failed. A cancelled traversal is
- * published without type resolution.
+ * with nothing captured turns the result into Failed. The remaining DataType
+ * ids are resolved and the server identity is read in parallel; finished() is
+ * emitted once both have settled. A cancelled traversal is published at once,
+ * without type resolution or identity.
  */
 void CloneBrowser::finish(CloneCompletion::State state)
 {
@@ -739,7 +867,10 @@ void CloneBrowser::finish(CloneCompletion::State state)
     if (m_readConnection)
         disconnect(m_readConnection);
 
-    if (m_rootBrowseFailed && m_nodes.isEmpty() && state != CloneCompletion::State::Cancelled)
+    // A captured root alone (its browse failed) is no result either.
+    const qsizetype minimumNodes = m_options.captureRoot ? 1 : 0;
+    if (m_rootBrowseFailed && m_nodes.size() <= minimumNodes
+        && state != CloneCompletion::State::Cancelled)
         state = CloneCompletion::State::Failed;
 
     m_completion.state = state;
@@ -770,14 +901,109 @@ void CloneBrowser::finish(CloneCompletion::State state)
             typeIds.append(node.dataTypeId);
     }
 
-    if (!m_client || typeIds.isEmpty() || state == CloneCompletion::State::Cancelled) {
-        publishResult();
+    if (!m_client || state == CloneCompletion::State::Cancelled) {
+        publishIfReady();
         return;
     }
 
-    m_resolver = new DataTypeResolver(m_client, this);
-    connect(m_resolver, &DataTypeResolver::finished, this, &CloneBrowser::publishResult);
-    m_resolver->resolve(typeIds);
+    startIdentityRead();
+    if (!typeIds.isEmpty()) {
+        m_resolverPending = true;
+        m_resolver = new DataTypeResolver(m_client, this);
+        connect(m_resolver, &DataTypeResolver::finished, this, [this]() {
+            m_resolverPending = false;
+            publishIfReady();
+        });
+        m_resolver->resolve(typeIds);
+    }
+    publishIfReady();
+}
+
+/*!
+ * \internal
+ * \brief Records the session endpoint and reads the server's identity variables.
+ *
+ * One batched Value read of ServerArray and the BuildInfo members; the shared
+ * result signal is claimed by its node-id set. A failed or missing answer
+ * leaves the fields empty after kIdentityTimeoutMs.
+ */
+void CloneBrowser::startIdentityRead()
+{
+    const QOpcUaEndpointDescription endpoint = m_client->endpoint();
+    m_completion.server.endpointUrl = endpoint.endpointUrl();
+    m_completion.server.securityMode = securityModeName(endpoint.securityMode());
+    m_completion.server.securityPolicy = endpoint.securityPolicy();
+
+    QList<QOpcUaReadItem> items;
+    for (const QString &nodeId : kIdentityNodeIds)
+        items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
+
+    m_identityPending = true;
+    m_identityConnection =
+        connect(m_client, &QOpcUaClient::readNodeAttributesFinished, this,
+                [this](const QList<QOpcUaReadResult> &results, QOpcUa::UaStatusCode) {
+                    QSet<QString> ids;
+                    for (const QOpcUaReadResult &result : results)
+                        ids.insert(result.nodeId());
+                    if (!m_identityPending
+                        || ids != QSet<QString>(kIdentityNodeIds.cbegin(), kIdentityNodeIds.cend()))
+                        return;
+                    applyIdentity(results);
+                });
+    QTimer::singleShot(kIdentityTimeoutMs, this, [this]() { applyIdentity({}); });
+
+    if (!m_client->readNodeAttributes(items))
+        applyIdentity({});
+}
+
+/*!
+ * \internal
+ * \brief Stores the identity read \a results, if any, and publishes when ready.
+ */
+void CloneBrowser::applyIdentity(const QList<QOpcUaReadResult> &results)
+{
+    if (!m_identityPending)
+        return;
+    m_identityPending = false;
+    disconnect(m_identityConnection);
+
+    ServerIdentity &server = m_completion.server;
+    for (const QOpcUaReadResult &result : results) {
+        if (isBad(result.statusCode()))
+            continue;
+        const QVariant value = result.value();
+        const qsizetype index = kIdentityNodeIds.indexOf(result.nodeId());
+        switch (index) {
+        case 0: {
+            // Qt OPC UA returns a one-element array as a scalar.
+            const QVariantList list = value.typeId() == QMetaType::QVariantList
+                                          ? value.toList()
+                                          : QVariantList{value};
+            server.applicationUri = list.isEmpty() ? QString() : list.first().toString();
+            break;
+        }
+        case 1: server.productName = identityText(value); break;
+        case 2: server.productUri = identityText(value); break;
+        case 3: server.manufacturerName = identityText(value); break;
+        case 4: server.softwareVersion = identityText(value); break;
+        case 5: server.buildNumber = identityText(value); break;
+        case 6: server.buildDate = value.toDateTime(); break;
+        default: break;
+        }
+    }
+    publishIfReady();
+}
+
+/*!
+ * \internal
+ * \brief Emits the result once the type resolution and identity read have settled.
+ */
+void CloneBrowser::publishIfReady()
+{
+    if (m_published || m_resolverPending || m_identityPending)
+        return;
+    m_published = true;
+    publishResult();
 }
 
 /*!
