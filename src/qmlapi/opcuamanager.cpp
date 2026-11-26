@@ -318,13 +318,15 @@ OpcUaModel *OpcUaManager::treeModel() const
 /*!
  * \brief Requests a recursive clone browse of the connected server's Objects.
  * \param maxNodes Node limit of the browse; 0 uses the default limit.
+ * \param maxArrayElements Elements captured per array; 0 captures all.
  * \return The request id echoed in the result, or 0 when another browse is running.
  */
-quint64 OpcUaManager::requestCloneSnapshot(int maxNodes)
+quint64 OpcUaManager::requestCloneSnapshot(int maxNodes, int maxArrayElements)
 {
     CloneOptions options;
     if (maxNodes > 0)
         options.maxNodes = maxNodes;
+    options.maxArrayElements = std::max(0, maxArrayElements);
     return requestAddressSpaceBrowse(QStringLiteral("ns=0;i=85"), options);
 }
 

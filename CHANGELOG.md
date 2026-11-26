@@ -23,6 +23,14 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 - **Clone to Server Studio**: a progress dialog shows the captured and pending nodes and
   can cancel the clone; a cancelled clone leaves the current server project unchanged.
   The clone dialog offers a node limit of 50 000, 200 000 (default) or 1 000 000 nodes.
+  It also limits the elements cloned per array (first 10 by default, first 100, or all):
+  a large array such as a 1000-row recipe table of structures holds most nodes of a PLC,
+  and the clone report names the limited arrays.
+  With all elements, an array of structures that follows the CODESYS NodeId pattern
+  `<array>[index]` is cloned from its first element: only that element is browsed, the
+  members of the others are derived from it and read from the server, and an element that
+  differs is browsed on its own. Read requests are sized from the server's MaxNodesPerRead
+  (up to 64 variables per request).
 - **Server Studio**: structure data types. A structure variable references its
   structure type and has its members as child nodes (the way CODESYS publishes them);
   the runtime serves the type as a `Structure` subtype. Variables may be
@@ -45,6 +53,16 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   that still cannot be determined leaves its variables without a value (reported as
   incomplete) instead of reading what may be a large structure. The progress dialog shows
   where the clone waits: browsing, metadata or value reads, or data type lookups.
+- **Clone to Server Studio**: much faster on large PLCs. A variable of a simple scalar type
+  is no longer browsed for children once a sample of 200 variables of the same kind had
+  none (on a CODESYS PLC about nine in ten nodes; each browse cost a round trip), and the
+  values travel in the same read requests as the variable metadata again. Structures,
+  arrays and variables of unknown type are always browsed. The log line every 30 seconds
+  shows the number and average latency of browse and read requests.
+- **Clone to Server Studio**: a CODESYS structure that contains a function block instance,
+  for which the server provides no type, is cloned as a structure with all its members
+  instead of being reported as a failed read; the property editor states that the server
+  did not provide its type.
 - **Clone to Server Studio**: variable data types are now resolved through the source
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard

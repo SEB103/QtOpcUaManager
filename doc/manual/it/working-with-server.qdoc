@@ -59,6 +59,10 @@
     array di un tipo semplice e un array multidimensionale (ad esempio \c{Int32[2,3]})
     vengono riprodotti come tali. L’albero del server mostra questi tipi, ad esempio
     \c{ST_HMI_Button[13]}.
+    CODESYS non fornisce un tipo per una struttura che contiene un’istanza di blocco
+    funzionale; tale struttura viene clonata con il tipo generico \c Structure, i suoi
+    membri sono completi e l’editor delle proprietà indica che il server non ha fornito il
+    tipo.
 
     La clonazione si svolge con una finestra di avanzamento; \e{Annulla} la interrompe e
     lascia invariato il progetto server attuale. L’esplorazione è limitata dal limite di
@@ -67,6 +71,20 @@
     secondi senza risposta del server; non c’è un limite di tempo complessivo. Quando un
     limite termina la clonazione, o alcuni nodi non possono essere letti o esplorati, una
     finestra di dialogo e il messaggio di stato lo indicano e il clone è incompleto.
+
+    La finestra di clonazione limita anche gli elementi clonati per array: i primi 10
+    (predefinito), i primi 100 o tutti. Gli array grandi, come una tabella di ricette di
+    1000 strutture, contengono la maggior parte dei nodi di un PLC, e un PLC risponde alle
+    richieste una alla volta, quindi clonarli tutti può richiedere molto tempo. Il rapporto
+    di clonazione indica quanti array sono stati limitati e quanti elementi non sono stati
+    clonati.
+
+    Con tutti gli elementi, un array di strutture i cui elementi seguono lo schema di NodeId
+    \c{<array>[indice]} viene clonato dal suo primo elemento: solo quell’elemento viene
+    esplorato, i membri degli altri vengono derivati da esso e poi letti dal server, così
+    tipi e valori sono quelli del server. Un elemento diverso dal primo viene esplorato a
+    parte. Le richieste di lettura sono dimensionate in base al limite MaxNodesPerRead del
+    server.
 
     \section1 Scambiare spazi degli indirizzi
 

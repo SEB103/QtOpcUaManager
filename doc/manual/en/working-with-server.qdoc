@@ -56,6 +56,9 @@
     type and a multi-dimensional array (for example \c{Int32[2,3]}) are reproduced as such.
     The type column of the server tree shows these types, for example
     \c{ST_HMI_Button[13]}.
+    CODESYS provides no type for a structure that contains a function block instance;
+    such a structure is cloned with the generic type \c Structure, its members are
+    complete, and the property editor states that the server did not provide the type.
 
     The clone runs with a progress dialog; \e{Cancel} stops it and leaves the current
     server project unchanged. The browse is bounded by the node limit chosen in the clone
@@ -63,6 +66,18 @@
     levels and 30 seconds without a server response; there is no overall time limit.
     When a limit ends the clone, or some nodes cannot be read or browsed, a dialog and
     the status message say so and the clone is incomplete.
+
+    The clone dialog also limits the elements cloned per array: the first 10 (default),
+    the first 100, or all. Large arrays, such as a recipe table of 1000 structures, hold
+    most nodes of a PLC, and a PLC answers its requests one at a time, so cloning all of
+    them can take very long. The clone report names how many arrays were limited and how
+    many elements were not cloned.
+
+    With all elements, an array of structures whose elements follow the NodeId pattern
+    \c{<array>[index]} is cloned from its first element: only that element is browsed,
+    the members of the others are derived from it and then read from the server, so their
+    types and values are the server's. An element that differs from the first is browsed
+    on its own. The read requests are sized from the server's MaxNodesPerRead limit.
 
     \section1 Exchange address spaces
 

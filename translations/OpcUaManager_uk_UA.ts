@@ -1521,12 +1521,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+326"/>
+        <location line="+349"/>
         <source>Browse…</source>
         <translation>Огляд…</translation>
     </message>
     <message>
-        <location line="-320"/>
+        <location line="-343"/>
         <source>Full path:</source>
         <translation>Повний шлях:</translation>
     </message>
@@ -1566,7 +1566,7 @@
         <translation>Клонувати сервер до Server Studio</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+22"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>Увесь адресний простір Objects під&apos;єднаного сервера буде переглянуто, а значення його змінних зчитано в новий проєкт сервера.</translation>
     </message>
@@ -1604,6 +1604,31 @@
         <location line="+9"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Клон, що досяг ліміту, позначається як неповний. Великі ліміти тривають довше й більше навантажують сервер.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Array elements:</source>
+        <translation>Елементи масивів:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>First 10 per array</source>
+        <translation>Перші 10 у кожному масиві</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>First 100 per array</source>
+        <translation>Перші 100 у кожному масиві</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>All elements</source>
+        <translation>Усі елементи</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
+        <translation>Великі масиви, наприклад таблиця рецептів із 1000 структур, містять більшість вузлів ПЛК. Обрізані масиви вказуються у звіті про клонування.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1687,7 +1712,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+883"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+885"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>До подання даних додано %n вузол.</numerusform>
@@ -2066,7 +2091,12 @@
         <translation>Сеанси: %1 · Захищені канали: %2 · Час роботи: %3 с</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>не повідомляється сервером (структура, що містить функціональний блок або інший об’єкт)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Сервер без назви</translation>
     </message>
@@ -2153,12 +2183,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+685"/>
+        <location line="+701"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
-        <location line="-679"/>
+        <location line="-695"/>
         <source>A clone is already in progress.</source>
         <translation>Клонування вже виконується.</translation>
     </message>
@@ -2183,7 +2213,7 @@
         <translation>Нічого не клоновано. Під&apos;єднайтеся до сервера та повторіть спробу.</translation>
     </message>
     <message>
-        <location line="+221"/>
+        <location line="+222"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>Клоновано вузлів: %1; досягнуто ліміту в %2 вузлів, тому клон неповний.</translation>
     </message>
@@ -2199,21 +2229,31 @@
     </message>
     <message>
         <location line="+11"/>
+        <source>%1 array(s) were built from their first element and checked by reading (%2 node(s)).</source>
+        <translation>Масивів, побудованих за першим елементом і перевірених читанням: %1 (вузлів: %2).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</source>
+        <translation>Масивів обрізано до перших %2 елементів: %1; не клоновано елементів: %3.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>%1 node(s) could not be read or browsed completely.</source>
         <translation>Вузлів, які не вдалося повністю прочитати або переглянути: %1.</translation>
     </message>
     <message>
-        <location line="-5"/>
+        <location line="-20"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-233"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>
     <message>
-        <location line="+242"/>
+        <location line="+258"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Змінних із заміненим типом даних: %1 (дата/час або непідтримуваний тип).</translation>
     </message>

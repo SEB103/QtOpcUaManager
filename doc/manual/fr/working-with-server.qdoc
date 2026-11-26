@@ -62,6 +62,10 @@
     structures, un tableau d’un type simple et un tableau multidimensionnel (par exemple
     \c{Int32[2,3]}) sont reproduits comme tels. L’arborescence du serveur affiche ces
     types, par exemple \c{ST_HMI_Button[13]}.
+    CODESYS ne fournit pas de type pour une structure qui contient une instance de bloc
+    fonctionnel ; une telle structure est clonée avec le type générique \c Structure, ses
+    membres sont complets et l’éditeur de propriétés indique que le serveur n’a pas fourni
+    le type.
 
     Le clonage s’exécute avec une boîte de dialogue de progression ; \e{Annuler}
     l’interrompt et laisse le projet serveur actuel inchangé. Le parcours est limité par la
@@ -70,6 +74,20 @@
     secondes sans réponse du serveur ; il n’y a pas de limite de durée totale. Lorsqu’une
     limite met fin au clonage, ou que certains nœuds ne peuvent pas être lus ou parcourus,
     une boîte de dialogue et le message d’état l’indiquent et le clone est incomplet.
+
+    La boîte de dialogue de clonage limite aussi les éléments clonés par tableau : les 10
+    premiers (par défaut), les 100 premiers ou tous. Les grands tableaux, comme une table de
+    recettes de 1000 structures, contiennent la plupart des nœuds d’un automate, et un
+    automate répond à ses requêtes une par une ; tout cloner peut donc être très long. Le
+    rapport de clonage indique combien de tableaux ont été limités et combien d’éléments
+    n’ont pas été clonés.
+
+    Avec tous les éléments, un tableau de structures dont les éléments suivent le modèle de
+    NodeId \c{<tableau>[index]} est cloné à partir de son premier élément : seul cet
+    élément est parcouru, les membres des autres en sont déduits puis lus sur le serveur,
+    de sorte que leurs types et valeurs sont ceux du serveur. Un élément qui diffère du
+    premier est parcouru séparément. Les requêtes de lecture sont dimensionnées selon la
+    limite MaxNodesPerRead du serveur.
 
     \section1 Échanger des espaces d’adressage
 

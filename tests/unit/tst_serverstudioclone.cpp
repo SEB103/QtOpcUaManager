@@ -41,6 +41,13 @@ private slots:
     */
     void ignoresForeignBrowseResults();
 
+    /*!
+        A variable without a readable DataType but with members (a CODESYS
+        structure holding a function block) is a container, not a failed read,
+        and is cloned as a structure whose source type is "not provided".
+    */
+    void clonesContainersWithoutDataType();
+
 private:
     /*! Starts a clone of \a studio through \a manager and returns its request id. */
     static quint64 startClone(ServerStudio &studio, OpcUaManager &manager);
@@ -263,16 +270,20 @@ void ServerStudioCloneTest::reportsIncompleteClone_data()
     QTest::addColumn<int>("state");
     QTest::addColumn<bool>("nodeLimit");
     QTest::addColumn<int>("failedReads");
+    QTest::addColumn<int>("limitedArrays");
     QTest::addColumn<QString>("expected");
 
-    QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0
+    QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0 << 0
                                 << QStringLiteral("the limit of 200000 nodes was reached");
-    QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0
+    QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0 << 0
                                  << QStringLiteral("at the depth limit of 64");
-    QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0
+    QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0 << 0
                              << QStringLiteral("did not answer in time and 7 node(s)");
-    QTest::newRow("failed reads") << int(CloneCompletion::State::Complete) << false << 3
+    QTest::newRow("failed reads") << int(CloneCompletion::State::Complete) << false << 3 << 0
                                   << QStringLiteral("3 node(s) could not be read");
+    QTest::newRow("array limit") << int(CloneCompletion::State::Complete) << false << 0 << 2
+                                 << QStringLiteral("2 array(s) were limited to their first 10 "
+                                                   "elements; 1980 element(s) were not cloned");
 }
 
 void ServerStudioCloneTest::reportsIncompleteClone()
@@ -280,6 +291,7 @@ void ServerStudioCloneTest::reportsIncompleteClone()
     QFETCH(int, state);
     QFETCH(bool, nodeLimit);
     QFETCH(int, failedReads);
+    QFETCH(int, limitedArrays);
     QFETCH(QString, expected);
 
     const QString hmi = QStringLiteral("ns=4;s=|var|PLC.Application.V_HMI");
@@ -294,6 +306,9 @@ void ServerStudioCloneTest::reportsIncompleteClone()
     completion.depthLimitedNodes = nodeLimit ? 0 : 2;
     completion.pendingRequests = 7;
     completion.failedReads = failedReads;
+    completion.limitedArrays = limitedArrays;
+    completion.arrayElementsSkipped = limitedArrays > 0 ? 1980 : 0;
+    completion.options.maxArrayElements = 10;
 
     OpcUaManager manager;
     ServerStudio studio;
@@ -368,6 +383,64 @@ void ServerStudioCloneTest::ignoresForeignBrowseResults()
 
     // The own result releases the browse slot.
     QVERIFY(!manager.addressSpaceBrowseInProgress());
+}
+
+void ServerStudioCloneTest::clonesContainersWithoutDataType()
+{
+    CloneNode recipe = variable(QStringLiteral("stRecipe"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    recipe.attributeErrors = {QStringLiteral("DataType: BadNotSupported")};
+    CloneNode key = variable(QStringLiteral("strKey_Set"), recipe.nodeId,
+                             QStringLiteral("ns=0;i=12"), QStringLiteral("String"),
+                             Resolution::BuiltIn, QStringLiteral("K1"));
+    CloneNode fb;
+    fb.nodeId = recipe.nodeId + QStringLiteral(".fbProduct");
+    fb.parentNodeId = recipe.nodeId;
+    fb.browseName = QStringLiteral("fbProduct");
+    fb.nodeClass = 1;
+    // A variable with the same error but no members stays a failed read, and
+    // so does one that also failed for another attribute.
+    CloneNode lonely = variable(QStringLiteral("xLonely"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    lonely.attributeErrors = {QStringLiteral("DataType: BadNotSupported")};
+    CloneNode broken = variable(QStringLiteral("stBroken"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    broken.attributeErrors = {QStringLiteral("DataType: BadNotSupported"),
+                              QStringLiteral("ValueRank: BadNotSupported")};
+    CloneNode brokenChild = variable(QStringLiteral("x"), broken.nodeId,
+                                     QStringLiteral("ns=0;i=1"), QStringLiteral("Boolean"),
+                                     Resolution::BuiltIn, true);
+
+    QList<CloneNode> nodes{recipe, key, fb, lonely, broken, brokenChild};
+    QCOMPARE(CloneBrowser::markContainersWithoutDataType(nodes), 1);
+    QVERIFY(nodes.at(0).dataTypeNotProvided);
+    QVERIFY(!nodes.at(3).dataTypeNotProvided);
+    QVERIFY(!nodes.at(4).dataTypeNotProvided);
+
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    CloneCompletion completion;
+    completion.state = CloneCompletion::State::Complete;
+    completion.nodeCount = int(nodes.size());
+    const quint64 requestId = startClone(studio, manager);
+    QVERIFY(requestId != 0);
+    emit manager.cloneSnapshotReady(requestId, {recipe, key, fb}, {}, completion);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("containers.uaserver"));
+    QVERIFY(studio.saveProjectAs(path));
+    const auto loaded = ServerProject::Serializer::load(path);
+    QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
+    const ServerProject::Node *recipeNode = find(loaded.data, QStringLiteral("stRecipe"));
+    QVERIFY(recipeNode);
+    QVERIFY(recipeNode->isStructure());
+    QVERIFY(find(loaded.data, QStringLiteral("fbProduct")));
+
+    studio.setSelectedNodeId(recipeNode->nodeId);
+    QVERIFY(studio.selectedNode().value(QStringLiteral("sourceDataType")).toString()
+                .contains(QLatin1String("not provided by the server")));
 }
 
 QTEST_GUILESS_MAIN(ServerStudioCloneTest)

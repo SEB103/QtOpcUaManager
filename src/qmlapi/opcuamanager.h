@@ -285,7 +285,7 @@ public:
      * Returns the request id that cloneSnapshotReady() echoes, or 0 when
      * another browse is running.
      */
-    quint64 requestCloneSnapshot(int maxNodes = 0);
+    quint64 requestCloneSnapshot(int maxNodes = 0, int maxArrayElements = 0);
 
     /**
      * Requests a recursive browse under rootNodeId with options on the worker

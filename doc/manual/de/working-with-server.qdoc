@@ -59,6 +59,10 @@
     Array eines einfachen Typs und ein mehrdimensionales Array (zum Beispiel
     \c{Int32[2,3]}) als solche nachgebildet werden. Der Serverbaum zeigt diese Typen an,
     zum Beispiel \c{ST_HMI_Button[13]}.
+    Für eine Struktur, die eine Funktionsbaustein-Instanz enthält, liefert CODESYS keinen
+    Typ; eine solche Struktur wird mit dem allgemeinen Typ \c Structure geklont, ihre
+    Mitglieder sind vollständig, und der Eigenschaftseditor weist darauf hin, dass der
+    Server den Typ nicht geliefert hat.
 
     Das Klonen läuft mit einem Fortschrittsdialog; \e{Abbrechen} beendet es und lässt
     das aktuelle Server-Projekt unverändert. Das Durchsuchen ist durch das im Klon-Dialog
@@ -67,6 +71,19 @@
     gibt es nicht. Beendet ein Limit das Klonen oder können einzelne Knoten nicht gelesen
     oder durchsucht werden, nennen ein Dialog und die Statusmeldung dies, und der Klon ist
     unvollständig.
+
+    Der Klon-Dialog begrenzt außerdem die Elemente, die je Array geklont werden: die ersten
+    10 (Standard), die ersten 100 oder alle. Große Arrays, etwa eine Rezepttabelle aus 1000
+    Strukturen, enthalten die meisten Knoten einer SPS, und eine SPS beantwortet ihre
+    Anfragen nacheinander, sodass das Klonen aller Elemente sehr lange dauern kann. Der
+    Klonbericht nennt, wie viele Arrays begrenzt und wie viele Elemente nicht geklont wurden.
+
+    Mit allen Elementen wird ein Array von Strukturen, dessen Elemente dem NodeId-Muster
+    \c{<Array>[Index]} folgen, aus seinem ersten Element geklont: Nur dieses Element wird
+    durchsucht, die Mitglieder der übrigen werden daraus abgeleitet und dann vom Server
+    gelesen, sodass Typen und Werte die des Servers sind. Ein Element, das vom ersten
+    abweicht, wird einzeln durchsucht. Die Leseanfragen richten sich nach dem
+    MaxNodesPerRead-Limit des Servers.
 
     \section1 Adressräume austauschen
 

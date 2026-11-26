@@ -1517,12 +1517,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+326"/>
+        <location line="+349"/>
         <source>Browse…</source>
         <translation>Durchsuchen…</translation>
     </message>
     <message>
-        <location line="-320"/>
+        <location line="-343"/>
         <source>Full path:</source>
         <translation>Vollständiger Pfad:</translation>
     </message>
@@ -1562,7 +1562,7 @@
         <translation>Server nach Server Studio klonen</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+22"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>Der gesamte Objects-Adressraum des verbundenen Servers wird durchsucht und die Variablenwerte werden in ein neues Serverprojekt eingelesen.</translation>
     </message>
@@ -1600,6 +1600,31 @@
         <location line="+9"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Ein Klon, der das Limit erreicht, wird als unvollständig gemeldet. Große Limits dauern länger und belasten den Server stärker.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Array elements:</source>
+        <translation>Array-Elemente:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>First 10 per array</source>
+        <translation>Erste 10 je Array</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>First 100 per array</source>
+        <translation>Erste 100 je Array</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>All elements</source>
+        <translation>Alle Elemente</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
+        <translation>Große Arrays, etwa eine Rezepttabelle aus 1000 Strukturen, enthalten die meisten Knoten einer SPS. Begrenzte Arrays werden im Klonbericht genannt.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1683,7 +1708,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+883"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+885"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n Knoten zur Datenansicht hinzugefügt.</numerusform>
@@ -2060,7 +2085,12 @@
         <translation>Sitzungen: %1 · Sichere Kanäle: %2 · Laufzeit: %3 s</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>vom Server nicht geliefert (eine Struktur, die einen Funktionsbaustein oder ein anderes Objekt enthält)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Unbenannter Server</translation>
     </message>
@@ -2147,12 +2177,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+685"/>
+        <location line="+701"/>
         <source>No OPC UA client is available.</source>
         <translation>Es ist kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
-        <location line="-679"/>
+        <location line="-695"/>
         <source>A clone is already in progress.</source>
         <translation>Ein Klonvorgang läuft bereits.</translation>
     </message>
@@ -2177,7 +2207,7 @@
         <translation>Es wurde nichts geklont. Verbinden Sie sich mit einem Server und versuchen Sie es erneut.</translation>
     </message>
     <message>
-        <location line="+221"/>
+        <location line="+222"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>%1 Knoten geklont; das Limit von %2 Knoten wurde erreicht, der Klon ist daher unvollständig.</translation>
     </message>
@@ -2193,21 +2223,31 @@
     </message>
     <message>
         <location line="+11"/>
+        <source>%1 array(s) were built from their first element and checked by reading (%2 node(s)).</source>
+        <translation>%1 Array(s) wurden aus ihrem ersten Element aufgebaut und durch Lesen geprüft (%2 Knoten).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</source>
+        <translation>%1 Array(s) wurden auf ihre ersten %2 Elemente begrenzt; %3 Element(e) wurden nicht geklont.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>%1 node(s) could not be read or browsed completely.</source>
         <translation>%1 Knoten konnten nicht vollständig gelesen oder durchsucht werden.</translation>
     </message>
     <message>
-        <location line="-5"/>
+        <location line="-20"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-233"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location line="+242"/>
+        <location line="+258"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
     </message>

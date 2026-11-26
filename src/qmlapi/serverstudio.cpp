@@ -718,6 +718,12 @@ QVariantMap ServerStudio::selectedNode() const
                              : QStringLiteral("%1 (%2)").arg(sourceType,
                                                              node->source.originalDataTypeId);
         }
+        // A cloned structure without any original DataType is a container the
+        // server published without a type, e.g. a CODESYS structure that holds
+        // a function block instance.
+        if (sourceType.isEmpty() && node->isStructure() && !node->source.originalNodeId.isEmpty())
+            sourceType = tr("not provided by the server (a structure that contains a function "
+                            "block or another object)");
         map["sourceDataType"] = sourceType;
     }
     map["sourceNodeId"] = node->source.originalNodeId;
@@ -925,7 +931,7 @@ bool ServerStudio::importNodeSet(const QString &path)
     return true;
 }
 
-bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
+bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes, int maxArrayElements)
 {
     if (!m_opcUaManager) {
         notify(Diagnostics::Error, [this] {
@@ -940,7 +946,7 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
         return false;
     }
 
-    const quint64 requestId = m_opcUaManager->requestCloneSnapshot(maxNodes);
+    const quint64 requestId = m_opcUaManager->requestCloneSnapshot(maxNodes, maxArrayElements);
     if (requestId == 0) {
         notify(Diagnostics::Warning, [this] {
             return tr("Another clone or snapshot of the server is already running.");
@@ -1186,7 +1192,8 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     // reads/browses and substituted types are each named, so a clone that
     // differs from the source never reads as an exact copy.
     const int failedNodes = completion.failedReads + completion.failedBrowses;
-    const bool exact = completion.isComplete() && failedNodes == 0;
+    const bool exact =
+        completion.isComplete() && failedNodes == 0 && completion.limitedArrays == 0;
     const auto report =
            [this, completion, failedNodes, substitutedCount, n = int(project.nodes.size())] {
                QString text;
@@ -1212,6 +1219,21 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
                default:
                    text = tr("Cloned %1 node(s) from the server.").arg(n);
                    break;
+               }
+               if (completion.expandedArrays > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 array(s) were built from their first element and checked "
+                                "by reading (%2 node(s)).")
+                                 .arg(completion.expandedArrays)
+                                 .arg(completion.synthesizedNodes);
+               }
+               if (completion.limitedArrays > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 array(s) were limited to their first %2 elements; %3 "
+                                "element(s) were not cloned.")
+                                 .arg(completion.limitedArrays)
+                                 .arg(completion.options.maxArrayElements)
+                                 .arg(completion.arrayElementsSkipped);
                }
                if (failedNodes > 0) {
                    text += QLatin1Char(' ')
