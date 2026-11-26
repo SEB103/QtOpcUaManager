@@ -101,6 +101,24 @@
     Monitored variables can be persisted so they are restored on the next connection
     (see \l {Configuration}).
 
+    \section1 Saving a server snapshot
+
+    \e{Project > Save Server Snapshot…} writes a read-only record of the connected
+    server's address space to a \c{*.uasnapshot.json} file. Unlike a clone, a snapshot
+    keeps everything as the server reports it: original NodeIds and namespaces, the data
+    type of every variable with its base type, ValueRank, ArrayDimensions, access
+    levels, and typed values with their status and timestamps. Nodes are sorted by
+    browse path, so two snapshots of the same server can be compared with a text diff.
+
+    The options choose the scope (the Objects folder, the node selected in the
+    address-space tree with its subtree, or the whole server from the Root folder),
+    whether values are read, the node limit and how many elements per array are kept.
+    The snapshot uses the same traversal as the clone, with a progress dialog that can
+    cancel it; a cancelled snapshot writes no file. A snapshot that reached a limit or
+    could not read every node is still written, marked as incomplete in its
+    \c completion section, and reported in a dialog. A snapshot may contain plant data;
+    it is only written to the local file you choose.
+
     \section1 Trends
 
     Selected variables can be plotted over time in the trend panel. The trend keeps a

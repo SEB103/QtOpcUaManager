@@ -20,6 +20,13 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 ## [Unreleased]
 
 ### Added
+- **Server snapshot**: *Project > Save Server Snapshot…* writes a read-only record of the
+  connected server's address space to a `*.uasnapshot.json` file — original NodeIds and
+  namespaces, data types with their base types, ValueRank, ArrayDimensions, access levels,
+  typed values with status and timestamps, the server's identity and whether the browse was
+  complete. Scope: the Objects folder, the selected node with its subtree, or the whole
+  server; values, node limit and array elements are selectable. Nodes are sorted by browse
+  path so two snapshots compare with a text diff.
 - **Clone to Server Studio**: a progress dialog shows the captured and pending nodes and
   can cancel the clone; a cancelled clone leaves the current server project unchanged.
   The clone dialog offers a node limit of 50 000, 200 000 (default) or 1 000 000 nodes.

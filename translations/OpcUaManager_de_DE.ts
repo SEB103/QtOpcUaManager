@@ -387,7 +387,7 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+220"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+228"/>
         <source>Application</source>
         <translation>Anwendung</translation>
     </message>
@@ -475,6 +475,11 @@
         <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>In Server Studio klonen</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Save Server Snapshot…</source>
+        <translation>Server-Snapshot speichern…</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -1469,7 +1474,7 @@
         <translation>Zoom: %1 %</translation>
     </message>
     <message>
-        <location line="+194"/>
+        <location line="+198"/>
         <source>Open Project</source>
         <translation>Projekt öffnen</translation>
     </message>
@@ -1481,11 +1486,12 @@
     </message>
     <message>
         <location line="-108"/>
+        <location line="+479"/>
         <source>All files (*)</source>
         <translation>Alle Dateien (*)</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-465"/>
         <source>Create New Project</source>
         <translation>Neues Projekt erstellen</translation>
     </message>
@@ -1517,12 +1523,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+349"/>
+        <location line="+525"/>
         <source>Browse…</source>
         <translation>Durchsuchen…</translation>
     </message>
     <message>
-        <location line="-343"/>
+        <location line="-519"/>
         <source>Full path:</source>
         <translation>Vollständiger Pfad:</translation>
     </message>
@@ -1578,51 +1584,59 @@
     </message>
     <message>
         <location line="+7"/>
+        <location line="+212"/>
         <source>Node limit:</source>
         <translation>Knotenlimit:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-208"/>
+        <location line="+212"/>
         <source>50 000 nodes</source>
         <translation>50 000 Knoten</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>200 000 nodes</source>
         <translation>200 000 Knoten</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>1 000 000 nodes</source>
         <translation>1 000 000 Knoten</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-203"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Ein Klon, der das Limit erreicht, wird als unvollständig gemeldet. Große Limits dauern länger und belasten den Server stärker.</translation>
     </message>
     <message>
         <location line="+7"/>
+        <location line="+204"/>
         <source>Array elements:</source>
         <translation>Array-Elemente:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-200"/>
+        <location line="+204"/>
         <source>First 10 per array</source>
         <translation>Erste 10 je Array</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-204"/>
+        <location line="+204"/>
         <source>First 100 per array</source>
         <translation>Erste 100 je Array</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-203"/>
+        <location line="+204"/>
         <source>All elements</source>
         <translation>Alle Elemente</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-195"/>
         <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
         <translation>Große Arrays, etwa eine Rezepttabelle aus 1000 Strukturen, enthalten die meisten Knoten einer SPS. Begrenzte Arrays werden im Klonbericht genannt.</translation>
     </message>
@@ -1632,17 +1646,88 @@
         <translation>Server wird geklont</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+52"/>
         <source>Clone incomplete</source>
         <translation>Klon unvollständig</translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+2"/>
         <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
         <translation>Das Server-Projekt enthält die bisher erfassten Knoten. Nicht erreichte Strukturen haben keine Mitglieder.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+11"/>
+        <source>Snapshot incomplete</source>
+        <translation>Snapshot unvollständig</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The file contains the nodes captured so far; its completion section names what is missing.</source>
+        <translation>Die Datei enthält die bisher erfassten Knoten; ihr Abschnitt „completion“ nennt, was fehlt.</translation>
+    </message>
+    <message>
+        <location line="+44"/>
+        <location line="+89"/>
+        <source>Save Server Snapshot</source>
+        <translation>Server-Snapshot speichern</translation>
+    </message>
+    <message>
+        <location line="-71"/>
+        <source>A snapshot is a read-only record of the connected server&apos;s address space: original NodeIds, data types, array shapes, access levels and values, saved as a JSON file.</source>
+        <translation>Ein Snapshot ist eine schreibgeschützte Aufzeichnung des Adressraums des verbundenen Servers: ursprüngliche NodeIds, Datentypen, Array-Formen, Zugriffsrechte und Werte, gespeichert als JSON-Datei.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Scope:</source>
+        <translation>Bereich:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Objects folder</source>
+        <translation>Objects-Ordner</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Selected node and its subtree</source>
+        <translation>Ausgewählter Knoten und sein Teilbaum</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Whole server (Root, including Types and Views)</source>
+        <translation>Ganzer Server (Root, einschließlich Types und Views)</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Selected node: %1</source>
+        <translation>Ausgewählter Knoten: %1</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No node is selected in the address-space tree.</source>
+        <translation>Im Adressraum-Baum ist kein Knoten ausgewählt.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Include values</source>
+        <translation>Werte einschließen</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>A snapshot may contain plant data. It is only written to the local file you choose.</source>
+        <translation>Ein Snapshot kann Anlagendaten enthalten. Er wird nur in die von Ihnen gewählte lokale Datei geschrieben.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Server snapshots (*.uasnapshot.json)</source>
+        <translation>Server-Snapshots (*.uasnapshot.json)</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Taking snapshot</source>
+        <translation>Snapshot wird erstellt</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Projektfehler</translation>
     </message>
@@ -1966,7 +2051,7 @@
 <context>
     <name>ServerSnapshotController</name>
     <message>
-        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+54"/>
         <source>The limit of %1 nodes was reached.</source>
         <translation>Das Limit von %1 Knoten wurde erreicht.</translation>
     </message>
@@ -1991,23 +2076,23 @@
         <translation>Snapshot-Datei wird geschrieben…</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>No OPC UA client is available.</source>
         <translation>Kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
         <location line="+5"/>
-        <location line="+43"/>
+        <location line="+46"/>
         <source>Another clone or snapshot of the server is already running.</source>
         <translation>Ein anderer Klon oder Snapshot des Servers läuft bereits.</translation>
     </message>
     <message>
-        <location line="-38"/>
+        <location line="-39"/>
         <source>Choose a file for the snapshot.</source>
         <translation>Wählen Sie eine Datei für den Snapshot.</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+19"/>
         <source>Select a node in the address-space tree first.</source>
         <translation>Wählen Sie zuerst einen Knoten im Adressraum-Baum aus.</translation>
     </message>
@@ -2017,7 +2102,7 @@
         <translation>Snapshot des Server-Adressraums wird erstellt…</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+72"/>
         <source>Snapshot cancelled; no file was written.</source>
         <translation>Snapshot abgebrochen; es wurde keine Datei geschrieben.</translation>
     </message>

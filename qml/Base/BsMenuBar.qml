@@ -187,6 +187,14 @@ MenuBar {
     */
     signal cloneToServerStudioRequested()
 
+    /*!
+        \qmlsignal BsMenuBar::serverSnapshotRequested()
+        Emitted to save a read-only snapshot of the connected server's address
+        space. The host opens the snapshot options and calls
+        \c cppServerSnapshot.start().
+    */
+    signal serverSnapshotRequested()
+
     background: Rectangle {
         implicitHeight: 40
         color: BsTheme.menuBandColor
@@ -362,6 +370,13 @@ MenuBar {
             icon.source: "qrc:/images/svg/content_copy.svg"
             enabled: cppManagerOpcUa.connected
             onTriggered: appMenuBar.cloneToServerStudioRequested()
+        }
+
+        BsMenuItem {
+            text: qsTr("Save Server Snapshot…")
+            icon.source: "qrc:/images/svg/save_as.svg"
+            enabled: cppManagerOpcUa.connected && !cppManagerOpcUa.addressSpaceBrowseInProgress
+            onTriggered: appMenuBar.serverSnapshotRequested()
         }
     }
 

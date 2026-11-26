@@ -389,7 +389,7 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+220"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+228"/>
         <source>Application</source>
         <translation>Приложение</translation>
     </message>
@@ -477,6 +477,11 @@
         <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>Клонировать в Server Studio</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Save Server Snapshot…</source>
+        <translation>Сохранить снапшот сервера…</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -1473,7 +1478,7 @@
         <translation>Масштаб: %1%</translation>
     </message>
     <message>
-        <location line="+194"/>
+        <location line="+198"/>
         <source>Open Project</source>
         <translation>Открыть проект</translation>
     </message>
@@ -1485,11 +1490,12 @@
     </message>
     <message>
         <location line="-108"/>
+        <location line="+479"/>
         <source>All files (*)</source>
         <translation>Все файлы (*)</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-465"/>
         <source>Create New Project</source>
         <translation>Создать проект</translation>
     </message>
@@ -1521,12 +1527,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+349"/>
+        <location line="+525"/>
         <source>Browse…</source>
         <translation>Обзор…</translation>
     </message>
     <message>
-        <location line="-343"/>
+        <location line="-519"/>
         <source>Full path:</source>
         <translation>Полный путь:</translation>
     </message>
@@ -1582,51 +1588,59 @@
     </message>
     <message>
         <location line="+7"/>
+        <location line="+212"/>
         <source>Node limit:</source>
         <translation>Лимит узлов:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-208"/>
+        <location line="+212"/>
         <source>50 000 nodes</source>
         <translation>50 000 узлов</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>200 000 nodes</source>
         <translation>200 000 узлов</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>1 000 000 nodes</source>
         <translation>1 000 000 узлов</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-203"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Клон, достигший лимита, помечается как неполный. Большие лимиты занимают больше времени и сильнее нагружают сервер.</translation>
     </message>
     <message>
         <location line="+7"/>
+        <location line="+204"/>
         <source>Array elements:</source>
         <translation>Элементы массивов:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-200"/>
+        <location line="+204"/>
         <source>First 10 per array</source>
         <translation>Первые 10 в каждом массиве</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-204"/>
+        <location line="+204"/>
         <source>First 100 per array</source>
         <translation>Первые 100 в каждом массиве</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-203"/>
+        <location line="+204"/>
         <source>All elements</source>
         <translation>Все элементы</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-195"/>
         <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
         <translation>Большие массивы, например таблица рецептов из 1000 структур, содержат большую часть узлов ПЛК. Урезанные массивы указываются в отчёте о клонировании.</translation>
     </message>
@@ -1636,17 +1650,88 @@
         <translation>Клонирование сервера</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+52"/>
         <source>Clone incomplete</source>
         <translation>Клон неполный</translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+2"/>
         <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
         <translation>Серверный проект содержит узлы, полученные до этого момента. У структур, до которых обход не дошёл, нет членов.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+11"/>
+        <source>Snapshot incomplete</source>
+        <translation>Снапшот неполный</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The file contains the nodes captured so far; its completion section names what is missing.</source>
+        <translation>Файл содержит узлы, полученные до этого момента; его раздел completion указывает, чего не хватает.</translation>
+    </message>
+    <message>
+        <location line="+44"/>
+        <location line="+89"/>
+        <source>Save Server Snapshot</source>
+        <translation>Сохранить снапшот сервера</translation>
+    </message>
+    <message>
+        <location line="-71"/>
+        <source>A snapshot is a read-only record of the connected server&apos;s address space: original NodeIds, data types, array shapes, access levels and values, saved as a JSON file.</source>
+        <translation>Снапшот — это запись адресного пространства подключённого сервера только для чтения: исходные NodeId, типы данных, формы массивов, права доступа и значения, сохранённые в файле JSON.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Scope:</source>
+        <translation>Область:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Objects folder</source>
+        <translation>Папка Objects</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Selected node and its subtree</source>
+        <translation>Выбранный узел и его поддерево</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Whole server (Root, including Types and Views)</source>
+        <translation>Весь сервер (Root, включая Types и Views)</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Selected node: %1</source>
+        <translation>Выбранный узел: %1</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No node is selected in the address-space tree.</source>
+        <translation>В дереве адресного пространства не выбран узел.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Include values</source>
+        <translation>Включать значения</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>A snapshot may contain plant data. It is only written to the local file you choose.</source>
+        <translation>Снапшот может содержать данные установки. Он записывается только в выбранный вами локальный файл.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Server snapshots (*.uasnapshot.json)</source>
+        <translation>Снапшоты сервера (*.uasnapshot.json)</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Taking snapshot</source>
+        <translation>Создание снапшота</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Ошибка проекта</translation>
     </message>
@@ -1972,7 +2057,7 @@
 <context>
     <name>ServerSnapshotController</name>
     <message>
-        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+54"/>
         <source>The limit of %1 nodes was reached.</source>
         <translation>Достигнут лимит в %1 узлов.</translation>
     </message>
@@ -1997,23 +2082,23 @@
         <translation>Запись файла снапшота…</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
         <location line="+5"/>
-        <location line="+43"/>
+        <location line="+46"/>
         <source>Another clone or snapshot of the server is already running.</source>
         <translation>Другое клонирование или снапшот сервера уже выполняется.</translation>
     </message>
     <message>
-        <location line="-38"/>
+        <location line="-39"/>
         <source>Choose a file for the snapshot.</source>
         <translation>Выберите файл для снапшота.</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+19"/>
         <source>Select a node in the address-space tree first.</source>
         <translation>Сначала выберите узел в дереве адресного пространства.</translation>
     </message>
@@ -2023,7 +2108,7 @@
         <translation>Создаётся снапшот адресного пространства сервера…</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+72"/>
         <source>Snapshot cancelled; no file was written.</source>
         <translation>Снапшот отменён; файл не записан.</translation>
     </message>

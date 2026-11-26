@@ -1,6 +1,8 @@
 #include "serversnapshotcontroller.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QStandardPaths>
 #include <QRegularExpression>
 #include <QThread>
 #include <QUrl>
@@ -131,11 +133,13 @@ QString ServerSnapshotController::progressText() const
  * \param scope A Scope value: Objects, the selected client node, or the whole server.
  * \param includeValues Whether variable values are read.
  * \param maxNodes Node limit of the browse; 0 uses the default limit.
- * \param filePath Target file, as a local path or a \c file: URL.
+ * \param filePath Target file, as a local path or a \c file: URL; a name without
+ *        a \c .json suffix gets \c .uasnapshot.json.
+ * \param maxArrayElements Elements kept per array; 0 keeps all.
  * \return Whether the browse was started; otherwise a notification says why.
  */
 bool ServerSnapshotController::start(int scope, bool includeValues, int maxNodes,
-                                     const QString &filePath)
+                                     const QString &filePath, int maxArrayElements)
 {
     if (!m_manager) {
         notify(Diagnostics::Error, [] { return tr("No OPC UA client is available."); });
@@ -146,7 +150,9 @@ bool ServerSnapshotController::start(int scope, bool includeValues, int maxNodes
                [] { return tr("Another clone or snapshot of the server is already running."); });
         return false;
     }
-    const QString path = localPath(filePath);
+    QString path = localPath(filePath);
+    if (!path.isEmpty() && !path.endsWith(QLatin1String(".json"), Qt::CaseInsensitive))
+        path += QStringLiteral(".uasnapshot.json");
     if (path.isEmpty()) {
         notify(Diagnostics::Error, [] { return tr("Choose a file for the snapshot."); });
         return false;
@@ -158,6 +164,7 @@ bool ServerSnapshotController::start(int scope, bool includeValues, int maxNodes
     options.readValues = includeValues;
     if (maxNodes > 0)
         options.maxNodes = maxNodes;
+    options.maxArrayElements = std::max(0, maxArrayElements);
 
     switch (scope) {
     case SelectedNodeScope:
@@ -229,6 +236,17 @@ QString ServerSnapshotController::suggestedFileName() const
         host = QStringLiteral("server");
     return QStringLiteral("%1_%2.uasnapshot.json")
         .arg(host, QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmm")));
+}
+
+/*!
+ * \brief Returns suggestedFileName() in the user's documents folder, as a file URL.
+ *
+ * Used as the initial selection of the save dialog.
+ */
+QUrl ServerSnapshotController::suggestedFileUrl() const
+{
+    const QString folder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    return QUrl::fromLocalFile(QDir(folder).filePath(suggestedFileName()));
 }
 
 /*!

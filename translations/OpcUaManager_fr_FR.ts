@@ -387,7 +387,7 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+220"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+228"/>
         <source>Application</source>
         <translation>Application</translation>
     </message>
@@ -475,6 +475,11 @@
         <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>Cloner vers Server Studio</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Save Server Snapshot…</source>
+        <translation>Enregistrer un instantané du serveur…</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -1469,7 +1474,7 @@
         <translation>Zoom : %1 %</translation>
     </message>
     <message>
-        <location line="+194"/>
+        <location line="+198"/>
         <source>Open Project</source>
         <translation>Ouvrir un projet</translation>
     </message>
@@ -1481,11 +1486,12 @@
     </message>
     <message>
         <location line="-108"/>
+        <location line="+479"/>
         <source>All files (*)</source>
         <translation>Tous les fichiers (*)</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-465"/>
         <source>Create New Project</source>
         <translation>Créer un projet</translation>
     </message>
@@ -1517,12 +1523,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+349"/>
+        <location line="+525"/>
         <source>Browse…</source>
         <translation>Parcourir…</translation>
     </message>
     <message>
-        <location line="-343"/>
+        <location line="-519"/>
         <source>Full path:</source>
         <translation>Chemin complet :</translation>
     </message>
@@ -1578,51 +1584,59 @@
     </message>
     <message>
         <location line="+7"/>
+        <location line="+212"/>
         <source>Node limit:</source>
         <translation>Limite de nœuds :</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-208"/>
+        <location line="+212"/>
         <source>50 000 nodes</source>
         <translation>50 000 nœuds</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>200 000 nodes</source>
         <translation>200 000 nœuds</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>1 000 000 nodes</source>
         <translation>1 000 000 nœuds</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-203"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Un clone qui atteint la limite est signalé comme incomplet. Les grandes limites prennent plus de temps et sollicitent davantage le serveur.</translation>
     </message>
     <message>
         <location line="+7"/>
+        <location line="+204"/>
         <source>Array elements:</source>
         <translation>Éléments de tableau :</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-200"/>
+        <location line="+204"/>
         <source>First 10 per array</source>
         <translation>10 premiers par tableau</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-204"/>
+        <location line="+204"/>
         <source>First 100 per array</source>
         <translation>100 premiers par tableau</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-203"/>
+        <location line="+204"/>
         <source>All elements</source>
         <translation>Tous les éléments</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-195"/>
         <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
         <translation>Les grands tableaux, comme une table de recettes de 1000 structures, contiennent la plupart des nœuds d’un automate. Les tableaux limités sont indiqués dans le rapport de clonage.</translation>
     </message>
@@ -1632,17 +1646,88 @@
         <translation>Clonage du serveur</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+52"/>
         <source>Clone incomplete</source>
         <translation>Clone incomplet</translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+2"/>
         <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
         <translation>Le projet serveur contient les nœuds capturés jusqu’ici. Les structures non atteintes n’ont pas de membres.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+11"/>
+        <source>Snapshot incomplete</source>
+        <translation>Instantané incomplet</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The file contains the nodes captured so far; its completion section names what is missing.</source>
+        <translation>Le fichier contient les nœuds capturés jusqu’ici ; sa section « completion » indique ce qui manque.</translation>
+    </message>
+    <message>
+        <location line="+44"/>
+        <location line="+89"/>
+        <source>Save Server Snapshot</source>
+        <translation>Enregistrer un instantané du serveur</translation>
+    </message>
+    <message>
+        <location line="-71"/>
+        <source>A snapshot is a read-only record of the connected server&apos;s address space: original NodeIds, data types, array shapes, access levels and values, saved as a JSON file.</source>
+        <translation>Un instantané est un relevé en lecture seule de l’espace d’adressage du serveur connecté : NodeIds d’origine, types de données, formes de tableaux, droits d’accès et valeurs, enregistré dans un fichier JSON.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Scope:</source>
+        <translation>Portée :</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Objects folder</source>
+        <translation>Dossier Objects</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Selected node and its subtree</source>
+        <translation>Nœud sélectionné et sa sous-arborescence</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Whole server (Root, including Types and Views)</source>
+        <translation>Serveur entier (Root, y compris Types et Views)</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Selected node: %1</source>
+        <translation>Nœud sélectionné : %1</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No node is selected in the address-space tree.</source>
+        <translation>Aucun nœud n’est sélectionné dans l’arborescence de l’espace d’adressage.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Include values</source>
+        <translation>Inclure les valeurs</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>A snapshot may contain plant data. It is only written to the local file you choose.</source>
+        <translation>Un instantané peut contenir des données d’installation. Il est écrit uniquement dans le fichier local que vous choisissez.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Server snapshots (*.uasnapshot.json)</source>
+        <translation>Instantanés de serveur (*.uasnapshot.json)</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Taking snapshot</source>
+        <translation>Création de l’instantané</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Erreur de projet</translation>
     </message>
@@ -1966,7 +2051,7 @@
 <context>
     <name>ServerSnapshotController</name>
     <message>
-        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+54"/>
         <source>The limit of %1 nodes was reached.</source>
         <translation>La limite de %1 nœuds a été atteinte.</translation>
     </message>
@@ -1991,23 +2076,23 @@
         <translation>Écriture du fichier d’instantané…</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>No OPC UA client is available.</source>
         <translation>Aucun client OPC UA n’est disponible.</translation>
     </message>
     <message>
         <location line="+5"/>
-        <location line="+43"/>
+        <location line="+46"/>
         <source>Another clone or snapshot of the server is already running.</source>
         <translation>Un autre clone ou instantané du serveur est déjà en cours.</translation>
     </message>
     <message>
-        <location line="-38"/>
+        <location line="-39"/>
         <source>Choose a file for the snapshot.</source>
         <translation>Choisissez un fichier pour l’instantané.</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+19"/>
         <source>Select a node in the address-space tree first.</source>
         <translation>Sélectionnez d’abord un nœud dans l’arborescence de l’espace d’adressage.</translation>
     </message>
@@ -2017,7 +2102,7 @@
         <translation>Création d’un instantané de l’espace d’adressage du serveur…</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+72"/>
         <source>Snapshot cancelled; no file was written.</source>
         <translation>Instantané annulé ; aucun fichier n’a été écrit.</translation>
     </message>

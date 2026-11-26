@@ -109,6 +109,26 @@
     Le variabili monitorate possono essere conservate per essere ripristinate alla
     connessione successiva (vedi \l {Configurazione}).
 
+    \section1 Salvare uno snapshot del server
+
+    \e{Progetto > Salva snapshot del server…} scrive una registrazione in sola lettura dello
+    spazio degli indirizzi del server connesso in un file \c{*.uasnapshot.json}. A
+    differenza di un clone, uno snapshot conserva tutto come lo riporta il server:
+    NodeId e namespace originali, il tipo di dati di ogni variabile con il suo tipo
+    base, ValueRank, ArrayDimensions, diritti di accesso e valori tipizzati con stato e
+    marcature temporali. I nodi sono ordinati per percorso di esplorazione, così due
+    snapshot dello stesso server possono essere confrontati con un diff di testo.
+
+    Le opzioni scelgono l’ambito (la cartella Objects, il nodo selezionato nell’albero
+    con il suo sottoalbero o l’intero server dalla cartella Root), se leggere i valori,
+    il limite di nodi e quanti elementi per array mantenere. Lo snapshot usa la stessa
+    esplorazione del clone, con una finestra di avanzamento che consente di annullarlo;
+    uno snapshot annullato non scrive alcun file. Uno snapshot che ha raggiunto un limite
+    o non ha potuto leggere ogni nodo viene comunque scritto, contrassegnato come
+    incompleto nella sua sezione \c completion e segnalato in una finestra di dialogo.
+    Uno snapshot può contenere dati dell’impianto; viene scritto solo nel file locale che
+    scegli.
+
     \section1 Tendenze
 
     Le variabili selezionate possono essere tracciate nel tempo nel pannello delle tendenze.

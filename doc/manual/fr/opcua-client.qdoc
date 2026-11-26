@@ -111,6 +111,27 @@
     Les variables surveillées peuvent être conservées afin d’être restaurées lors de la
     prochaine connexion (voir \l {Configuration}).
 
+    \section1 Enregistrer un instantané du serveur
+
+    \e{Projet > Enregistrer un instantané du serveur…} écrit un relevé en lecture seule
+    de l’espace d’adressage du serveur connecté dans un fichier \c{*.uasnapshot.json}.
+    Contrairement à un clone, un instantané conserve tout tel que le serveur le
+    rapporte : NodeIds et espaces de noms d’origine, le type de données de chaque
+    variable avec son type de base, ValueRank, ArrayDimensions, droits d’accès, ainsi
+    que les valeurs typées avec leur statut et leurs horodatages. Les nœuds sont triés
+    par chemin de navigation ; deux instantanés du même serveur peuvent donc être
+    comparés par une différence de texte.
+
+    Les options choisissent la portée (le dossier Objects, le nœud sélectionné dans
+    l’arborescence avec sa sous-arborescence, ou le serveur entier depuis le dossier
+    Root), la lecture des valeurs, la limite de nœuds et le nombre d’éléments conservés
+    par tableau. L’instantané utilise le même parcours que le clone, avec une boîte de
+    dialogue de progression permettant de l’annuler ; un instantané annulé n’écrit aucun
+    fichier. Un instantané qui a atteint une limite ou n’a pas pu lire chaque nœud est
+    tout de même écrit, marqué comme incomplet dans sa section \c completion et signalé
+    dans une boîte de dialogue. Un instantané peut contenir des données d’installation ;
+    il est écrit uniquement dans le fichier local que vous choisissez.
+
     \section1 Tendances
 
     Les variables sélectionnées peuvent être tracées dans le temps dans le panneau de

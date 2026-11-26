@@ -389,7 +389,7 @@
 <context>
     <name>BsMenuBar</name>
     <message>
-        <location filename="../qml/Base/BsMenuBar.qml" line="+220"/>
+        <location filename="../qml/Base/BsMenuBar.qml" line="+228"/>
         <source>Application</source>
         <translation>Застосунок</translation>
     </message>
@@ -477,6 +477,11 @@
         <location line="+9"/>
         <source>Clone to Server Studio</source>
         <translation>Клонувати в Server Studio</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Save Server Snapshot…</source>
+        <translation>Зберегти знімок сервера…</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -1473,7 +1478,7 @@
         <translation>Масштаб: %1%</translation>
     </message>
     <message>
-        <location line="+194"/>
+        <location line="+198"/>
         <source>Open Project</source>
         <translation>Відкрити проект</translation>
     </message>
@@ -1485,11 +1490,12 @@
     </message>
     <message>
         <location line="-108"/>
+        <location line="+479"/>
         <source>All files (*)</source>
         <translation>Усі файли (*)</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-465"/>
         <source>Create New Project</source>
         <translation>Створити проект</translation>
     </message>
@@ -1521,12 +1527,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+349"/>
+        <location line="+525"/>
         <source>Browse…</source>
         <translation>Огляд…</translation>
     </message>
     <message>
-        <location line="-343"/>
+        <location line="-519"/>
         <source>Full path:</source>
         <translation>Повний шлях:</translation>
     </message>
@@ -1582,51 +1588,59 @@
     </message>
     <message>
         <location line="+7"/>
+        <location line="+212"/>
         <source>Node limit:</source>
         <translation>Ліміт вузлів:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-208"/>
+        <location line="+212"/>
         <source>50 000 nodes</source>
         <translation>50 000 вузлів</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>200 000 nodes</source>
         <translation>200 000 вузлів</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-212"/>
+        <location line="+212"/>
         <source>1 000 000 nodes</source>
         <translation>1 000 000 вузлів</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-203"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>Клон, що досяг ліміту, позначається як неповний. Великі ліміти тривають довше й більше навантажують сервер.</translation>
     </message>
     <message>
         <location line="+7"/>
+        <location line="+204"/>
         <source>Array elements:</source>
         <translation>Елементи масивів:</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-200"/>
+        <location line="+204"/>
         <source>First 10 per array</source>
         <translation>Перші 10 у кожному масиві</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="-204"/>
+        <location line="+204"/>
         <source>First 100 per array</source>
         <translation>Перші 100 у кожному масиві</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-203"/>
+        <location line="+204"/>
         <source>All elements</source>
         <translation>Усі елементи</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-195"/>
         <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
         <translation>Великі масиви, наприклад таблиця рецептів із 1000 структур, містять більшість вузлів ПЛК. Обрізані масиви вказуються у звіті про клонування.</translation>
     </message>
@@ -1636,17 +1650,88 @@
         <translation>Клонування сервера</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+52"/>
         <source>Clone incomplete</source>
         <translation>Клон неповний</translation>
     </message>
     <message>
-        <location line="+27"/>
+        <location line="+2"/>
         <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
         <translation>Серверний проєкт містить вузли, отримані до цього моменту. Структури, до яких обхід не дійшов, не мають членів.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+11"/>
+        <source>Snapshot incomplete</source>
+        <translation>Знімок неповний</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The file contains the nodes captured so far; its completion section names what is missing.</source>
+        <translation>Файл містить вузли, отримані до цього моменту; його розділ completion вказує, чого бракує.</translation>
+    </message>
+    <message>
+        <location line="+44"/>
+        <location line="+89"/>
+        <source>Save Server Snapshot</source>
+        <translation>Зберегти знімок сервера</translation>
+    </message>
+    <message>
+        <location line="-71"/>
+        <source>A snapshot is a read-only record of the connected server&apos;s address space: original NodeIds, data types, array shapes, access levels and values, saved as a JSON file.</source>
+        <translation>Знімок — це запис адресного простору підключеного сервера лише для читання: вихідні NodeId, типи даних, форми масивів, права доступу та значення, збережені у файлі JSON.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Scope:</source>
+        <translation>Область:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Objects folder</source>
+        <translation>Тека Objects</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Selected node and its subtree</source>
+        <translation>Вибраний вузол і його піддерево</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Whole server (Root, including Types and Views)</source>
+        <translation>Увесь сервер (Root, включно з Types і Views)</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Selected node: %1</source>
+        <translation>Вибраний вузол: %1</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No node is selected in the address-space tree.</source>
+        <translation>У дереві адресного простору не вибрано вузол.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Include values</source>
+        <translation>Включати значення</translation>
+    </message>
+    <message>
+        <location line="+33"/>
+        <source>A snapshot may contain plant data. It is only written to the local file you choose.</source>
+        <translation>Знімок може містити дані установки. Він записується лише у вибраний вами локальний файл.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Server snapshots (*.uasnapshot.json)</source>
+        <translation>Знімки сервера (*.uasnapshot.json)</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Taking snapshot</source>
+        <translation>Створення знімка</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Помилка проекту</translation>
     </message>
@@ -1972,7 +2057,7 @@
 <context>
     <name>ServerSnapshotController</name>
     <message>
-        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+54"/>
         <source>The limit of %1 nodes was reached.</source>
         <translation>Досягнуто ліміту в %1 вузлів.</translation>
     </message>
@@ -1997,23 +2082,23 @@
         <translation>Запис файлу знімка…</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+20"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
         <location line="+5"/>
-        <location line="+43"/>
+        <location line="+46"/>
         <source>Another clone or snapshot of the server is already running.</source>
         <translation>Інше клонування або знімок сервера вже виконується.</translation>
     </message>
     <message>
-        <location line="-38"/>
+        <location line="-39"/>
         <source>Choose a file for the snapshot.</source>
         <translation>Виберіть файл для знімка.</translation>
     </message>
     <message>
-        <location line="+18"/>
+        <location line="+19"/>
         <source>Select a node in the address-space tree first.</source>
         <translation>Спочатку виберіть вузол у дереві адресного простору.</translation>
     </message>
@@ -2023,7 +2108,7 @@
         <translation>Створюється знімок адресного простору сервера…</translation>
     </message>
     <message>
-        <location line="+61"/>
+        <location line="+72"/>
         <source>Snapshot cancelled; no file was written.</source>
         <translation>Знімок скасовано; файл не записано.</translation>
     </message>

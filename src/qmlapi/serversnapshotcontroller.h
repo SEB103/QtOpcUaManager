@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
+#include <QUrl>
 
 #include "core/addressspacesnapshot.h"
 #include "core/clonebrowser.h"
@@ -61,15 +62,21 @@ public:
     /**
      * Starts a snapshot of \a scope into \a filePath (a local path or file URL).
      * \a includeValues reads variable values; \a maxNodes limits the browse
-     * (0: default). Returns false when it cannot start; a notification says why.
+     * (0: default); \a maxArrayElements, when positive, keeps only that many
+     * elements per array. Returns false when it cannot start; a notification
+     * says why.
      */
-    Q_INVOKABLE bool start(int scope, bool includeValues, int maxNodes, const QString &filePath);
+    Q_INVOKABLE bool start(int scope, bool includeValues, int maxNodes, const QString &filePath,
+                           int maxArrayElements = 0);
 
     /** Cancels the browse of the snapshot in flight; nothing is written. */
     Q_INVOKABLE void cancel();
 
     /** Returns a default file name such as `plc_20261126-1012.uasnapshot.json`. */
     Q_INVOKABLE QString suggestedFileName() const;
+
+    /** Returns suggestedFileName() in the user's documents folder, as a file URL. */
+    Q_INVOKABLE QUrl suggestedFileUrl() const;
 
     /** Rebuilds the last status message in the active language for the status bar. */
     void retranslate();

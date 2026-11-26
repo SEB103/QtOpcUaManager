@@ -1191,9 +1191,10 @@ void CloneTraversalTest::writesSnapshotThroughController()
 
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
+    // A name without a .json suffix gets .uasnapshot.json.
     const QString path = dir.filePath(QStringLiteral("plant.uasnapshot.json"));
     QVERIFY(controller.start(ServerSnapshotController::ObjectsScope, true, 0,
-                             QUrl::fromLocalFile(path).toString()));
+                             QUrl::fromLocalFile(dir.filePath(QStringLiteral("plant"))).toString()));
     QVERIFY(controller.inProgress());
     QCOMPARE(requestSpy.size(), 1);
     const QString root = requestSpy.first().at(0).toString();
@@ -1268,13 +1269,16 @@ void CloneTraversalTest::snapshotControllerGuards()
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("server.uasnapshot.json"));
-    QVERIFY(controller.start(ServerSnapshotController::WholeServerScope, false, 1000, path));
+    QVERIFY(controller.start(ServerSnapshotController::WholeServerScope, false, 1000, path, 5));
     QCOMPARE(requestSpy.size(), 1);
     QCOMPARE(requestSpy.first().at(0).toString(), QStringLiteral("ns=0;i=84"));
     const quint64 requestId = requestSpy.first().at(1).toULongLong();
     const CloneOptions options = requestSpy.first().at(2).value<CloneOptions>();
     QVERIFY(!options.readValues);
     QCOMPARE(options.maxNodes, 1000);
+    QCOMPARE(options.maxArrayElements, 5);
+    QVERIFY(controller.suggestedFileUrl().isLocalFile());
+    QVERIFY(controller.suggestedFileUrl().toLocalFile().endsWith(QLatin1String(".uasnapshot.json")));
 
     // A second snapshot is refused while the first one runs.
     QVERIFY(!controller.start(ServerSnapshotController::ObjectsScope, true, 0, path));

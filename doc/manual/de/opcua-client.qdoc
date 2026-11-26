@@ -108,6 +108,26 @@
     Überwachte Variablen können gespeichert werden, sodass sie bei der nächsten Verbindung
     wiederhergestellt werden (siehe \l {Konfiguration}).
 
+    \section1 Server-Snapshot speichern
+
+    \e{Projekt > Server-Snapshot speichern…} schreibt eine schreibgeschützte Aufzeichnung
+    des Adressraums des verbundenen Servers in eine Datei \c{*.uasnapshot.json}. Anders
+    als ein Klon hält ein Snapshot alles so fest, wie der Server es meldet: ursprüngliche
+    NodeIds und Namensräume, den Datentyp jeder Variablen mit seinem Basistyp,
+    ValueRank, ArrayDimensions, Zugriffsrechte sowie typisierte Werte mit Status und
+    Zeitstempeln. Die Knoten sind nach Browse-Pfad sortiert, sodass zwei Snapshots
+    desselben Servers per Textvergleich verglichen werden können.
+
+    Die Optionen wählen den Bereich (den Objects-Ordner, den im Adressraum-Baum
+    ausgewählten Knoten mit seinem Teilbaum oder den ganzen Server ab dem Root-Ordner),
+    ob Werte gelesen werden, das Knotenlimit und wie viele Elemente je Array erhalten
+    bleiben. Der Snapshot nutzt dieselbe Durchsuchung wie der Klon, mit einem
+    Fortschrittsdialog zum Abbrechen; ein abgebrochener Snapshot schreibt keine Datei.
+    Ein Snapshot, der ein Limit erreicht hat oder nicht jeden Knoten lesen konnte, wird
+    trotzdem geschrieben, in seinem Abschnitt \c completion als unvollständig markiert
+    und in einem Dialog gemeldet. Ein Snapshot kann Anlagendaten enthalten; er wird nur
+    in die von Ihnen gewählte lokale Datei geschrieben.
+
     \section1 Trends
 
     Ausgewählte Variablen können im Trend-Panel über die Zeit dargestellt werden. Der Trend

@@ -622,6 +622,10 @@ ApplicationWindow {
             // Cloning replaces the current Server Studio project; guard unsaved work.
             mainWindow.runServerStudioGuarded(() => mainWindow.doCloneToServerStudio())
         }
+
+        function onServerSnapshotRequested() {
+            snapshotDialog.open()
+        }
     }
 
     Connections {
@@ -964,14 +968,15 @@ ApplicationWindow {
 
     // Shown after a clone that stopped early or could not read every node, so
     // an incomplete server project is not mistaken for an exact copy.
+    // A snapshot written from an incomplete browse uses the same dialog.
     Dialog {
         id: cloneIncompleteDialog
 
         property string report
+        property string hint
 
         anchors.centerIn: Overlay.overlay
         width: Math.min(mainWindow.uiWidth - 80, 480)
-        title: qsTr("Clone incomplete")
         modal: true
         standardButtons: Dialog.Ok
 
@@ -979,6 +984,23 @@ ApplicationWindow {
             target: cppServerStudio
 
             function onCloneIncomplete(report) {
+                cloneIncompleteDialog.title = qsTr("Clone incomplete")
+                cloneIncompleteDialog.hint =
+                        qsTr("The server project contains the nodes captured so far. Structures "
+                             + "that were not reached have no members.")
+                cloneIncompleteDialog.report = report
+                cloneIncompleteDialog.open()
+            }
+        }
+
+        Connections {
+            target: cppServerSnapshot
+
+            function onSnapshotIncomplete(report) {
+                cloneIncompleteDialog.title = qsTr("Snapshot incomplete")
+                cloneIncompleteDialog.hint =
+                        qsTr("The file contains the nodes captured so far; its completion "
+                             + "section names what is missing.")
                 cloneIncompleteDialog.report = report
                 cloneIncompleteDialog.open()
             }
@@ -998,8 +1020,166 @@ ApplicationWindow {
                 wrapMode: Text.Wrap
                 opacity: 0.7
                 font.pixelSize: 12
-                text: qsTr("The server project contains the nodes captured so far. Structures "
-                           + "that were not reached have no members.")
+                text: cloneIncompleteDialog.hint
+            }
+        }
+    }
+
+    Connections {
+        target: cppServerSnapshot
+
+        function onNotification(level, message) {
+            mainWindow.showNotification(level, message, "snapshot")
+        }
+
+        function onStatusRetranslated(level, message) {
+            mainWindow.refreshStatus(level, message, "snapshot")
+        }
+    }
+
+    // Options of a read-only address-space snapshot; Save then asks for the file.
+    Dialog {
+        id: snapshotDialog
+
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 540)
+        title: qsTr("Save Server Snapshot")
+        modal: true
+        focus: true
+        standardButtons: Dialog.Save | Dialog.Cancel
+        closePolicy: Popup.CloseOnEscape
+
+        onAccepted: {
+            snapshotFileDialog.selectedFile = cppServerSnapshot.suggestedFileUrl()
+            snapshotFileDialog.open()
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: qsTr("A snapshot is a read-only record of the connected server's address "
+                           + "space: original NodeIds, data types, array shapes, access levels "
+                           + "and values, saved as a JSON file.")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: qsTr("Scope:") }
+                ComboBox {
+                    id: snapshotScopeCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("Objects folder"), qsTr("Selected node and its subtree"),
+                        qsTr("Whole server (Root, including Types and Views)")]
+                    currentIndex: 0
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: snapshotScopeCombo.currentIndex === 1
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: cppManagerOpcUa.selectedNodeId.length > 0
+                      ? qsTr("Selected node: %1").arg(cppManagerOpcUa.selectedNodeId)
+                      : qsTr("No node is selected in the address-space tree.")
+            }
+            CheckBox {
+                id: snapshotValuesCheck
+                text: qsTr("Include values")
+                checked: true
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: qsTr("Node limit:") }
+                ComboBox {
+                    id: snapshotNodeLimitCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("50 000 nodes"), qsTr("200 000 nodes"), qsTr("1 000 000 nodes")]
+                    currentIndex: 2
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: qsTr("Array elements:") }
+                ComboBox {
+                    id: snapshotArrayCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("First 10 per array"), qsTr("First 100 per array"),
+                        qsTr("All elements")]
+                    currentIndex: 2
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: qsTr("A snapshot may contain plant data. It is only written to the local "
+                           + "file you choose.")
+            }
+        }
+    }
+
+    FileDialog {
+        id: snapshotFileDialog
+
+        title: qsTr("Save Server Snapshot")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [qsTr("Server snapshots (*.uasnapshot.json)"), qsTr("All files (*)")]
+        onAccepted: {
+            const limits = [50000, 200000, 1000000]
+            const arrayLimits = [10, 100, 0]
+            cppServerSnapshot.start(snapshotScopeCombo.currentIndex, snapshotValuesCheck.checked,
+                                    limits[snapshotNodeLimitCombo.currentIndex], selectedFile,
+                                    arrayLimits[snapshotArrayCombo.currentIndex])
+        }
+    }
+
+    // Progress of a running snapshot; Cancel stops the browse and writes nothing.
+    Dialog {
+        id: snapshotProgressDialog
+
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 440)
+        title: qsTr("Taking snapshot")
+        modal: true
+        standardButtons: Dialog.Cancel
+        closePolicy: Popup.NoAutoClose
+
+        onRejected: cppServerSnapshot.cancel()
+
+        Connections {
+            target: cppServerSnapshot
+
+            function onProgressChanged() {
+                if (cppServerSnapshot.inProgress && !snapshotProgressDialog.opened)
+                    snapshotProgressDialog.open()
+                else if (!cppServerSnapshot.inProgress && snapshotProgressDialog.opened)
+                    snapshotProgressDialog.close()
+            }
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+
+            ProgressBar {
+                Layout.fillWidth: true
+                indeterminate: true
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: cppServerSnapshot.progressText
             }
         }
     }
