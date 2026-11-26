@@ -17,6 +17,17 @@ the Windows executable metadata, the bundled documentation, and the installer an
 update repository. To cut a release, bump that single field, then rebuild and run
 `packaging/release.ps1`.
 
+## [Unreleased]
+
+### Fixed
+- **Clone to Server Studio**: variable data types are now resolved through the source
+  server's type hierarchy instead of falling back to `Int32` for every type outside the
+  standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard
+  subtypes such as `Duration`, `UtcTime` and `LocaleId`, keep their OPC UA base type
+  (`String`, `UInt16`, `Double`, …) and their values. Structures, date/time values and
+  unresolvable types become `String` variables, and the status message reports how many
+  variables use such a substitute type.
+
 ## [1.4.1] - 2026-11-24
 
 Patch release for the update check.

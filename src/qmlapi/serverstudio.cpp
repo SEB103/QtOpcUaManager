@@ -9,11 +9,14 @@
 #include <QStandardPaths>
 #include <QUrl>
 
+#include "core/clonebrowser.h"
+#include "core/datatyperesolver.h"
 #include "core/diagnosticslevel.h"
 #include "models/dataaccessmodel.h"
 #include "models/opcuamodel.h"
 #include "opcuamanager.h"
 #include "servernodemodel.h"
+#include "serverproject/clonedatatype.h"
 #include "serverproject/serverprojectnodeset.h"
 #include "serverproject/serverprojectserializer.h"
 #include "serverproject/serverprojectvalidator.h"
@@ -75,23 +78,17 @@ QVariant scalarFromText(const QString &dataType, const QString &text)
 
 /*!
  * \internal
- * \brief Maps a namespace-0 DataType node id to a built-in type name.
+ * \brief Returns the OPC UA base type of the cloned variable \a source.
  *
- * Unknown or custom data types fall back to Int32 for a structural clone.
+ * Uses the base type CloneBrowser resolved on the server. A node that was not
+ * resolved there (for example one built by a test or an older producer) falls
+ * back to the namespace-0 tables, so standard types still map exactly.
  */
-QString dataTypeIdToBuiltin(const QString &dataTypeId)
+QString cloneBaseType(const CloneNode &source)
 {
-    static const QHash<int, QString> map = {
-        {1, QStringLiteral("Boolean")}, {2, QStringLiteral("SByte")},
-        {3, QStringLiteral("Byte")},    {4, QStringLiteral("Int16")},
-        {5, QStringLiteral("UInt16")},  {6, QStringLiteral("Int32")},
-        {7, QStringLiteral("UInt32")},  {8, QStringLiteral("Int64")},
-        {9, QStringLiteral("UInt64")},  {10, QStringLiteral("Float")},
-        {11, QStringLiteral("Double")}, {12, QStringLiteral("String")},
-    };
-    if (dataTypeId.startsWith(QLatin1String("ns=0;i=")))
-        return map.value(dataTypeId.mid(7).toInt(), QStringLiteral("Int32"));
-    return QStringLiteral("Int32");
+    if (source.resolvedDataType.resolution != ResolvedDataType::Resolution::None)
+        return source.resolvedDataType.builtInBase;
+    return DataTypeIds::resolveLocally(source.dataTypeId).builtInBase;
 }
 
 } // namespace
@@ -807,6 +804,7 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     QHash<QString, QString> idMap;   // original node id -> cloned node id
     QHash<QString, QString> pathMap; // original node id -> browse-name path (slug mode)
     QSet<QString> usedIds;
+    int substitutedCount = 0; // variables whose type Server Studio cannot model exactly
 
     for (const CloneNode &source : nodes) {
         // Only folders/objects and variables are cloneable.
@@ -843,12 +841,19 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
         node.displayName = source.displayName.isEmpty() ? node.browseName : source.displayName;
         if (source.isVariable) {
             node.kind = NodeKind::Variable;
-            node.dataType = dataTypeIdToBuiltin(source.dataTypeId);
+            // The resolved base type keeps vendor aliases (for example a CODESYS
+            // STRING type) exact; unsupported or unknown types get a substitute
+            // derived from the captured value and are counted for the report.
+            const ServerProject::CloneDataTypeChoice choice =
+                ServerProject::cloneDataTypeFor(cloneBaseType(source), source.value);
+            node.dataType = choice.dataType;
+            if (choice.substituted)
+                ++substitutedCount;
             node.valueRank = source.valueRank >= 1 ? 1 : -1;
             // Writable by default so the cloned server can be edited/exercised.
             node.writable = true;
-            // Coerce the captured value to the built-in type, keeping it JSON-safe
-            // (an ExtensionObject or custom type falls back to the type default).
+            // Coerce the captured value to the chosen type, keeping it JSON-safe
+            // (an ExtensionObject value has no text and falls back to the type default).
             if (node.valueRank == 1) {
                 QVariantList out;
                 const QVariantList elements = source.value.toList();
@@ -876,14 +881,25 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     emit securityChanged();
     emit selectedNodeChanged();
 
+    // Appends the substitution count, so a clone that differs from the source
+    // in some variable types never reads as an exact copy.
+    const auto withSubstitutions = [this, substitutedCount](const QString &text) {
+        if (substitutedCount == 0)
+            return text;
+        return text + QLatin1Char(' ')
+               + tr("%1 variable(s) use a substitute data type (structure, date/time or "
+                    "unsupported type).")
+                     .arg(substitutedCount);
+    };
+
     if (truncated) {
-        notify(Diagnostics::Warning, [this, n = int(project.nodes.size())] {
-            return tr("Cloned %1 node(s); the address space was large and was truncated.")
-                .arg(n);
+        notify(Diagnostics::Warning, [this, withSubstitutions, n = int(project.nodes.size())] {
+            return withSubstitutions(
+                tr("Cloned %1 node(s); the address space was large and was truncated.").arg(n));
         });
     } else {
-        notify(Diagnostics::Info, [this, n = int(project.nodes.size())] {
-            return tr("Cloned %1 node(s) from the server.").arg(n);
+        notify(Diagnostics::Info, [this, withSubstitutions, n = int(project.nodes.size())] {
+            return withSubstitutions(tr("Cloned %1 node(s) from the server.").arg(n));
         });
     }
 }

@@ -715,7 +715,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+268"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+279"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Десятичное число, например 12.5. Используйте точку как разделитель.</translation>
     </message>
@@ -810,7 +810,7 @@
         <translation>Отметьте узлы в адресном пространстве или перетащите их сюда, чтобы добавить в представление данных.</translation>
     </message>
     <message>
-        <location line="+166"/>
+        <location line="+177"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Только для чтения: сервер не предоставляет CurrentWrite.</translation>
     </message>
@@ -1884,7 +1884,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+187"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+184"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -2011,12 +2011,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+526"/>
+        <location line="+545"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
-        <location line="-520"/>
+        <location line="-539"/>
         <source>A clone is already in progress.</source>
         <translation>Клонирование уже выполняется.</translation>
     </message>
@@ -2031,22 +2031,27 @@
         <translation>Ничего не клонировано. Подключитесь к серверу и повторите попытку.</translation>
     </message>
     <message>
-        <location line="+114"/>
+        <location line="+126"/>
+        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
+        <translation>Переменных с заменённым типом данных: %1 (структура, дата/время или неподдерживаемый тип).</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Cloned %1 node(s); the address space was large and was truncated.</source>
         <translation>Клонировано узлов: %1; адресное пространство было большим и обрезано.</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+4"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Клонировано узлов с сервера: %1.</translation>
     </message>
     <message>
-        <location line="-113"/>
+        <location line="-132"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location line="+381"/>
+        <location line="+400"/>
         <source>Create or open a server project first.</source>
         <translation>Сначала создайте или откройте проект сервера.</translation>
     </message>
@@ -2544,7 +2549,7 @@
         <translation>Проверка обновлений</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+14"/>
         <source>Current version: %1</source>
         <translation>Текущая версия: %1</translation>
     </message>

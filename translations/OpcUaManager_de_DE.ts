@@ -713,7 +713,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+268"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+279"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>Eine Dezimalzahl, zum Beispiel 12.5. Verwenden Sie einen Punkt als Trennzeichen.</translation>
     </message>
@@ -808,7 +808,7 @@
         <translation>Markieren Sie Knoten im Adressraum oder ziehen Sie sie hierher, um sie zur Datenansicht hinzuzufügen.</translation>
     </message>
     <message>
-        <location line="+166"/>
+        <location line="+177"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Schreibgeschützt: Der Server gewährt kein CurrentWrite.</translation>
     </message>
@@ -1878,7 +1878,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+187"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+184"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
@@ -2005,12 +2005,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+526"/>
+        <location line="+545"/>
         <source>No OPC UA client is available.</source>
         <translation>Es ist kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
-        <location line="-520"/>
+        <location line="-539"/>
         <source>A clone is already in progress.</source>
         <translation>Ein Klonvorgang läuft bereits.</translation>
     </message>
@@ -2025,22 +2025,27 @@
         <translation>Es wurde nichts geklont. Verbinden Sie sich mit einem Server und versuchen Sie es erneut.</translation>
     </message>
     <message>
-        <location line="+114"/>
+        <location line="+126"/>
+        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
+        <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Struktur, Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Cloned %1 node(s); the address space was large and was truncated.</source>
         <translation>%1 Knoten geklont; der Adressraum war groß und wurde abgeschnitten.</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+4"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-113"/>
+        <location line="-132"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location line="+381"/>
+        <location line="+400"/>
         <source>Create or open a server project first.</source>
         <translation>Erstellen oder öffnen Sie zuerst ein Serverprojekt.</translation>
     </message>
@@ -2538,7 +2543,7 @@
         <translation>Nach Updates suchen</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+14"/>
         <source>Current version: %1</source>
         <translation>Aktuelle Version: %1</translation>
     </message>

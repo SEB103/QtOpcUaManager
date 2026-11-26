@@ -44,6 +44,13 @@
     Sie erhalten dann eine bearbeitbare \c .uaserver-Nachbildung, die Sie lokal ausführen,
     absichern und simulieren können.
 
+    Variablen behalten den Datentyp des Quellservers. Hersteller-Typaliase wie die
+    CODESYS-IEC-Typen STRING oder UINT werden über die Typhierarchie des Servers auf ihren
+    OPC-UA-Basistyp (String, UInt16, ...) zurückgeführt. Typen, die ein Server-Projekt nicht
+    abbilden kann — Strukturen, Datums-/Zeitwerte und nicht auflösbare Typen —, werden als
+    String-Variablen angelegt; die Statusmeldung nach dem Klonen nennt, wie viele Variablen
+    einen solchen Ersatztyp verwenden.
+
     \section1 Adressräume austauschen
 
     Verwenden Sie NodeSet2-Import/-Export, um einen Adressraum zwischen diesem Werkzeug und

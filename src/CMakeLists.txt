@@ -7,6 +7,8 @@ target_sources(OpcUaCore
         core/apppaths.h
         core/clonebrowser.cpp
         core/clonebrowser.h
+        core/datatyperesolver.cpp
+        core/datatyperesolver.h
         core/diagnosticslevel.h
         core/iprange.cpp
         core/iprange.h
@@ -80,6 +82,8 @@ qt_add_library(ServerProjectCore STATIC)
 
 target_sources(ServerProjectCore
     PRIVATE
+        serverproject/clonedatatype.cpp
+        serverproject/clonedatatype.h
         serverproject/serverprojectdata.cpp
         serverproject/serverprojectdata.h
         serverproject/serverprojectnodeset.cpp

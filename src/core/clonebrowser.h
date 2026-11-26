@@ -13,6 +13,8 @@
 #include <QOpcUaNode>
 #include <QOpcUaReferenceDescription>
 
+#include "datatyperesolver.h"
+
 class QOpcUaClient;
 class QTimer;
 
@@ -40,8 +42,10 @@ struct CloneNode
     /** Integer value of QOpcUa::NodeClass. */
     int nodeClass = 0;
 
-    /** Variable DataType node id, e.g. "ns=0;i=6"; empty for non-variables. */
+    /** Variable DataType node id as read from the server, e.g. "ns=0;i=6"; empty for non-variables. */
     QString dataTypeId;
+    /** Name and OPC UA base type of \c dataTypeId; unresolved when not determinable. */
+    ResolvedDataType resolvedDataType;
 
     /** OPC UA ValueRank: -1 scalar, >=1 array. */
     int valueRank = -1;
@@ -66,7 +70,8 @@ Q_DECLARE_METATYPE(QList<CloneNode>)
  * (typically the Objects folder), it walks the hierarchical Object/Variable
  * children, reading DataType, ValueRank and Value for variables, and emits the
  * whole subtree as a flat pre-order list once complete or a safety timeout
- * elapses. This captures the full address space regardless of what the user
+ * elapses. Before emitting, the distinct DataType ids are resolved to their
+ * OPC UA base types through DataTypeResolver. This captures the full address space regardless of what the user
  * expanded in the client tree, which the lazy tree snapshot cannot.
  */
 class CloneBrowser : public QObject
@@ -124,6 +129,7 @@ private:
     void handleBrowse(WorkNode *item, const QVector<QOpcUaReferenceDescription> &children);
     void finalizeNode(WorkNode *item);
     void emitResult(bool success);
+    void publishResult();
     void collect(const WorkNode *item, QList<CloneNode> &out) const;
     static void deleteSubtree(WorkNode *item);
 
@@ -136,6 +142,10 @@ private:
     bool m_finished = false;          //!< Guards against double emission.
     QSet<QString> m_visited;          //!< Node ids already queued, to break cycles.
     QTimer *m_timeout = nullptr;      //!< Safety timeout to force completion.
+    DataTypeResolver *m_resolver = nullptr; //!< Resolves the captured DataType ids.
+    QList<CloneNode> m_resultNodes;   //!< Assembled nodes awaiting type resolution.
+    QStringList m_resultNamespaces;   //!< Namespace array captured with the result.
+    bool m_resultSuccess = false;     //!< Success flag captured with the result.
 };
 
 #endif // CLONEBROWSER_H

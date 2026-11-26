@@ -44,6 +44,13 @@
     riproduzione \c .uaserver modificabile che puoi eseguire localmente, proteggere e
     simulare.
 
+    Le variabili mantengono il tipo di dati del server di origine. Gli alias di tipo di un
+    produttore, come i tipi IEC CODESYS STRING o UINT, vengono ricondotti al loro tipo base
+    OPC UA (String, UInt16, ...) tramite la gerarchia dei tipi del server. I tipi che un
+    progetto server non può modellare — strutture, valori data/ora e tipi non risolvibili —
+    vengono creati come variabili String; il messaggio di stato dopo la clonazione indica
+    quante variabili usano un tale tipo sostitutivo.
+
     \section1 Scambiare spazi degli indirizzi
 
     Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento

@@ -370,6 +370,31 @@ target_link_libraries(tst_serverclone
 
 add_test(NAME ServerClone.Unit COMMAND tst_serverclone)
 
+qt_add_executable(tst_datatyperesolver
+    unit/tst_datatyperesolver.cpp
+)
+
+target_link_libraries(tst_datatyperesolver
+    PRIVATE
+        OpcUaCore
+        ServerProjectCore
+        Qt6::Test
+)
+
+add_test(NAME DataTypeResolver.Unit COMMAND tst_datatyperesolver)
+
+qt_add_executable(tst_serverstudioclone
+    unit/tst_serverstudioclone.cpp
+)
+
+target_link_libraries(tst_serverstudioclone
+    PRIVATE
+        OpcUaQmlApi
+        Qt6::Test
+)
+
+add_test(NAME ServerStudioClone.Unit COMMAND tst_serverstudioclone)
+
 qt_add_executable(tst_opcuaintegration
     integration/tst_opcuaintegration.cpp
 )

@@ -34,11 +34,17 @@ private slots:
     /*! The whole Objects subtree is captured with parents and variable values. */
     void capturesSubtreeWithValues();
 
+    /*! Captured DataType ids carry their name and OPC UA base type. */
+    void resolvesDataTypes();
+
     void cleanupTestCase();
 
 private:
     /*! Returns the captured node with browse name \a name, or a default. */
     static CloneNode nodeNamed(const QList<CloneNode> &nodes, const QString &name);
+
+    /*! Runs a CloneBrowser over the Objects folder and returns the captured nodes. */
+    QList<CloneNode> cloneObjects();
 
     QProcess m_process;
     QTemporaryDir m_dir;
@@ -107,6 +113,35 @@ void ServerCloneBrowseTest::initTestCase()
     nums.initialValue = QVariantList{1.5, 2.5};
     project.nodes.append(nums);
 
+    // A custom enumeration: the runtime models it as a DataType subtype of
+    // Int32, so its base type can only be found through the server hierarchy.
+    EnumType mode;
+    mode.name = QStringLiteral("Mode");
+    mode.nodeId = QStringLiteral("ns=1;s=App.ModeType");
+    mode.entries = {{0, QStringLiteral("Off")}, {1, QStringLiteral("On")}};
+    project.enumTypes.append(mode);
+
+    Node modeVar;
+    modeVar.kind = NodeKind::Variable;
+    modeVar.nodeId = QStringLiteral("ns=1;s=App.Sub.Mode");
+    modeVar.parentNodeId = sub.nodeId;
+    modeVar.browseName = QStringLiteral("Mode");
+    modeVar.displayName = QStringLiteral("Mode");
+    modeVar.enumTypeId = mode.nodeId;
+    modeVar.initialValue = 1;
+    project.nodes.append(modeVar);
+
+    Node label;
+    label.kind = NodeKind::Variable;
+    label.nodeId = QStringLiteral("ns=1;s=App.Sub.Label");
+    label.parentNodeId = sub.nodeId;
+    label.browseName = QStringLiteral("Label");
+    label.displayName = QStringLiteral("Label");
+    label.dataType = QStringLiteral("String");
+    label.valueRank = -1;
+    label.initialValue = QStringLiteral("hello");
+    project.nodes.append(label);
+
     const QString projectPath = m_dir.filePath(QStringLiteral("clone.uaserver"));
     const Serializer::SaveResult saved = Serializer::save(projectPath, project);
     QVERIFY2(saved.ok, qPrintable(saved.errorString));
@@ -157,7 +192,7 @@ void ServerCloneBrowseTest::capturesSubtreeWithValues()
     auto *browser = new CloneBrowser(m_client, QStringLiteral("ns=0;i=85"), 1);
     QSignalSpy finishedSpy(browser, &CloneBrowser::finished);
     browser->start();
-    QVERIFY2(finishedSpy.wait(20000), "clone browse did not finish");
+    QVERIFY2(finishedSpy.wait(30000), "clone browse did not finish");
 
     const QList<QVariant> args = finishedSpy.takeFirst();
     const auto nodes = args.at(1).value<QList<CloneNode>>();
@@ -186,6 +221,51 @@ void ServerCloneBrowseTest::capturesSubtreeWithValues()
     const QVariantList list = nums.value.toList();
     QCOMPARE(list.size(), 2);
     QCOMPARE(list.at(1).toDouble(), 2.5);
+}
+
+QList<CloneNode> ServerCloneBrowseTest::cloneObjects()
+{
+    auto *browser = new CloneBrowser(m_client, QStringLiteral("ns=0;i=85"), 2);
+    QSignalSpy finishedSpy(browser, &CloneBrowser::finished);
+    browser->start();
+    if (!finishedSpy.wait(30000))
+        return {};
+    return finishedSpy.takeFirst().at(1).value<QList<CloneNode>>();
+}
+
+void ServerCloneBrowseTest::resolvesDataTypes()
+{
+    QVERIFY(m_client);
+    const QList<CloneNode> nodes = cloneObjects();
+    QVERIFY2(!nodes.isEmpty(), "clone browse did not finish");
+
+    // Built-in types resolve locally.
+    const CloneNode count = nodeNamed(nodes, QStringLiteral("Count"));
+    QCOMPARE(count.resolvedDataType.resolution, ResolvedDataType::Resolution::BuiltIn);
+    QCOMPARE(count.resolvedDataType.builtInBase, QStringLiteral("Int32"));
+    const CloneNode label = nodeNamed(nodes, QStringLiteral("Label"));
+    QCOMPARE(label.resolvedDataType.builtInBase, QStringLiteral("String"));
+    QCOMPARE(label.value.toString(), QStringLiteral("hello"));
+
+    // The custom type keeps its original id and name; its base comes from the
+    // inverse HasSubtype browse on the server.
+    const CloneNode mode = nodeNamed(nodes, QStringLiteral("Mode"));
+    QVERIFY(mode.isVariable);
+    QVERIFY(mode.dataTypeId.startsWith(QLatin1String("ns=")));
+    QVERIFY(!mode.dataTypeId.startsWith(QLatin1String("ns=0;")));
+    QCOMPARE(mode.resolvedDataType.typeId, mode.dataTypeId);
+    QCOMPARE(mode.resolvedDataType.resolution, ResolvedDataType::Resolution::Hierarchy);
+    QCOMPARE(mode.resolvedDataType.typeName, QStringLiteral("Mode"));
+    QCOMPARE(mode.resolvedDataType.builtInBase, QStringLiteral("Int32"));
+
+    // Standard subtypes of the Server object: Duration (known subtype) and
+    // ServerStatusDataType (a structure found through the hierarchy).
+    const CloneNode sampleRate = nodeNamed(nodes, QStringLiteral("MinSupportedSampleRate"));
+    QVERIFY(sampleRate.isVariable);
+    QCOMPARE(sampleRate.resolvedDataType.builtInBase, QStringLiteral("Double"));
+    const CloneNode serverStatus = nodeNamed(nodes, QStringLiteral("ServerStatus"));
+    QVERIFY(serverStatus.isVariable);
+    QCOMPARE(serverStatus.resolvedDataType.builtInBase, QStringLiteral("Structure"));
 }
 
 void ServerCloneBrowseTest::cleanupTestCase()

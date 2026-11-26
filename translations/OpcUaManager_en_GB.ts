@@ -713,7 +713,7 @@
 <context>
     <name>BsNodeDataView</name>
     <message>
-        <location filename="../qml/Base/BsNodeDataView.qml" line="+268"/>
+        <location filename="../qml/Base/BsNodeDataView.qml" line="+279"/>
         <source>A decimal number, for example 12.5. Use a dot as the separator.</source>
         <translation>A decimal number, for example 12.5. Use a dot as the separator.</translation>
     </message>
@@ -808,7 +808,7 @@
         <translation>Check nodes in the address space, or drag them here, to add them to the Data Access View.</translation>
     </message>
     <message>
-        <location line="+166"/>
+        <location line="+177"/>
         <source>Read-only: the server does not grant CurrentWrite.</source>
         <translation>Read-only: the server does not grant CurrentWrite.</translation>
     </message>
@@ -1878,7 +1878,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+187"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+184"/>
         <source>Stopped</source>
         <translation>Stopped</translation>
     </message>
@@ -2005,12 +2005,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+526"/>
+        <location line="+545"/>
         <source>No OPC UA client is available.</source>
         <translation>No OPC UA client is available.</translation>
     </message>
     <message>
-        <location line="-520"/>
+        <location line="-539"/>
         <source>A clone is already in progress.</source>
         <translation>A clone is already in progress.</translation>
     </message>
@@ -2025,22 +2025,27 @@
         <translation>Nothing was cloned. Connect to a server and try again.</translation>
     </message>
     <message>
-        <location line="+114"/>
+        <location line="+126"/>
+        <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
+        <translation>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>Cloned %1 node(s); the address space was large and was truncated.</source>
         <translation>Cloned %1 node(s); the address space was large and was truncated.</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+4"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Cloned %1 node(s) from the server.</translation>
     </message>
     <message>
-        <location line="-113"/>
+        <location line="-132"/>
         <source>Cloned Server</source>
         <translation>Cloned Server</translation>
     </message>
     <message>
-        <location line="+381"/>
+        <location line="+400"/>
         <source>Create or open a server project first.</source>
         <translation>Create or open a server project first.</translation>
     </message>
@@ -2538,7 +2543,7 @@
         <translation>Check for updates</translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+14"/>
         <source>Current version: %1</source>
         <translation>Current version: %1</translation>
     </message>

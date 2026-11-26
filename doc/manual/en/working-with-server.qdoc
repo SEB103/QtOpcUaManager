@@ -41,6 +41,13 @@
     care about, and clone it into a new server project. You then have an editable
     \c .uaserver reproduction you can run locally, secure, and simulate.
 
+    Variables keep the data type of the source server. Vendor type aliases, such as the
+    CODESYS IEC types STRING or UINT, are resolved through the server's type hierarchy to
+    their OPC UA base type (String, UInt16, ...). Types a server project cannot model —
+    structures, date/time values and types that cannot be resolved — are created as String
+    variables; the status message after the clone states how many variables use such a
+    substitute type.
+
     \section1 Exchange address spaces
 
     Use NodeSet2 import/export to move an address space between this tool and other OPC

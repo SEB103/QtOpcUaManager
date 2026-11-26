@@ -1,8 +1,19 @@
 #include "clonebrowser.h"
 
+#include <QLoggingCategory>
 #include <QOpcUaClient>
 #include <QOpcUaQualifiedName>
 #include <QTimer>
+
+/*!
+ * \internal
+ * \brief Logging category for clone diagnostics.
+ *
+ * Debug output is disabled by default. Enable it with
+ * QT_LOGGING_RULES="opcua.clone.debug=true" to list every captured DataType id
+ * with its name, base type and resolution.
+ */
+Q_LOGGING_CATEGORY(lcOpcUaClone, "opcua.clone", QtInfoMsg)
 
 /*!
  * \class CloneBrowser
@@ -225,7 +236,12 @@ void CloneBrowser::finalizeNode(WorkNode *item)
 }
 
 /*!
- * \brief Assembles the flat node list and emits finished() exactly once.
+ * \brief Assembles the flat node list and resolves its DataType ids.
+ *
+ * Runs once, either when the whole tree finalized or when the safety timeout
+ * forces completion. The distinct DataType ids of the captured variables are
+ * then resolved to their base types; publishResult() emits finished() when
+ * the resolver settles.
  */
 void CloneBrowser::emitResult(bool success)
 {
@@ -235,13 +251,62 @@ void CloneBrowser::emitResult(bool success)
     if (m_timeout)
         m_timeout->stop();
 
-    QList<CloneNode> nodes;
+    m_resultSuccess = success;
     if (m_root)
-        collect(m_root, nodes);
-    const QStringList namespaceUris = m_client ? m_client->namespaceArray() : QStringList();
+        collect(m_root, m_resultNodes);
+    m_resultNamespaces = m_client ? m_client->namespaceArray() : QStringList();
 
-    emit finished(m_requestId, nodes, namespaceUris,
-                  success && m_root != nullptr && !nodes.isEmpty(), m_truncated);
+    QStringList typeIds;
+    QSet<QString> seen;
+    for (const CloneNode &node : std::as_const(m_resultNodes)) {
+        if (!node.isVariable || node.dataTypeId.isEmpty() || seen.contains(node.dataTypeId))
+            continue;
+        seen.insert(node.dataTypeId);
+        typeIds.append(node.dataTypeId);
+    }
+
+    if (!m_client || typeIds.isEmpty()) {
+        publishResult();
+        return;
+    }
+
+    m_resolver = new DataTypeResolver(m_client, this);
+    connect(m_resolver, &DataTypeResolver::finished, this, &CloneBrowser::publishResult);
+    m_resolver->resolve(typeIds);
+}
+
+/*!
+ * \internal
+ * \brief Attaches the resolved DataTypes and emits finished() exactly once.
+ *
+ * A variable whose DataType attribute was never read keeps an empty id and is
+ * reported as unresolved, so consumers do not mistake it for a known type.
+ */
+void CloneBrowser::publishResult()
+{
+    const DataTypeHierarchy localOnly;
+    QHash<QString, ResolvedDataType> cache;
+    for (CloneNode &node : m_resultNodes) {
+        if (!node.isVariable)
+            continue;
+        auto it = cache.constFind(node.dataTypeId);
+        if (it == cache.constEnd()) {
+            ResolvedDataType resolved = m_resolver ? m_resolver->result(node.dataTypeId)
+                                                   : localOnly.resolve(node.dataTypeId);
+            if (node.dataTypeId.isEmpty())
+                resolved.reason = QStringLiteral("DataType attribute was not read");
+            it = cache.insert(node.dataTypeId, resolved);
+            qCDebug(lcOpcUaClone).noquote()
+                << "DataType" << (node.dataTypeId.isEmpty() ? QStringLiteral("<none>")
+                                                            : node.dataTypeId)
+                << "name:" << resolved.typeName << "base:" << resolved.builtInBase
+                << "resolution:" << int(resolved.resolution) << resolved.reason;
+        }
+        node.resolvedDataType = it.value();
+    }
+
+    emit finished(m_requestId, m_resultNodes, m_resultNamespaces,
+                  m_resultSuccess && m_root != nullptr && !m_resultNodes.isEmpty(), m_truncated);
     deleteLater();
 }
 
