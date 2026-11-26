@@ -383,6 +383,18 @@ target_link_libraries(tst_datatyperesolver
 
 add_test(NAME DataTypeResolver.Unit COMMAND tst_datatyperesolver)
 
+qt_add_executable(tst_addressspacesnapshot
+    unit/tst_addressspacesnapshot.cpp
+)
+
+target_link_libraries(tst_addressspacesnapshot
+    PRIVATE
+        OpcUaCore
+        Qt6::Test
+)
+
+add_test(NAME AddressSpaceSnapshot.Unit COMMAND tst_addressspacesnapshot)
+
 qt_add_executable(tst_serverstudioclone
     unit/tst_serverstudioclone.cpp
 )

@@ -89,6 +89,9 @@ struct CloneNode
     /** Server timestamp of the value, when provided. */
     QDateTime serverTimestamp;
 
+    /** Whether a response to the Value read arrived; valueStatus is meaningful only then. */
+    bool valueRead = false;
+
     /** Whether the Value was deliberately not read because the DataType is a structure. */
     bool valueSkipped = false;
 

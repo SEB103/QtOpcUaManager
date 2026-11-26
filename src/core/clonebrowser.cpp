@@ -857,8 +857,10 @@ void CloneBrowser::applyReadResult(CloneNode &node, const QOpcUaReadResult &resu
     const QOpcUa::UaStatusCode status = result.statusCode();
     const QOpcUa::NodeAttribute attribute = result.attribute();
 
-    if (attribute == QOpcUa::NodeAttribute::Value)
+    if (attribute == QOpcUa::NodeAttribute::Value) {
+        node.valueRead = true;
         node.valueStatus = static_cast<quint32>(status);
+    }
 
     if (isBad(status)) {
         if (attribute == QOpcUa::NodeAttribute::ArrayDimensions)

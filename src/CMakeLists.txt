@@ -3,6 +3,8 @@ qt_add_library(OpcUaCore STATIC)
 
 target_sources(OpcUaCore
     PRIVATE
+        core/addressspacesnapshot.cpp
+        core/addressspacesnapshot.h
         core/apppaths.cpp
         core/apppaths.h
         core/clonebrowser.cpp
@@ -27,6 +29,8 @@ target_sources(OpcUaCore
         core/opcuavaluetext.cpp
         core/opcuavaluetext.h
         core/opcuavaluetree.h
+        core/snapshotvaluecodec.cpp
+        core/snapshotvaluecodec.h
         core/structurednodereader.cpp
         core/structurednodereader.h
         models/attributesmodel.cpp
