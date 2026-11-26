@@ -249,11 +249,17 @@ void CloneBrowser::pump()
     while (m_browsing.size() < m_options.maxConcurrentBrowses && !m_browseQueue.isEmpty())
         startBrowse(m_browseQueue.dequeue());
 
-    // Value reads go first, so captured variables are completed before more
-    // metadata is requested and the value queue stays short.
-    while (m_reading.size() < m_options.maxConcurrentReads
-           && (!m_valueQueue.isEmpty() || !m_readQueue.isEmpty())) {
-        const bool values = !m_valueQueue.isEmpty();
+    // While metadata is still queued, a Value read waits for a full batch:
+    // every metadata batch adds only a few values, and sending those at once
+    // would take the few read slots with small requests and double the number
+    // of round trips to a slow PLC. Once no metadata is queued, the remaining
+    // values are read in whatever batch sizes are left.
+    while (m_reading.size() < m_options.maxConcurrentReads) {
+        const bool metadataQueued = !m_readQueue.isEmpty();
+        const bool values = m_valueQueue.size() >= m_options.valuesPerRead
+                            || (!metadataQueued && !m_valueQueue.isEmpty());
+        if (!values && !metadataQueued)
+            break;
         QStringList &queue = values ? m_valueQueue : m_readQueue;
         const int perRead = values ? m_options.valuesPerRead : m_options.variablesPerRead;
         const qsizetype count = std::min<qsizetype>(perRead, queue.size());
