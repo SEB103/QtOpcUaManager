@@ -1,5 +1,7 @@
 #include "serverstudio.h"
 
+#include "browseprogresstext.h"
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -294,24 +296,7 @@ QString ServerStudio::cloneProgressText() const
 {
     if (!m_cloneInProgress)
         return {};
-    // The breakdown shows where a slow clone waits: browsing, metadata or value
-    // reads, or DataType lookups.
-    const CloneProgress &p = m_cloneProgress;
-    QString text = tr("%1 node(s) captured").arg(p.captured);
-    text += QLatin1Char('\n')
-            + tr("Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for "
-                 "data types")
-                  .arg(p.browseQueued)
-                  .arg(p.metadataQueued)
-                  .arg(p.valuesQueued)
-                  .arg(p.waitingForType);
-    text += QLatin1Char('\n')
-            + tr("In progress: %1 browse(s), %2 read request(s)")
-                  .arg(p.browsing)
-                  .arg(p.readRequests);
-    if (p.typeLookups > 0)
-        text += QLatin1Char('\n') + tr("Looking up %1 data type(s)").arg(p.typeLookups);
-    return text;
+    return BrowseProgressText::render(m_cloneProgress);
 }
 
 /*!

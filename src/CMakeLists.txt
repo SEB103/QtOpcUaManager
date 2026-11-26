@@ -113,6 +113,8 @@ qt_add_library(OpcUaQmlApi STATIC)
 
 target_sources(OpcUaQmlApi
     PRIVATE
+        qmlapi/browseprogresstext.cpp
+        qmlapi/browseprogresstext.h
         qmlapi/networkscancontroller.cpp
         qmlapi/networkscancontroller.h
         qmlapi/opcuamanager.cpp
@@ -121,6 +123,8 @@ target_sources(OpcUaQmlApi
         qmlapi/projectmanager.h
         qmlapi/servernodemodel.cpp
         qmlapi/servernodemodel.h
+        qmlapi/serversnapshotcontroller.cpp
+        qmlapi/serversnapshotcontroller.h
         qmlapi/serverruntimecontroller.cpp
         qmlapi/serverruntimecontroller.h
         qmlapi/serverstudio.cpp

@@ -5,9 +5,14 @@
 // limit, depth limit, timeout and cancel outcomes.
 
 #include <QElapsedTimer>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <QtTest>
 
 #include <QOpcUaClient>
@@ -28,6 +33,7 @@
 
 #include "core/clonebrowser.h"
 #include "qmlapi/opcuamanager.h"
+#include "qmlapi/serversnapshotcontroller.h"
 #include "qmlapi/serverstudio.h"
 #include "serverproject/serverprojectserializer.h"
 #include "serverproject/serverprojectvalidator.h"
@@ -427,6 +433,19 @@ private slots:
         types and shapes, and the cloned project runs in the Server Studio runtime.
     */
     void clonesStructuresIntoRuntime();
+
+    /*!
+        A snapshot of the Objects folder taken through ServerSnapshotController
+        is written as a complete document with typed values and reported as
+        incomplete because one variable is not readable.
+    */
+    void writesSnapshotThroughController();
+
+    /*!
+        The controller ignores results of other requests, writes nothing for a
+        cancelled browse, and needs a selected node for the node scope.
+    */
+    void snapshotControllerGuards();
 
     void cleanupTestCase();
 
@@ -883,6 +902,115 @@ void CloneTraversalTest::clonesStructuresIntoRuntime()
     delete client;
     runtime.kill();
     runtime.waitForFinished(5000);
+}
+
+void CloneTraversalTest::writesSnapshotThroughController()
+{
+    OpcUaManager manager;
+    ServerSnapshotController controller;
+    controller.setOpcUaManager(&manager);
+    QSignalSpy requestSpy(&manager, &OpcUaManager::cloneBrowseRequested);
+    QSignalSpy incompleteSpy(&controller, &ServerSnapshotController::snapshotIncomplete);
+    QSignalSpy notificationSpy(&controller, &ServerSnapshotController::notification);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("plant.uasnapshot.json"));
+    QVERIFY(controller.start(ServerSnapshotController::ObjectsScope, true, 0,
+                             QUrl::fromLocalFile(path).toString()));
+    QVERIFY(controller.inProgress());
+    QCOMPARE(requestSpy.size(), 1);
+    const QString root = requestSpy.first().at(0).toString();
+    const quint64 requestId = requestSpy.first().at(1).toULongLong();
+    const CloneOptions options = requestSpy.first().at(2).value<CloneOptions>();
+    QCOMPARE(root, QStringLiteral("ns=0;i=85"));
+    QVERIFY(options.readValues);
+    QVERIFY(!options.captureRoot);
+
+    // The browse the worker runs for this request, here on the test client.
+    const Result result = run(root, options);
+    QVERIFY(result.finished);
+    emit manager.cloneSnapshotReady(requestId, result.nodes, m_client->namespaceArray(),
+                                    result.completion);
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.inProgress(), 30000);
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QJsonObject document = QJsonDocument::fromJson(file.readAll()).object();
+    QCOMPARE(document.value(QStringLiteral("format")).toString(), AddressSpaceSnapshot::formatName());
+    QVERIFY(document.value(QStringLiteral("server")).toObject()
+                .value(QStringLiteral("endpointUrl")).toString().startsWith(QLatin1String("opc.tcp://")));
+    QCOMPARE(document.value(QStringLiteral("scope")).toObject().value(QStringLiteral("kind")),
+             QJsonValue(QStringLiteral("Objects")));
+
+    QHash<QString, QJsonObject> byPath;
+    for (const QJsonValue &node : document.value(QStringLiteral("nodes")).toArray())
+        byPath.insert(node.toObject().value(QStringLiteral("browsePath")).toString(), node.toObject());
+    const auto valueAt = [&byPath](const char *browsePath) {
+        return byPath.value(QLatin1String(browsePath))
+            .value(QStringLiteral("variable")).toObject()
+            .value(QStringLiteral("value")).toObject();
+    };
+    QCOMPARE(valueAt("/Objects/Area/Plant/Label").value(QStringLiteral("data")).toString(),
+             QStringLiteral("abc"));
+    QCOMPARE(valueAt("/Objects/Structs/Button").value(QStringLiteral("skipped")).toString(),
+             QStringLiteral("structure"));
+    QCOMPARE(valueAt("/Objects/Structs/Matrix").value(QStringLiteral("data")).toObject()
+                 .value(QStringLiteral("dimensions")).toArray(),
+             (QJsonArray{2, 3}));
+    QVERIFY(valueAt("/Objects/Area/Plant/Locked").value(QStringLiteral("status")).toString()
+                .startsWith(QLatin1String("Bad")));
+
+    bool vendorType = false;
+    for (const QJsonValue &type : document.value(QStringLiteral("dataTypes")).toArray()) {
+        const QJsonObject object = type.toObject();
+        if (object.value(QStringLiteral("name")).toString() == QLatin1String("VendorString"))
+            vendorType = object.value(QStringLiteral("builtInBase")).toString() == QLatin1String("String");
+    }
+    QVERIFY(vendorType);
+
+    // Locked cannot be read, so the snapshot is written but reported as incomplete.
+    QCOMPARE(incompleteSpy.size(), 1);
+    QVERIFY(notificationSpy.last().at(1).toString().contains(path));
+    QVERIFY(!manager.addressSpaceBrowseInProgress());
+}
+
+void CloneTraversalTest::snapshotControllerGuards()
+{
+    OpcUaManager manager;
+    ServerSnapshotController controller;
+    controller.setOpcUaManager(&manager);
+    QSignalSpy requestSpy(&manager, &OpcUaManager::cloneBrowseRequested);
+    QSignalSpy notificationSpy(&controller, &ServerSnapshotController::notification);
+
+    // The node scope needs a node selected in the client tree.
+    QVERIFY(!controller.start(ServerSnapshotController::SelectedNodeScope, true, 0,
+                              QStringLiteral("x.uasnapshot.json")));
+    QVERIFY(requestSpy.isEmpty());
+    QVERIFY(controller.suggestedFileName().endsWith(QLatin1String(".uasnapshot.json")));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("server.uasnapshot.json"));
+    QVERIFY(controller.start(ServerSnapshotController::WholeServerScope, false, 1000, path));
+    QCOMPARE(requestSpy.size(), 1);
+    QCOMPARE(requestSpy.first().at(0).toString(), QStringLiteral("ns=0;i=84"));
+    const quint64 requestId = requestSpy.first().at(1).toULongLong();
+    const CloneOptions options = requestSpy.first().at(2).value<CloneOptions>();
+    QVERIFY(!options.readValues);
+    QCOMPARE(options.maxNodes, 1000);
+
+    // A second snapshot is refused while the first one runs.
+    QVERIFY(!controller.start(ServerSnapshotController::ObjectsScope, true, 0, path));
+
+    CloneCompletion cancelled;
+    cancelled.state = CloneCompletion::State::Cancelled;
+    emit manager.cloneSnapshotReady(requestId + 100, {}, {}, cancelled); // another request
+    QVERIFY(controller.inProgress());
+    emit manager.cloneSnapshotReady(requestId, {}, {}, cancelled);
+    QVERIFY(!controller.inProgress());
+    QVERIFY(!QFile::exists(path));
+    QVERIFY(notificationSpy.last().at(1).toString().contains(QLatin1String("cancelled")));
 }
 
 void CloneTraversalTest::cleanupTestCase()

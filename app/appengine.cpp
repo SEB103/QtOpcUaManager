@@ -29,6 +29,7 @@
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/projectmanager.h"
 #include "qmlapi/servernodemodel.h"
+#include "qmlapi/serversnapshotcontroller.h"
 #include "qmlapi/serverruntimecontroller.h"
 #include "qmlapi/serverstudio.h"
 #include "models/attributesmodel.h"
@@ -274,6 +275,7 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     , m_opcUaManager(new OpcUaManager(initialUrl, this))
     , m_projectManager(new ProjectManager(this))
     , m_serverStudio(new ServerStudio(this))
+    , m_serverSnapshot(new ServerSnapshotController(this))
     , m_networkScanController(new NetworkScanController(this))
     , m_appInfo(new AppInfo(this))
     , m_licenseModel(new LicenseModel(this))
@@ -315,6 +317,13 @@ AppEngine::AppEngine(const QString& initialUrl, QObject* parent)
     qmlRegisterUncreatableType<ServerNodeModel>("Cpp.ServerStudio", 1, 0, "ServerNodeModel", QStringLiteral("ServerNodeModel is exposed by ServerStudio::nodeModel."));
     m_serverStudio->setOpcUaManager(m_opcUaManager);
     rootContext()->setContextProperty("cppServerStudio", m_serverStudio);
+
+    // Address-space snapshots (*.uasnapshot.json) share the client's browse
+    // slot with the Server Studio clone. Registered uncreatable so QML can name
+    // its Scope enum values.
+    qmlRegisterUncreatableType<ServerSnapshotController>("Cpp.ServerSnapshot", 1, 0, "ServerSnapshotController", QStringLiteral("ServerSnapshotController is exposed as the cppServerSnapshot context property."));
+    m_serverSnapshot->setOpcUaManager(m_opcUaManager);
+    rootContext()->setContextProperty("cppServerSnapshot", m_serverSnapshot);
 
     // Network scanner behind the connection form's "Scan network..." dialog.
     qmlRegisterUncreatableType<NetworkScanController>("Cpp.NetworkScanner", 1, 0, "NetworkScanController", QStringLiteral("NetworkScanController should not be created in QML."));
@@ -410,6 +419,8 @@ void AppEngine::setLocaleController(LocaleController* controller)
             m_projectManager->retranslate();
         if (m_serverStudio)
             m_serverStudio->retranslate();
+        if (m_serverSnapshot)
+            m_serverSnapshot->retranslate();
     });
 }
 

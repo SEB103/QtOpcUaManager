@@ -132,6 +132,29 @@
     </message>
 </context>
 <context>
+    <name>BrowseProgressText</name>
+    <message>
+        <location filename="../src/qmlapi/browseprogresstext.cpp" line="+20"/>
+        <source>%1 node(s) captured</source>
+        <translation>Отримано вузлів: %1</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>У черзі: обхід %1, описи %2, значення %3, чекають типу даних %4</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>Виконується: обхід %1, запитів читання %2</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Визначаються типи даних: %1</translation>
+    </message>
+</context>
+<context>
     <name>BsAddressSpaceTree</name>
     <message>
         <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+78"/>
@@ -1922,9 +1945,88 @@
     </message>
 </context>
 <context>
+    <name>ServerSnapshotController</name>
+    <message>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <source>The limit of %1 nodes was reached.</source>
+        <translation>Досягнуто ліміту в %1 вузлів.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 node(s) at the depth limit of %2 were not browsed.</source>
+        <translation>Вузлів на межі глибини %2, не переглянутих: %1.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The server did not answer in time; %1 node(s) were left unread.</source>
+        <translation>Сервер не відповів вчасно; не прочитано вузлів: %1.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>Вузлів, які не вдалося повністю прочитати чи переглянути: %1.</translation>
+    </message>
+    <message>
+        <location line="+55"/>
+        <source>Writing the snapshot file…</source>
+        <translation>Запис файлу знімка…</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>No OPC UA client is available.</source>
+        <translation>Клієнт OPC UA недоступний.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+43"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Інше клонування або знімок сервера вже виконується.</translation>
+    </message>
+    <message>
+        <location line="-38"/>
+        <source>Choose a file for the snapshot.</source>
+        <translation>Виберіть файл для знімка.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Select a node in the address-space tree first.</source>
+        <translation>Спочатку виберіть вузол у дереві адресного простору.</translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <source>Taking a snapshot of the server address space…</source>
+        <translation>Створюється знімок адресного простору сервера…</translation>
+    </message>
+    <message>
+        <location line="+61"/>
+        <source>Snapshot cancelled; no file was written.</source>
+        <translation>Знімок скасовано; файл не записано.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The snapshot could not be taken: the server could not be browsed.</source>
+        <translation>Не вдалося зробити знімок: сервер не вдалося переглянути.</translation>
+    </message>
+    <message>
+        <location line="+50"/>
+        <source>The snapshot could not be written: %1</source>
+        <translation>Не вдалося записати знімок: %1</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Snapshot saved: %1 node(s) in %2.</source>
+        <translation>Знімок збережено: вузлів %1 у %2.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Snapshot saved, but incomplete: %1 node(s) in %2.</source>
+        <translation>Знімок збережено, але неповний: вузлів %1 у %2.</translation>
+    </message>
+</context>
+<context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Зупинено</translation>
     </message>
@@ -2106,27 +2208,7 @@
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
     <message>
-        <location line="-928"/>
-        <source>%1 node(s) captured</source>
-        <translation>Отримано вузлів: %1</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
-        <translation>У черзі: обхід %1, описи %2, значення %3, чекають типу даних %4</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>In progress: %1 browse(s), %2 read request(s)</source>
-        <translation>Виконується: обхід %1, запитів читання %2</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Looking up %1 data type(s)</source>
-        <translation>Визначаються типи даних: %1</translation>
-    </message>
-    <message>
-        <location line="+683"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>

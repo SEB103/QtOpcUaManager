@@ -131,6 +131,29 @@
     </message>
 </context>
 <context>
+    <name>BrowseProgressText</name>
+    <message>
+        <location filename="../src/qmlapi/browseprogresstext.cpp" line="+20"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 nodo/i acquisito/i</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>In coda: %1 da esplorare, %2 letture di metadati, %3 letture di valori, %4 in attesa di tipi di dati</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In corso: %1 esplorazione/i, %2 richiesta/e di lettura</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Ricerca di %1 tipo/i di dati</translation>
+    </message>
+</context>
+<context>
     <name>BsAddressSpaceTree</name>
     <message>
         <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+78"/>
@@ -1916,9 +1939,88 @@
     </message>
 </context>
 <context>
+    <name>ServerSnapshotController</name>
+    <message>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <source>The limit of %1 nodes was reached.</source>
+        <translation>È stato raggiunto il limite di %1 nodi.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 node(s) at the depth limit of %2 were not browsed.</source>
+        <translation>%1 nodo/i al limite di profondità di %2 non sono stati esplorati.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The server did not answer in time; %1 node(s) were left unread.</source>
+        <translation>Il server non ha risposto in tempo; %1 nodo/i non sono stati letti.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>%1 nodo/i non hanno potuto essere letti o esplorati completamente.</translation>
+    </message>
+    <message>
+        <location line="+55"/>
+        <source>Writing the snapshot file…</source>
+        <translation>Scrittura del file di snapshot…</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>No OPC UA client is available.</source>
+        <translation>Nessun client OPC UA disponibile.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+43"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Un altro clone o snapshot del server è già in corso.</translation>
+    </message>
+    <message>
+        <location line="-38"/>
+        <source>Choose a file for the snapshot.</source>
+        <translation>Scegli un file per lo snapshot.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Select a node in the address-space tree first.</source>
+        <translation>Seleziona prima un nodo nell’albero dello spazio degli indirizzi.</translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <source>Taking a snapshot of the server address space…</source>
+        <translation>Creazione di uno snapshot dello spazio degli indirizzi del server…</translation>
+    </message>
+    <message>
+        <location line="+61"/>
+        <source>Snapshot cancelled; no file was written.</source>
+        <translation>Snapshot annullato; nessun file è stato scritto.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The snapshot could not be taken: the server could not be browsed.</source>
+        <translation>Impossibile creare lo snapshot: il server non può essere esplorato.</translation>
+    </message>
+    <message>
+        <location line="+50"/>
+        <source>The snapshot could not be written: %1</source>
+        <translation>Impossibile scrivere lo snapshot: %1</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Snapshot saved: %1 node(s) in %2.</source>
+        <translation>Snapshot salvato: %1 nodo/i in %2.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Snapshot saved, but incomplete: %1 node(s) in %2.</source>
+        <translation>Snapshot salvato, ma incompleto: %1 nodo/i in %2.</translation>
+    </message>
+</context>
+<context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Arrestato</translation>
     </message>
@@ -2100,27 +2202,7 @@
         <translation>Clonati %1 nodo/i dal server.</translation>
     </message>
     <message>
-        <location line="-928"/>
-        <source>%1 node(s) captured</source>
-        <translation>%1 nodo/i acquisito/i</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
-        <translation>In coda: %1 da esplorare, %2 letture di metadati, %3 letture di valori, %4 in attesa di tipi di dati</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>In progress: %1 browse(s), %2 read request(s)</source>
-        <translation>In corso: %1 esplorazione/i, %2 richiesta/e di lettura</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Looking up %1 data type(s)</source>
-        <translation>Ricerca di %1 tipo/i di dati</translation>
-    </message>
-    <message>
-        <location line="+683"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Server clonato</translation>
     </message>

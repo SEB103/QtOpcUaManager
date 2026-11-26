@@ -132,6 +132,29 @@
     </message>
 </context>
 <context>
+    <name>BrowseProgressText</name>
+    <message>
+        <location filename="../src/qmlapi/browseprogresstext.cpp" line="+20"/>
+        <source>%1 node(s) captured</source>
+        <translation>Получено узлов: %1</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>В очереди: обход %1, описания %2, значения %3, ждут типа данных %4</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>Выполняется: обход %1, запросов чтения %2</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Определяются типы данных: %1</translation>
+    </message>
+</context>
+<context>
     <name>BsAddressSpaceTree</name>
     <message>
         <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+78"/>
@@ -1922,9 +1945,88 @@
     </message>
 </context>
 <context>
+    <name>ServerSnapshotController</name>
+    <message>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <source>The limit of %1 nodes was reached.</source>
+        <translation>Достигнут лимит в %1 узлов.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 node(s) at the depth limit of %2 were not browsed.</source>
+        <translation>Узлов на пределе глубины %2, не просмотренных: %1.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The server did not answer in time; %1 node(s) were left unread.</source>
+        <translation>Сервер не ответил вовремя; не прочитано узлов: %1.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>Узлов, которые не удалось полностью прочитать или просмотреть: %1.</translation>
+    </message>
+    <message>
+        <location line="+55"/>
+        <source>Writing the snapshot file…</source>
+        <translation>Запись файла снапшота…</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>No OPC UA client is available.</source>
+        <translation>Клиент OPC UA недоступен.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+43"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Другое клонирование или снапшот сервера уже выполняется.</translation>
+    </message>
+    <message>
+        <location line="-38"/>
+        <source>Choose a file for the snapshot.</source>
+        <translation>Выберите файл для снапшота.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Select a node in the address-space tree first.</source>
+        <translation>Сначала выберите узел в дереве адресного пространства.</translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <source>Taking a snapshot of the server address space…</source>
+        <translation>Создаётся снапшот адресного пространства сервера…</translation>
+    </message>
+    <message>
+        <location line="+61"/>
+        <source>Snapshot cancelled; no file was written.</source>
+        <translation>Снапшот отменён; файл не записан.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The snapshot could not be taken: the server could not be browsed.</source>
+        <translation>Не удалось сделать снапшот: сервер не удалось просмотреть.</translation>
+    </message>
+    <message>
+        <location line="+50"/>
+        <source>The snapshot could not be written: %1</source>
+        <translation>Не удалось записать снапшот: %1</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Snapshot saved: %1 node(s) in %2.</source>
+        <translation>Снапшот сохранён: узлов %1 в %2.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Snapshot saved, but incomplete: %1 node(s) in %2.</source>
+        <translation>Снапшот сохранён, но неполный: узлов %1 в %2.</translation>
+    </message>
+</context>
+<context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -2106,27 +2208,7 @@
         <translation>Клонировано узлов с сервера: %1.</translation>
     </message>
     <message>
-        <location line="-928"/>
-        <source>%1 node(s) captured</source>
-        <translation>Получено узлов: %1</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
-        <translation>В очереди: обход %1, описания %2, значения %3, ждут типа данных %4</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>In progress: %1 browse(s), %2 read request(s)</source>
-        <translation>Выполняется: обход %1, запросов чтения %2</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Looking up %1 data type(s)</source>
-        <translation>Определяются типы данных: %1</translation>
-    </message>
-    <message>
-        <location line="+683"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>

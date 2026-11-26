@@ -131,6 +131,29 @@
     </message>
 </context>
 <context>
+    <name>BrowseProgressText</name>
+    <message>
+        <location filename="../src/qmlapi/browseprogresstext.cpp" line="+20"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 Knoten erfasst</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>Warteschlange: %1 zu durchsuchen, %2 Metadaten-Lesevorgänge, %3 Wert-Lesevorgänge, %4 warten auf Datentypen</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In Arbeit: %1 Durchsuchung(en), %2 Leseanfrage(n)</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>%1 Datentyp(en) werden ermittelt</translation>
+    </message>
+</context>
+<context>
     <name>BsAddressSpaceTree</name>
     <message>
         <location filename="../qml/Base/BsAddressSpaceTree.qml" line="+78"/>
@@ -1916,9 +1939,88 @@
     </message>
 </context>
 <context>
+    <name>ServerSnapshotController</name>
+    <message>
+        <location filename="../src/qmlapi/serversnapshotcontroller.cpp" line="+52"/>
+        <source>The limit of %1 nodes was reached.</source>
+        <translation>Das Limit von %1 Knoten wurde erreicht.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 node(s) at the depth limit of %2 were not browsed.</source>
+        <translation>%1 Knoten an der Tiefengrenze von %2 wurden nicht durchsucht.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>The server did not answer in time; %1 node(s) were left unread.</source>
+        <translation>Der Server hat nicht rechtzeitig geantwortet; %1 Knoten blieben ungelesen.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>%1 Knoten konnten nicht vollständig gelesen oder durchsucht werden.</translation>
+    </message>
+    <message>
+        <location line="+55"/>
+        <source>Writing the snapshot file…</source>
+        <translation>Snapshot-Datei wird geschrieben…</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>No OPC UA client is available.</source>
+        <translation>Kein OPC-UA-Client verfügbar.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <location line="+43"/>
+        <source>Another clone or snapshot of the server is already running.</source>
+        <translation>Ein anderer Klon oder Snapshot des Servers läuft bereits.</translation>
+    </message>
+    <message>
+        <location line="-38"/>
+        <source>Choose a file for the snapshot.</source>
+        <translation>Wählen Sie eine Datei für den Snapshot.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Select a node in the address-space tree first.</source>
+        <translation>Wählen Sie zuerst einen Knoten im Adressraum-Baum aus.</translation>
+    </message>
+    <message>
+        <location line="+31"/>
+        <source>Taking a snapshot of the server address space…</source>
+        <translation>Snapshot des Server-Adressraums wird erstellt…</translation>
+    </message>
+    <message>
+        <location line="+61"/>
+        <source>Snapshot cancelled; no file was written.</source>
+        <translation>Snapshot abgebrochen; es wurde keine Datei geschrieben.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The snapshot could not be taken: the server could not be browsed.</source>
+        <translation>Der Snapshot konnte nicht erstellt werden: Der Server konnte nicht durchsucht werden.</translation>
+    </message>
+    <message>
+        <location line="+50"/>
+        <source>The snapshot could not be written: %1</source>
+        <translation>Der Snapshot konnte nicht geschrieben werden: %1</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Snapshot saved: %1 node(s) in %2.</source>
+        <translation>Snapshot gespeichert: %1 Knoten in %2.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Snapshot saved, but incomplete: %1 node(s) in %2.</source>
+        <translation>Snapshot gespeichert, aber unvollständig: %1 Knoten in %2.</translation>
+    </message>
+</context>
+<context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+370"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+355"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
@@ -2100,27 +2202,7 @@
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-928"/>
-        <source>%1 node(s) captured</source>
-        <translation>%1 Knoten erfasst</translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
-        <translation>Warteschlange: %1 zu durchsuchen, %2 Metadaten-Lesevorgänge, %3 Wert-Lesevorgänge, %4 warten auf Datentypen</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>In progress: %1 browse(s), %2 read request(s)</source>
-        <translation>In Arbeit: %1 Durchsuchung(en), %2 Leseanfrage(n)</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Looking up %1 data type(s)</source>
-        <translation>%1 Datentyp(en) werden ermittelt</translation>
-    </message>
-    <message>
-        <location line="+683"/>
+        <location line="-232"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>

@@ -14,6 +14,7 @@ class NetworkScanController;
 class OpcUaManager;
 class OpcUaService;
 class ProjectManager;
+class ServerSnapshotController;
 class ServerStudio;
 class ThemeController;
 class UiLayoutController;
@@ -97,6 +98,9 @@ private:
 
     /** Server Studio facade exposed to QML as \c cppServerStudio; owned by this engine. */
     ServerStudio* m_serverStudio = nullptr;
+
+    /** Address-space snapshot controller exposed to QML as \c cppServerSnapshot; owned by this engine. */
+    ServerSnapshotController* m_serverSnapshot = nullptr;
 
     /** Network scanner facade exposed to QML as \c cppNetworkScanner; owned by this engine. */
     NetworkScanController* m_networkScanController = nullptr;
