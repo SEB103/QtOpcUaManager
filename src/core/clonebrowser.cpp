@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <utility>
 
 /*!
  * \internal
@@ -34,15 +35,24 @@ Q_LOGGING_CATEGORY(lcOpcUaClone, "opcua.clone", QtInfoMsg)
  * as it is discovered, whatever its node class, so the members of a structure
  * or the elements of an array are found even when the structure's own value
  * cannot be read or decoded. Variables are additionally queued for a batched
- * read of Value, DataType, ValueRank, ArrayDimensions, AccessLevel and
+ * metadata read of DataType, ValueRank, ArrayDimensions, AccessLevel and
  * UserAccessLevel; each attribute keeps its status, so a failed read stays
  * visible instead of turning into a default value.
  *
+ * The Value is read in a second, separate batch and only for variables whose
+ * DataType is not a structure. A structure's members are its child nodes, and
+ * on servers such as CODESYS the Value of a structure encodes its whole
+ * subtree, so reading it at every nesting level would make the server encode
+ * the same data again and again. A DataType that the namespace-0 tables do not
+ * cover is looked up through DataTypeResolver while the traversal continues;
+ * the variables using it wait for that lookup before their Value is read.
+ *
  * A node reached through more than one hierarchical reference is captured and
  * browsed once; the additional parents are recorded. Reaching the node or depth
- * limit marks the result Truncated, the overall or idle timeout marks it
- * TimedOut, and cancel() marks it Cancelled, so a partial result is never
- * reported as complete.
+ * limit marks the result Truncated, the idle timeout (or an optional overall
+ * timeout) marks it TimedOut, and cancel() marks it Cancelled, so a partial
+ * result is never reported as complete. Read failures are logged to the
+ * opcua.clone category, the first kMaxLoggedReadFailures of them in detail.
  */
 
 namespace {
@@ -55,13 +65,27 @@ const QString kFolderTypeId = QStringLiteral("ns=0;i=61");
 
 /*!
  * \internal
- * \brief Attributes read for every variable, in request order.
+ * \brief Metadata attributes read for every variable, in request order.
+ *
+ * The Value is read separately, see CloneBrowser::queueValueRead().
  */
-const QList<QOpcUa::NodeAttribute> kVariableAttributes = {
-    QOpcUa::NodeAttribute::Value,           QOpcUa::NodeAttribute::DataType,
-    QOpcUa::NodeAttribute::ValueRank,       QOpcUa::NodeAttribute::ArrayDimensions,
-    QOpcUa::NodeAttribute::AccessLevel,     QOpcUa::NodeAttribute::UserAccessLevel,
+const QList<QOpcUa::NodeAttribute> kMetadataAttributes = {
+    QOpcUa::NodeAttribute::DataType,        QOpcUa::NodeAttribute::ValueRank,
+    QOpcUa::NodeAttribute::ArrayDimensions, QOpcUa::NodeAttribute::AccessLevel,
+    QOpcUa::NodeAttribute::UserAccessLevel,
 };
+
+/*!
+ * \internal
+ * \brief Number of read failures logged in detail; later ones are only counted.
+ */
+constexpr int kMaxLoggedReadFailures = 20;
+
+/*!
+ * \internal
+ * \brief Built-in base name of structure DataTypes, whose Value is not read.
+ */
+const QString kStructureBase = QStringLiteral("Structure");
 
 /*!
  * \internal
@@ -139,6 +163,7 @@ CloneBrowser::CloneBrowser(QOpcUaClient *client, const QString &rootNodeId, quin
     m_options.maxConcurrentBrowses = std::max(1, m_options.maxConcurrentBrowses);
     m_options.maxConcurrentReads = std::max(1, m_options.maxConcurrentReads);
     m_options.variablesPerRead = std::max(1, m_options.variablesPerRead);
+    m_options.valuesPerRead = std::max(1, m_options.valuesPerRead);
     m_options.maxNodes = std::max(1, m_options.maxNodes);
     m_options.maxDepth = std::max(1, m_options.maxDepth);
 }
@@ -168,11 +193,16 @@ void CloneBrowser::start()
         return;
     }
 
-    m_overallTimer = new QTimer(this);
-    m_overallTimer->setSingleShot(true);
-    connect(m_overallTimer, &QTimer::timeout, this,
-            [this]() { finish(CloneCompletion::State::TimedOut); });
-    m_overallTimer->start(m_options.overallTimeoutMs);
+    // A large PLC can take well over ten minutes, so there is no overall limit
+    // by default: the idle timeout catches a server that stops answering, and
+    // the user can cancel at any time.
+    if (m_options.overallTimeoutMs > 0) {
+        m_overallTimer = new QTimer(this);
+        m_overallTimer->setSingleShot(true);
+        connect(m_overallTimer, &QTimer::timeout, this,
+                [this]() { finish(CloneCompletion::State::TimedOut); });
+        m_overallTimer->start(m_options.overallTimeoutMs);
+    }
 
     m_idleTimer = new QTimer(this);
     m_idleTimer->setSingleShot(true);
@@ -219,13 +249,20 @@ void CloneBrowser::pump()
     while (m_browsing.size() < m_options.maxConcurrentBrowses && !m_browseQueue.isEmpty())
         startBrowse(m_browseQueue.dequeue());
 
-    while (m_reading.size() < m_options.maxConcurrentReads && !m_readQueue.isEmpty()) {
-        const qsizetype count = std::min<qsizetype>(m_options.variablesPerRead, m_readQueue.size());
-        const QStringList batch = m_readQueue.mid(0, count);
-        m_readQueue.remove(0, count);
-        startRead(batch);
+    // Value reads go first, so captured variables are completed before more
+    // metadata is requested and the value queue stays short.
+    while (m_reading.size() < m_options.maxConcurrentReads
+           && (!m_valueQueue.isEmpty() || !m_readQueue.isEmpty())) {
+        const bool values = !m_valueQueue.isEmpty();
+        QStringList &queue = values ? m_valueQueue : m_readQueue;
+        const int perRead = values ? m_options.valuesPerRead : m_options.variablesPerRead;
+        const qsizetype count = std::min<qsizetype>(perRead, queue.size());
+        const QStringList batch = queue.mid(0, count);
+        queue.remove(0, count);
+        startRead(batch, values);
     }
 
+    startTypeLookup();
     finishIfIdle();
 }
 
@@ -353,21 +390,31 @@ void CloneBrowser::markBrowseError(const QString &nodeId, const QString &reason)
 
 /*!
  * \internal
- * \brief Issues one batched attribute read for the variables \a nodeIds.
+ * \brief Issues one batched read for the variables \a nodeIds.
+ *
+ * Reads the Value attribute when \a values is true, otherwise the metadata
+ * attributes.
  */
-void CloneBrowser::startRead(const QStringList &nodeIds)
+void CloneBrowser::startRead(const QStringList &nodeIds, bool values)
 {
     QList<QOpcUaReadItem> items;
-    items.reserve(nodeIds.size() * kVariableAttributes.size());
-    for (const QString &nodeId : nodeIds) {
-        for (const QOpcUa::NodeAttribute attribute : kVariableAttributes)
-            items.append(QOpcUaReadItem(nodeId, attribute));
+    if (values) {
+        items.reserve(nodeIds.size());
+        for (const QString &nodeId : nodeIds)
+            items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
+    } else {
+        items.reserve(nodeIds.size() * kMetadataAttributes.size());
+        for (const QString &nodeId : nodeIds) {
+            for (const QOpcUa::NodeAttribute attribute : kMetadataAttributes)
+                items.append(QOpcUaReadItem(nodeId, attribute));
+        }
     }
 
-    m_reading.append({nodeIds, QSet<QString>(nodeIds.cbegin(), nodeIds.cend())});
+    m_reading.append({nodeIds, QSet<QString>(nodeIds.cbegin(), nodeIds.cend()), values});
     if (!m_client->readNodeAttributes(items)) {
         m_reading.removeLast();
-        failRead(nodeIds, QStringLiteral("read request could not be started"));
+        failRead(nodeIds, values ? QStringLiteral("Value: read request could not be started")
+                                 : QStringLiteral("Read: read request could not be started"));
     }
 }
 
@@ -379,7 +426,8 @@ void CloneBrowser::startRead(const QStringList &nodeIds)
  * only when its node-id set matches a request in flight. A service-level
  * failure carries no results; it is attributed to the oldest request in
  * flight. BadTooManyOperations splits that request and lowers the batch size,
- * so servers with a small MaxNodesPerRead still work.
+ * so servers with a small MaxNodesPerRead still work. After a metadata batch,
+ * each of its variables is routed to the Value read or marked as a structure.
  */
 void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
                                      QOpcUa::UaStatusCode serviceResult)
@@ -394,10 +442,19 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         const ReadBatch batch = m_reading.takeFirst();
         if (serviceResult == QOpcUa::UaStatusCode::BadTooManyOperations
             && batch.nodeIds.size() > 1) {
-            m_options.variablesPerRead = std::max<int>(1, int(batch.nodeIds.size() / 2));
-            m_readQueue = batch.nodeIds + m_readQueue;
+            const int half = std::max<int>(1, int(batch.nodeIds.size() / 2));
+            if (batch.values) {
+                m_options.valuesPerRead = half;
+                m_valueQueue = batch.nodeIds + m_valueQueue;
+            } else {
+                m_options.variablesPerRead = half;
+                m_readQueue = batch.nodeIds + m_readQueue;
+            }
         } else {
-            failRead(batch.nodeIds, QOpcUa::statusToString(serviceResult));
+            failRead(batch.nodeIds,
+                     QStringLiteral("%1: %2").arg(batch.values ? QStringLiteral("Value")
+                                                              : QStringLiteral("Read"),
+                                                 QOpcUa::statusToString(serviceResult)));
         }
         pump();
         return;
@@ -406,12 +463,15 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
     QSet<QString> resultIds;
     for (const QOpcUaReadResult &result : results)
         resultIds.insert(result.nodeId());
+    const bool valueResults = results.first().attribute() == QOpcUa::NodeAttribute::Value;
     const auto batch = std::find_if(m_reading.begin(), m_reading.end(),
-                                    [&resultIds](const ReadBatch &candidate) {
-                                        return candidate.keySet == resultIds;
+                                    [&resultIds, valueResults](const ReadBatch &candidate) {
+                                        return candidate.values == valueResults
+                                               && candidate.keySet == resultIds;
                                     });
     if (batch == m_reading.end())
         return; // A read issued by another component.
+    const QStringList nodeIds = batch->nodeIds;
     m_reading.erase(batch);
     touch();
 
@@ -419,6 +479,10 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         const auto it = m_index.constFind(result.nodeId());
         if (it != m_index.constEnd())
             applyReadResult(m_nodes[it.value()], result);
+    }
+    if (!valueResults) {
+        for (const QString &nodeId : nodeIds)
+            routeValueRead(nodeId);
     }
     pump();
 }
@@ -435,8 +499,119 @@ void CloneBrowser::failRead(const QStringList &nodeIds, const QString &reason)
             continue;
         CloneNode &node = m_nodes[it.value()];
         node.attributesRead = true;
-        node.attributeErrors.append(QStringLiteral("Read: %1").arg(reason));
+        node.attributeErrors.append(reason);
+        logReadFailure(nodeId, reason);
     }
+}
+
+/*!
+ * \internal
+ * \brief Queues the Value read of variable \a nodeId once its DataType is known.
+ *
+ * A variable whose DataType attribute could not be read gets no Value read:
+ * without a type it cannot be recreated faithfully, and its metadata error is
+ * already recorded. A DataType outside the namespace-0 tables is queued for a
+ * lookup; the variable waits until startTypeLookup() has resolved it.
+ */
+void CloneBrowser::routeValueRead(const QString &nodeId)
+{
+    const auto index = m_index.constFind(nodeId);
+    if (index == m_index.constEnd())
+        return;
+    CloneNode &node = m_nodes[index.value()];
+    if (node.dataTypeId.isEmpty())
+        return;
+
+    const QString typeId = DataTypeIds::normalize(node.dataTypeId);
+    auto cached = m_typeCache.constFind(typeId);
+    if (cached == m_typeCache.constEnd()) {
+        const ResolvedDataType local = DataTypeIds::resolveLocally(typeId);
+        if (local.resolution == ResolvedDataType::Resolution::None) {
+            const bool first = !m_waitingForType.contains(typeId);
+            m_waitingForType[typeId].append(nodeId);
+            if (first)
+                m_typeQueue.append(typeId);
+            return;
+        }
+        cached = m_typeCache.insert(typeId, local);
+    }
+    queueValueRead(node, cached.value());
+}
+
+/*!
+ * \internal
+ * \brief Queues the Value read of \a node, or skips it when \a type is a structure.
+ *
+ * An unresolved type is read like any other, so a value is only skipped when
+ * the server's type hierarchy says the variable is a structure.
+ */
+void CloneBrowser::queueValueRead(CloneNode &node, const ResolvedDataType &type)
+{
+    if (type.builtInBase == kStructureBase)
+        node.valueSkipped = true;
+    else
+        m_valueQueue.append(node.nodeId);
+}
+
+/*!
+ * \internal
+ * \brief Starts one DataType lookup for the queued type ids, unless one is running.
+ *
+ * Lookups run one at a time with DataTypeResolver's own concurrency limit, so
+ * they never compete with the browse and read requests for more than a few
+ * request slots.
+ */
+void CloneBrowser::startTypeLookup()
+{
+    if (m_finished || m_typeLookup || m_typeQueue.isEmpty() || !m_client)
+        return;
+    m_typeLookupIds = m_typeQueue;
+    m_typeQueue.clear();
+    m_typeLookup = new DataTypeResolver(m_client, this);
+    connect(m_typeLookup, &DataTypeResolver::finished, this,
+            &CloneBrowser::handleTypeLookupFinished);
+    m_typeLookup->resolve(m_typeLookupIds);
+}
+
+/*!
+ * \internal
+ * \brief Caches the resolved DataTypes and routes the variables waiting for them.
+ */
+void CloneBrowser::handleTypeLookupFinished()
+{
+    DataTypeResolver *lookup = m_typeLookup;
+    m_typeLookup = nullptr;
+    if (lookup)
+        lookup->deleteLater();
+    if (m_finished || !lookup)
+        return;
+    touch();
+
+    const QStringList typeIds = std::exchange(m_typeLookupIds, {});
+    for (const QString &typeId : typeIds) {
+        const ResolvedDataType resolved = lookup->result(typeId);
+        m_typeCache.insert(typeId, resolved);
+        const QStringList waiting = m_waitingForType.take(typeId);
+        for (const QString &nodeId : waiting) {
+            const auto it = m_index.constFind(nodeId);
+            if (it != m_index.constEnd())
+                queueValueRead(m_nodes[it.value()], resolved);
+        }
+    }
+    pump();
+}
+
+/*!
+ * \internal
+ * \brief Logs the read failure \a what of \a nodeId; only the first ones are detailed.
+ */
+void CloneBrowser::logReadFailure(const QString &nodeId, const QString &what)
+{
+    if (m_loggedReadFailures < kMaxLoggedReadFailures)
+        qCInfo(lcOpcUaClone).noquote() << "read failed:" << nodeId << what;
+    else if (m_loggedReadFailures == kMaxLoggedReadFailures)
+        qCInfo(lcOpcUaClone) << "further read failures are only counted";
+    ++m_loggedReadFailures;
 }
 
 /*!
@@ -459,8 +634,10 @@ void CloneBrowser::applyReadResult(CloneNode &node, const QOpcUaReadResult &resu
     if (isBad(status)) {
         if (attribute == QOpcUa::NodeAttribute::ArrayDimensions)
             return;
-        node.attributeErrors.append(
-            QStringLiteral("%1: %2").arg(attributeName(attribute), QOpcUa::statusToString(status)));
+        const QString error =
+            QStringLiteral("%1: %2").arg(attributeName(attribute), QOpcUa::statusToString(status));
+        node.attributeErrors.append(error);
+        logReadFailure(node.nodeId, error);
         return;
     }
 
@@ -512,7 +689,11 @@ int CloneBrowser::pendingCount() const
     qsizetype reading = 0;
     for (const ReadBatch &batch : m_reading)
         reading += batch.nodeIds.size();
-    return int(m_browseQueue.size() + m_browsing.size() + m_readQueue.size() + reading);
+    qsizetype waiting = 0;
+    for (const QStringList &nodeIds : m_waitingForType)
+        waiting += nodeIds.size();
+    return int(m_browseQueue.size() + m_browsing.size() + m_readQueue.size()
+               + m_valueQueue.size() + waiting + reading);
 }
 
 /*!
@@ -522,7 +703,8 @@ int CloneBrowser::pendingCount() const
 void CloneBrowser::finishIfIdle()
 {
     if (m_finished || !m_browseQueue.isEmpty() || !m_browsing.isEmpty()
-        || !m_readQueue.isEmpty() || !m_reading.isEmpty())
+        || !m_readQueue.isEmpty() || !m_valueQueue.isEmpty() || !m_reading.isEmpty()
+        || !m_waitingForType.isEmpty() || m_typeLookup)
         return;
     const bool truncated = m_completion.nodeLimitReached || m_completion.depthLimitedNodes > 0;
     finish(truncated ? CloneCompletion::State::Truncated : CloneCompletion::State::Complete);
@@ -564,7 +746,7 @@ void CloneBrowser::finish(CloneCompletion::State state)
     m_completion.elapsedMs = m_elapsed.isValid() ? m_elapsed.elapsed() : 0;
     m_resultNamespaces = m_client ? m_client->namespaceArray() : QStringList();
 
-    qCDebug(lcOpcUaClone).noquote()
+    qCInfo(lcOpcUaClone).noquote()
         << "traversal ended: state" << int(state) << "nodes" << m_completion.nodeCount
         << "pending" << m_completion.pendingRequests << "failedBrowses"
         << m_completion.failedBrowses << "failedReads" << m_completion.failedReads
@@ -577,7 +759,9 @@ void CloneBrowser::finish(CloneCompletion::State state)
         if (!node.isVariable || node.dataTypeId.isEmpty() || seen.contains(node.dataTypeId))
             continue;
         seen.insert(node.dataTypeId);
-        typeIds.append(node.dataTypeId);
+        // Types settled during the traversal are reused from the cache.
+        if (!m_typeCache.contains(DataTypeIds::normalize(node.dataTypeId)))
+            typeIds.append(node.dataTypeId);
     }
 
     if (!m_client || typeIds.isEmpty() || state == CloneCompletion::State::Cancelled) {
@@ -606,8 +790,10 @@ void CloneBrowser::publishResult()
             continue;
         auto it = cache.constFind(node.dataTypeId);
         if (it == cache.constEnd()) {
-            ResolvedDataType resolved = m_resolver ? m_resolver->result(node.dataTypeId)
-                                                   : localOnly.resolve(node.dataTypeId);
+            const auto known = m_typeCache.constFind(DataTypeIds::normalize(node.dataTypeId));
+            ResolvedDataType resolved = known != m_typeCache.constEnd() ? known.value()
+                                        : m_resolver ? m_resolver->result(node.dataTypeId)
+                                                     : localOnly.resolve(node.dataTypeId);
             if (node.dataTypeId.isEmpty())
                 resolved.reason = QStringLiteral("DataType attribute was not read");
             it = cache.insert(node.dataTypeId, resolved);

@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+284"/>
+        <location line="+326"/>
         <source>Browse…</source>
         <translation>Durchsuchen…</translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-320"/>
         <source>Full path:</source>
         <translation>Vollständiger Pfad:</translation>
     </message>
@@ -1584,7 +1584,17 @@
         <translation>Server wird geklont</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+43"/>
+        <source>Clone incomplete</source>
+        <translation>Klon unvollständig</translation>
+    </message>
+    <message>
+        <location line="+27"/>
+        <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
+        <translation>Das Server-Projekt enthält die bisher erfassten Knoten. Nicht erreichte Strukturen haben keine Mitglieder.</translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Projektfehler</translation>
     </message>
@@ -2035,12 +2045,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+672"/>
+        <location line="+677"/>
         <source>No OPC UA client is available.</source>
         <translation>Es ist kein OPC-UA-Client verfügbar.</translation>
     </message>
     <message>
-        <location line="-666"/>
+        <location line="-671"/>
         <source>A clone is already in progress.</source>
         <translation>Ein Klonvorgang läuft bereits.</translation>
     </message>
@@ -2100,7 +2110,7 @@
         <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
     </message>
     <message>
-        <location line="+277"/>
+        <location line="+282"/>
         <source>Create or open a server project first.</source>
         <translation>Erstellen oder öffnen Sie zuerst ein Serverprojekt.</translation>
     </message>

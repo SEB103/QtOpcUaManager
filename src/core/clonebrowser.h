@@ -86,6 +86,9 @@ struct CloneNode
     /** Server timestamp of the value, when provided. */
     QDateTime serverTimestamp;
 
+    /** Whether the Value was deliberately not read because the DataType is a structure. */
+    bool valueSkipped = false;
+
     /** Whether a read response for this variable arrived. */
     bool attributesRead = false;
 
@@ -112,16 +115,18 @@ struct CloneOptions
     int maxNodes = 200000;
     /** Maximum depth below the root; deeper nodes are captured but not browsed. */
     int maxDepth = 64;
-    /** Overall time limit in milliseconds; reaching it marks the result TimedOut. */
-    int overallTimeoutMs = 600000;
+    /** Overall time limit in milliseconds, 0 for none; reaching it marks the result TimedOut. */
+    int overallTimeoutMs = 0;
     /** Time without any response in milliseconds after which the result is TimedOut. */
     int idleTimeoutMs = 30000;
     /** Browse requests in flight at the same time. */
     int maxConcurrentBrowses = 4;
     /** Attribute read requests in flight at the same time. */
     int maxConcurrentReads = 2;
-    /** Variables per read request (6 attributes each, so 16 stay below 100 read items). */
+    /** Variables per metadata read request (5 attributes each, so 16 stay below 100 items). */
     int variablesPerRead = 16;
+    /** Variables per Value read request. */
+    int valuesPerRead = 64;
 };
 
 /** Outcome of one clone traversal. */
@@ -172,9 +177,10 @@ Q_DECLARE_METATYPE(CloneCompletion)
  * Runs in the OPC UA worker thread that owns \a client. Starting at a root node
  * (typically the Objects folder), it walks the hierarchical Object/Variable
  * children breadth-first with a bounded number of requests in flight. Every
- * node is browsed whether or not its attributes could be read; variable
- * attributes are read in batches with their status. Before emitting, the
- * distinct DataType ids are resolved through DataTypeResolver. finished()
+ * node is browsed whether or not its attributes could be read. Variable
+ * metadata is read first; the Value is read afterwards, only for variables
+ * whose DataType is not a structure. Before emitting, the remaining DataType
+ * ids are resolved through DataTypeResolver. finished()
  * reports the nodes with a CloneCompletion that states whether the result is
  * complete, truncated, timed out or cancelled.
  */
@@ -219,6 +225,7 @@ private:
     {
         QStringList nodeIds;  //!< Variables in this request.
         QSet<QString> keySet; //!< Same ids, used to claim the shared result signal.
+        bool values = false;  //!< Value read (true) or metadata read (false).
     };
 
     void pump();
@@ -227,7 +234,12 @@ private:
                       const QList<QOpcUaReferenceDescription> &references,
                       QOpcUa::UaStatusCode status);
     void markBrowseError(const QString &nodeId, const QString &reason);
-    void startRead(const QStringList &nodeIds);
+    void startRead(const QStringList &nodeIds, bool values);
+    void routeValueRead(const QString &nodeId);
+    void queueValueRead(CloneNode &node, const ResolvedDataType &type);
+    void startTypeLookup();
+    void handleTypeLookupFinished();
+    void logReadFailure(const QString &nodeId, const QString &what);
     void handleReadResults(const QList<QOpcUaReadResult> &results,
                            QOpcUa::UaStatusCode serviceResult);
     void failRead(const QStringList &nodeIds, const QString &reason);
@@ -247,7 +259,14 @@ private:
     QHash<QString, qsizetype> m_index;        //!< Node id -> index in m_nodes.
     QQueue<BrowseItem> m_browseQueue;         //!< Nodes waiting to be browsed.
     QSet<QOpcUaNode *> m_browsing;            //!< Browse requests in flight.
-    QStringList m_readQueue;                  //!< Variables waiting to be read.
+    QStringList m_readQueue;                  //!< Variables waiting for the metadata read.
+    QStringList m_valueQueue;                 //!< Variables waiting for the Value read.
+    QHash<QString, ResolvedDataType> m_typeCache;    //!< Resolved DataTypes by normalized id.
+    QHash<QString, QStringList> m_waitingForType;    //!< Variables waiting for a type lookup.
+    QStringList m_typeQueue;                  //!< DataType ids waiting for a lookup.
+    QStringList m_typeLookupIds;              //!< DataType ids of the running lookup.
+    DataTypeResolver *m_typeLookup = nullptr; //!< Type lookup running during the traversal.
+    int m_loggedReadFailures = 0;             //!< Read failures written to the log so far.
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 

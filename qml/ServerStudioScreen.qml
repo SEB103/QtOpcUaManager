@@ -324,226 +324,235 @@ Pane {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                ColumnLayout {
+                // The editor scrolls inside its frame, so a small window never lets
+                // the fields overlap the sections below.
+                ScrollView {
+                    id: editorScroll
+
                     anchors.fill: parent
-                    spacing: 8
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                    Label {
-                        visible: cppServerStudio.selectedNodeId.length === 0
-                        text: qsTr("Select a node to edit its properties.")
-                        color: Material.foreground
-                        opacity: 0.6
-                    }
+                    ColumnLayout {
+                        width: editorScroll.availableWidth
+                        spacing: 8
 
-                    GridLayout {
-                        visible: cppServerStudio.selectedNodeId.length > 0
-                        Layout.fillWidth: true
-                        columns: 2
-                        columnSpacing: 10
-                        rowSpacing: 8
-
-                        Label { text: qsTr("Node id:") }
                         Label {
-                            Layout.fillWidth: true
-                            elide: Text.ElideMiddle
-                            text: cppServerStudio.selectedNode.nodeId !== undefined
-                                  ? cppServerStudio.selectedNode.nodeId : ""
-                            color: Material.accent
-                        }
-
-                        Label { text: qsTr("Kind:") }
-                        Label {
-                            text: cppServerStudio.selectedNode.kindName !== undefined
-                                  ? cppServerStudio.selectedNode.kindName : ""
+                            visible: cppServerStudio.selectedNodeId.length === 0
+                            text: qsTr("Select a node to edit its properties.")
                             color: Material.foreground
+                            opacity: 0.6
                         }
 
-                        Label { text: qsTr("Display name:") }
-                        TextField {
-                            id: displayNameField
+                        GridLayout {
+                            visible: cppServerStudio.selectedNodeId.length > 0
                             Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 10
+                            rowSpacing: 8
+
+                            Label { text: qsTr("Node id:") }
+                            Label {
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
+                                text: cppServerStudio.selectedNode.nodeId !== undefined
+                                      ? cppServerStudio.selectedNode.nodeId : ""
+                                color: Material.accent
+                            }
+
+                            Label { text: qsTr("Kind:") }
+                            Label {
+                                text: cppServerStudio.selectedNode.kindName !== undefined
+                                      ? cppServerStudio.selectedNode.kindName : ""
+                                color: Material.foreground
+                            }
+
+                            Label { text: qsTr("Display name:") }
+                            TextField {
+                                id: displayNameField
+                                Layout.fillWidth: true
+                            }
+
+                            Label { text: qsTr("Description:") }
+                            TextField {
+                                id: descriptionField
+                                Layout.fillWidth: true
+                            }
+
+                            Label {
+                                text: qsTr("Type:")
+                                visible: cppServerStudio.selectedNode.isStructure === true
+                                         || cppServerStudio.selectedNode.isMultiDimensional === true
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                visible: cppServerStudio.selectedNode.isStructure === true
+                                         || cppServerStudio.selectedNode.isMultiDimensional === true
+                                text: cppServerStudio.selectedNode.isStructure === true
+                                      ? qsTr("%1 (structure; its members are the child nodes)")
+                                            .arg(cppServerStudio.selectedNode.typeText)
+                                      : cppServerStudio.selectedNode.typeText !== undefined
+                                        ? cppServerStudio.selectedNode.typeText : ""
+                                wrapMode: Text.Wrap
+                                color: Material.foreground
+                            }
+
+                            Label {
+                                text: qsTr("Source type:")
+                                visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
+                                text: cppServerStudio.selectedNode.sourceDataType || ""
+                                elide: Text.ElideMiddle
+                                opacity: 0.7
+                                color: Material.foreground
+                            }
+
+                            Label {
+                                text: qsTr("Data type:")
+                                visible: studio.selectedEditableVariable
+                            }
+                            ComboBox {
+                                id: dataTypeCombo
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                enabled: enumTypeCombo.currentIndex <= 0
+                                model: cppServerStudio.dataTypeNames
+                            }
+
+                            Label {
+                                text: qsTr("Enum type:")
+                                visible: studio.selectedEditableVariable
+                            }
+                            ComboBox {
+                                id: enumTypeCombo
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                model: [qsTr("(none)")].concat(cppServerStudio.enumTypeNames)
+                            }
+
+                            Label {
+                                text: qsTr("Array:")
+                                visible: studio.selectedEditableVariable
+                                         && cppServerStudio.selectedNode.isMultiDimensional !== true
+                            }
+                            CheckBox {
+                                id: arrayCheck
+                                visible: studio.selectedEditableVariable
+                                         && cppServerStudio.selectedNode.isMultiDimensional !== true
+                                text: qsTr("One-dimensional array")
+                            }
+
+                            Label {
+                                text: qsTr("Writable:")
+                                visible: studio.selectedEditableVariable
+                            }
+                            CheckBox {
+                                id: writableCheck
+                                visible: studio.selectedEditableVariable
+                            }
+
+                            Label {
+                                text: qsTr("Initial value:")
+                                visible: studio.selectedEditableVariable
+                            }
+                            TextField {
+                                id: initialValueField
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                placeholderText: arrayCheck.checked ? qsTr("comma-separated values")
+                                                                    : qsTr("value")
+                            }
+
+                            Label {
+                                text: qsTr("Simulation:")
+                                visible: studio.selectedEditableVariable
+                            }
+                            ComboBox {
+                                id: simKindCombo
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                model: cppServerStudio.simulationKindNames
+                            }
+
+                            Label {
+                                text: qsTr("Interval (ms):")
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText !== "Manual"
+                            }
+                            TextField {
+                                id: simIntervalField
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText !== "Manual"
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
+
+                            Label {
+                                text: qsTr("Min / Max:")
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText !== "Manual"
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText !== "Manual"
+                                spacing: 6
+                                TextField {
+                                    id: simMinField
+                                    Layout.fillWidth: true
+                                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                }
+                                TextField {
+                                    id: simMaxField
+                                    Layout.fillWidth: true
+                                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                }
+                            }
+
+                            Label {
+                                text: qsTr("Step:")
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText === "Counter"
+                            }
+                            TextField {
+                                id: simStepField
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                         && simKindCombo.currentText === "Counter"
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
+
+                            Label {
+                                text: qsTr("Period (ms):")
+                                visible: studio.selectedEditableVariable
+                                         && (simKindCombo.currentText === "Sine"
+                                             || simKindCombo.currentText === "Ramp")
+                            }
+                            TextField {
+                                id: simPeriodField
+                                Layout.fillWidth: true
+                                visible: studio.selectedEditableVariable
+                                         && (simKindCombo.currentText === "Sine"
+                                             || simKindCombo.currentText === "Ramp")
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            }
                         }
 
-                        Label { text: qsTr("Description:") }
-                        TextField {
-                            id: descriptionField
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Type:")
-                            visible: cppServerStudio.selectedNode.isStructure === true
-                                     || cppServerStudio.selectedNode.isMultiDimensional === true
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            visible: cppServerStudio.selectedNode.isStructure === true
-                                     || cppServerStudio.selectedNode.isMultiDimensional === true
-                            text: cppServerStudio.selectedNode.isStructure === true
-                                  ? qsTr("%1 (structure; its members are the child nodes)")
-                                        .arg(cppServerStudio.selectedNode.typeText)
-                                  : cppServerStudio.selectedNode.typeText !== undefined
-                                    ? cppServerStudio.selectedNode.typeText : ""
-                            wrapMode: Text.Wrap
-                            color: Material.foreground
-                        }
-
-                        Label {
-                            text: qsTr("Source type:")
-                            visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            visible: (cppServerStudio.selectedNode.sourceDataType || "").length > 0
-                            text: cppServerStudio.selectedNode.sourceDataType || ""
-                            elide: Text.ElideMiddle
-                            opacity: 0.7
-                            color: Material.foreground
-                        }
-
-                        Label {
-                            text: qsTr("Data type:")
-                            visible: studio.selectedEditableVariable
-                        }
-                        ComboBox {
-                            id: dataTypeCombo
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                            enabled: enumTypeCombo.currentIndex <= 0
-                            model: cppServerStudio.dataTypeNames
-                        }
-
-                        Label {
-                            text: qsTr("Enum type:")
-                            visible: studio.selectedEditableVariable
-                        }
-                        ComboBox {
-                            id: enumTypeCombo
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                            model: [qsTr("(none)")].concat(cppServerStudio.enumTypeNames)
-                        }
-
-                        Label {
-                            text: qsTr("Array:")
-                            visible: studio.selectedEditableVariable
-                                     && cppServerStudio.selectedNode.isMultiDimensional !== true
-                        }
-                        CheckBox {
-                            id: arrayCheck
-                            visible: studio.selectedEditableVariable
-                                     && cppServerStudio.selectedNode.isMultiDimensional !== true
-                            text: qsTr("One-dimensional array")
-                        }
-
-                        Label {
-                            text: qsTr("Writable:")
-                            visible: studio.selectedEditableVariable
-                        }
-                        CheckBox {
-                            id: writableCheck
-                            visible: studio.selectedEditableVariable
-                        }
-
-                        Label {
-                            text: qsTr("Initial value:")
-                            visible: studio.selectedEditableVariable
-                        }
-                        TextField {
-                            id: initialValueField
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                            placeholderText: arrayCheck.checked ? qsTr("comma-separated values")
-                                                                : qsTr("value")
-                        }
-
-                        Label {
-                            text: qsTr("Simulation:")
-                            visible: studio.selectedEditableVariable
-                        }
-                        ComboBox {
-                            id: simKindCombo
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                            model: cppServerStudio.simulationKindNames
-                        }
-
-                        Label {
-                            text: qsTr("Interval (ms):")
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText !== "Manual"
-                        }
-                        TextField {
-                            id: simIntervalField
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText !== "Manual"
-                            inputMethodHints: Qt.ImhFormattedNumbersOnly
-                        }
-
-                        Label {
-                            text: qsTr("Min / Max:")
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText !== "Manual"
-                        }
                         RowLayout {
+                            visible: cppServerStudio.selectedNodeId.length > 0
                             Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText !== "Manual"
-                            spacing: 6
-                            TextField {
-                                id: simMinField
-                                Layout.fillWidth: true
-                                inputMethodHints: Qt.ImhFormattedNumbersOnly
-                            }
-                            TextField {
-                                id: simMaxField
-                                Layout.fillWidth: true
-                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            Item { Layout.fillWidth: true }
+                            Button {
+                                text: qsTr("Apply")
+                                highlighted: true
+                                onClicked: studio.applyEditor()
                             }
                         }
-
-                        Label {
-                            text: qsTr("Step:")
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText === "Counter"
-                        }
-                        TextField {
-                            id: simStepField
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                                     && simKindCombo.currentText === "Counter"
-                            inputMethodHints: Qt.ImhFormattedNumbersOnly
-                        }
-
-                        Label {
-                            text: qsTr("Period (ms):")
-                            visible: studio.selectedEditableVariable
-                                     && (simKindCombo.currentText === "Sine"
-                                         || simKindCombo.currentText === "Ramp")
-                        }
-                        TextField {
-                            id: simPeriodField
-                            Layout.fillWidth: true
-                            visible: studio.selectedEditableVariable
-                                     && (simKindCombo.currentText === "Sine"
-                                         || simKindCombo.currentText === "Ramp")
-                            inputMethodHints: Qt.ImhFormattedNumbersOnly
-                        }
                     }
-
-                    RowLayout {
-                        visible: cppServerStudio.selectedNodeId.length > 0
-                        Layout.fillWidth: true
-                        Item { Layout.fillWidth: true }
-                        Button {
-                            text: qsTr("Apply")
-                            highlighted: true
-                            onClicked: studio.applyEditor()
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
                 }
             }
         }

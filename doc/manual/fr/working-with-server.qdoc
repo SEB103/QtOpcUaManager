@@ -66,10 +66,10 @@
     Le clonage s’exécute avec une boîte de dialogue de progression ; \e{Annuler}
     l’interrompt et laisse le projet serveur actuel inchangé. Le parcours est limité par la
     limite de nœuds choisie dans la boîte de dialogue de clonage (50 000, 200 000 ou
-    1 000 000 nœuds ; 200 000 par défaut), une profondeur de 64 niveaux, 10 minutes au
-    total et 30 secondes sans réponse du serveur. Lorsqu’une limite met fin au clonage, ou
-    que certains nœuds ne peuvent pas être lus ou parcourus, le message d’état l’indique et
-    le clone est incomplet.
+    1 000 000 nœuds ; 200 000 par défaut), une profondeur de 64 niveaux et 30
+    secondes sans réponse du serveur ; il n’y a pas de limite de durée totale. Lorsqu’une
+    limite met fin au clonage, ou que certains nœuds ne peuvent pas être lus ou parcourus,
+    une boîte de dialogue et le message d’état l’indiquent et le clone est incomplet.
 
     \section1 Échanger des espaces d’adressage
 

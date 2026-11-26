@@ -280,6 +280,8 @@ signals:
     void rulesChanged();
     void nodesChanged();
     void cloneProgressChanged();
+    /** Emitted after an incomplete clone was adopted; the report explains what is missing. */
+    void cloneIncomplete(const QString &report);
     void notification(int level, const QString &message);
     /**
      * Re-emits the last notification's text rebuilt in the active language for

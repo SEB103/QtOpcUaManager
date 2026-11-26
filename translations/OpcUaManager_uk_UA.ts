@@ -1498,12 +1498,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+284"/>
+        <location line="+326"/>
         <source>Browse…</source>
         <translation>Огляд…</translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-320"/>
         <source>Full path:</source>
         <translation>Повний шлях:</translation>
     </message>
@@ -1588,7 +1588,17 @@
         <translation>Клонування сервера</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+43"/>
+        <source>Clone incomplete</source>
+        <translation>Клон неповний</translation>
+    </message>
+    <message>
+        <location line="+27"/>
+        <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
+        <translation>Серверний проєкт містить вузли, отримані до цього моменту. Структури, до яких обхід не дійшов, не мають членів.</translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Помилка проекту</translation>
     </message>
@@ -2041,12 +2051,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+672"/>
+        <location line="+677"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
-        <location line="-666"/>
+        <location line="-671"/>
         <source>A clone is already in progress.</source>
         <translation>Клонування вже виконується.</translation>
     </message>
@@ -2106,7 +2116,7 @@
         <translation>Змінних із заміненим типом даних: %1 (дата/час або непідтримуваний тип).</translation>
     </message>
     <message>
-        <location line="+277"/>
+        <location line="+282"/>
         <source>Create or open a server project first.</source>
         <translation>Спочатку створіть або відкрийте проект сервера.</translation>
     </message>

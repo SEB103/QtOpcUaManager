@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+284"/>
+        <location line="+326"/>
         <source>Browse…</source>
         <translation>Browse…</translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-320"/>
         <source>Full path:</source>
         <translation>Full path:</translation>
     </message>
@@ -1584,7 +1584,17 @@
         <translation>Cloning server</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+43"/>
+        <source>Clone incomplete</source>
+        <translation>Clone incomplete</translation>
+    </message>
+    <message>
+        <location line="+27"/>
+        <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
+        <translation>The server project contains the nodes captured so far. Structures that were not reached have no members.</translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Project error</translation>
     </message>
@@ -2035,12 +2045,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+672"/>
+        <location line="+677"/>
         <source>No OPC UA client is available.</source>
         <translation>No OPC UA client is available.</translation>
     </message>
     <message>
-        <location line="-666"/>
+        <location line="-671"/>
         <source>A clone is already in progress.</source>
         <translation>A clone is already in progress.</translation>
     </message>
@@ -2100,7 +2110,7 @@
         <translation>%1 variable(s) use a substitute data type (date/time or unsupported type).</translation>
     </message>
     <message>
-        <location line="+277"/>
+        <location line="+282"/>
         <source>Create or open a server project first.</source>
         <translation>Create or open a server project first.</translation>
     </message>

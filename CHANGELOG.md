@@ -34,11 +34,13 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 ### Fixed
 - **Clone to Server Studio**: an incomplete clone is no longer reported as complete. The
   browse no longer stops at 5000 nodes or after a fixed 30 seconds: it is bounded by
-  the chosen node limit, a depth of 64, 10 minutes in total and 30 seconds without a
-  server response, and the status message names the limit or timeout that ended it and the
-  nodes that could not be read or browsed. Members of a structure or array are now
-  found even when the structure's own value cannot be read, attribute reads are batched,
-  and at most a few requests are sent to the server at a time.
+  the chosen node limit, a depth of 64 and 30 seconds without a server response (there is
+  no overall time limit), and a dialog and the status message name the limit or timeout
+  that ended it and the nodes that could not be read or browsed. Members of a structure
+  or array are now found even when the structure's own value cannot be read, attribute
+  reads are batched, and at most a few requests are sent to the server at a time. The
+  value of a structure variable is no longer read, only its members, so a large PLC no
+  longer encodes the same nested data once per nesting level.
 - **Clone to Server Studio**: variable data types are now resolved through the source
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard
@@ -51,6 +53,8 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   arrays of structures as arrays of that type, and arrays keep their rank and
   dimensions. One-element arrays (such as `ServerArray`) are no longer split into
   characters, and a value that could not be read stays empty instead of becoming `0`.
+- **Server Studio**: the property editor of the selected node scrolls inside its panel;
+  in a small window its fields no longer overlap the Security section below.
 
 ## [1.4.1] - 2026-11-24
 

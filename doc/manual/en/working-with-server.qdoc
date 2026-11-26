@@ -60,9 +60,9 @@
     The clone runs with a progress dialog; \e{Cancel} stops it and leaves the current
     server project unchanged. The browse is bounded by the node limit chosen in the clone
     dialog (50 000, 200 000 or 1 000 000 nodes; 200 000 by default), a depth of 64
-    levels, 10 minutes in total and 30 seconds without a server response. When a limit
-    ends the clone, or some nodes cannot be read or browsed, the status message says so
-    and the clone is incomplete.
+    levels and 30 seconds without a server response; there is no overall time limit.
+    When a limit ends the clone, or some nodes cannot be read or browsed, a dialog and
+    the status message say so and the clone is incomplete.
 
     \section1 Exchange address spaces
 

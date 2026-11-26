@@ -1498,12 +1498,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+284"/>
+        <location line="+326"/>
         <source>Browse…</source>
         <translation>Обзор…</translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-320"/>
         <source>Full path:</source>
         <translation>Полный путь:</translation>
     </message>
@@ -1588,7 +1588,17 @@
         <translation>Клонирование сервера</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+43"/>
+        <source>Clone incomplete</source>
+        <translation>Клон неполный</translation>
+    </message>
+    <message>
+        <location line="+27"/>
+        <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
+        <translation>Серверный проект содержит узлы, полученные до этого момента. У структур, до которых обход не дошёл, нет членов.</translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Ошибка проекта</translation>
     </message>
@@ -2041,12 +2051,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+672"/>
+        <location line="+677"/>
         <source>No OPC UA client is available.</source>
         <translation>Клиент OPC UA недоступен.</translation>
     </message>
     <message>
-        <location line="-666"/>
+        <location line="-671"/>
         <source>A clone is already in progress.</source>
         <translation>Клонирование уже выполняется.</translation>
     </message>
@@ -2106,7 +2116,7 @@
         <translation>Переменных с заменённым типом данных: %1 (дата/время или неподдерживаемый тип).</translation>
     </message>
     <message>
-        <location line="+277"/>
+        <location line="+282"/>
         <source>Create or open a server project first.</source>
         <translation>Сначала создайте или откройте проект сервера.</translation>
     </message>

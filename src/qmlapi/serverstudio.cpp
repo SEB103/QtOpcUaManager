@@ -1175,7 +1175,7 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     // differs from the source never reads as an exact copy.
     const int failedNodes = completion.failedReads + completion.failedBrowses;
     const bool exact = completion.isComplete() && failedNodes == 0;
-    notify(exact && substitutedCount == 0 ? Diagnostics::Info : Diagnostics::Warning,
+    const auto report =
            [this, completion, failedNodes, substitutedCount, n = int(project.nodes.size())] {
                QString text;
                switch (completion.state) {
@@ -1213,7 +1213,12 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
                                  .arg(substitutedCount);
                }
                return text;
-           });
+           };
+    notify(exact && substitutedCount == 0 ? Diagnostics::Info : Diagnostics::Warning, report);
+    // An incomplete clone is easy to miss in the status bar, so QML also shows
+    // the report in a dialog.
+    if (!exact)
+        emit cloneIncomplete(report());
 }
 
 // --- Address-space editing --------------------------------------------------

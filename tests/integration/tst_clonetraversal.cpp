@@ -374,6 +374,9 @@ private slots:
     /*! A vendor subtype of String resolves to String and keeps its id and name. */
     void resolvesVendorStringSubtype();
 
+    /*! Structure variables get no Value read; their members and other variables do. */
+    void skipsValueOfStructures();
+
     /*! The node limit ends the traversal as Truncated. */
     void reportsNodeLimit();
 
@@ -534,6 +537,32 @@ void CloneTraversalTest::resolvesVendorStringSubtype()
     QCOMPARE(label.resolvedDataType.builtInBase, QStringLiteral("String"));
     QCOMPARE(label.value.toString(), QStringLiteral("abc"));
     QCOMPARE(label.browseNameNamespace, m_server.ns());
+}
+
+void CloneTraversalTest::skipsValueOfStructures()
+{
+    QCOMPARE(CloneOptions().overallTimeoutMs, 0); // no overall limit by default
+
+    const Result result = run(m_server.nodeId("Structs"));
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QCOMPARE(result.completion.failedReads, 0);
+
+    for (const char *name : {"Button", "Buttons"}) {
+        const CloneNode structure = find(result.nodes, m_server.nodeId(name));
+        QVERIFY2(structure.valueSkipped, name);
+        QVERIFY(!structure.value.isValid());
+        QVERIFY(structure.attributeErrors.isEmpty());
+        QCOMPARE(structure.resolvedDataType.builtInBase, QStringLiteral("Structure"));
+    }
+
+    const CloneNode count = find(result.nodes, m_server.nodeId("Button.Count"));
+    QVERIFY(!count.valueSkipped);
+    QCOMPARE(count.value.toInt(), 3);
+
+    const CloneNode matrix = find(result.nodes, m_server.nodeId("Matrix"));
+    QVERIFY(!matrix.valueSkipped);
+    QVERIFY(matrix.value.isValid());
 }
 
 void CloneTraversalTest::reportsNodeLimit()

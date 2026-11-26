@@ -939,6 +939,48 @@ ApplicationWindow {
         }
     }
 
+    // Shown after a clone that stopped early or could not read every node, so
+    // an incomplete server project is not mistaken for an exact copy.
+    Dialog {
+        id: cloneIncompleteDialog
+
+        property string report
+
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 480)
+        title: qsTr("Clone incomplete")
+        modal: true
+        standardButtons: Dialog.Ok
+
+        Connections {
+            target: cppServerStudio
+
+            function onCloneIncomplete(report) {
+                cloneIncompleteDialog.report = report
+                cloneIncompleteDialog.open()
+            }
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: cloneIncompleteDialog.report
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: qsTr("The server project contains the nodes captured so far. Structures "
+                           + "that were not reached have no members.")
+            }
+        }
+    }
+
     Connections {
         target: cppProjectManager
 

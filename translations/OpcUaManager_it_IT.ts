@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+284"/>
+        <location line="+326"/>
         <source>Browse…</source>
         <translation>Sfoglia…</translation>
     </message>
     <message>
-        <location line="-278"/>
+        <location line="-320"/>
         <source>Full path:</source>
         <translation>Percorso completo:</translation>
     </message>
@@ -1584,7 +1584,17 @@
         <translation>Clonazione del server</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+43"/>
+        <source>Clone incomplete</source>
+        <translation>Clone incompleto</translation>
+    </message>
+    <message>
+        <location line="+27"/>
+        <source>The server project contains the nodes captured so far. Structures that were not reached have no members.</source>
+        <translation>Il progetto server contiene i nodi acquisiti finora. Le strutture non raggiunte non hanno membri.</translation>
+    </message>
+    <message>
+        <location line="+28"/>
         <source>Project error</source>
         <translation>Errore del progetto</translation>
     </message>
@@ -2035,12 +2045,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+672"/>
+        <location line="+677"/>
         <source>No OPC UA client is available.</source>
         <translation>Nessun client OPC UA disponibile.</translation>
     </message>
     <message>
-        <location line="-666"/>
+        <location line="-671"/>
         <source>A clone is already in progress.</source>
         <translation>Una clonazione è già in corso.</translation>
     </message>
@@ -2100,7 +2110,7 @@
         <translation>%1 variabile/i usano un tipo di dati sostitutivo (data/ora o tipo non supportato).</translation>
     </message>
     <message>
-        <location line="+277"/>
+        <location line="+282"/>
         <source>Create or open a server project first.</source>
         <translation>Crea o apri prima un progetto server.</translation>
     </message>

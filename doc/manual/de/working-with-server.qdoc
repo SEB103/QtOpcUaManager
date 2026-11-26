@@ -63,9 +63,10 @@
     Das Klonen läuft mit einem Fortschrittsdialog; \e{Abbrechen} beendet es und lässt
     das aktuelle Server-Projekt unverändert. Das Durchsuchen ist durch das im Klon-Dialog
     gewählte Knotenlimit (50 000, 200 000 oder 1 000 000 Knoten; Standard 200 000), eine
-    Tiefe von 64 Ebenen, insgesamt 10 Minuten und 30 Sekunden ohne Serverantwort begrenzt.
-    Beendet ein Limit das Klonen oder können einzelne Knoten nicht gelesen oder durchsucht
-    werden, nennt die Statusmeldung dies, und der Klon ist unvollständig.
+    Tiefe von 64 Ebenen und 30 Sekunden ohne Serverantwort begrenzt; eine Gesamtzeitgrenze
+    gibt es nicht. Beendet ein Limit das Klonen oder können einzelne Knoten nicht gelesen
+    oder durchsucht werden, nennen ein Dialog und die Statusmeldung dies, und der Klon ist
+    unvollständig.
 
     \section1 Adressräume austauschen
 
