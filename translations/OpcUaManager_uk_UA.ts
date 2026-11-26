@@ -1964,7 +1964,12 @@
         <translation>Сеанси: %1 · Захищені канали: %2 · Час роботи: %3 с</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>не повідомляється сервером (структура, що містить функціональний блок або інший об’єкт)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Сервер без назви</translation>
     </message>
@@ -2101,7 +2106,7 @@
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
     <message>
-        <location line="-920"/>
+        <location line="-926"/>
         <source>%1 node(s) captured</source>
         <translation>Отримано вузлів: %1</translation>
     </message>
@@ -2121,7 +2126,7 @@
         <translation>Визначаються типи даних: %1</translation>
     </message>
     <message>
-        <location line="+675"/>
+        <location line="+681"/>
         <source>Cloned Server</source>
         <translation>Клонований сервер</translation>
     </message>

@@ -313,6 +313,23 @@ private:
         bool ok = addEmptyVariable("Button", structs, buttonType, UA_VALUERANK_SCALAR, 0);
         const UA_NodeId button = UA_NODEID_STRING(m_ns, const_cast<char *>("Button"));
         ok = ok && addInt32("Button.Count", button, 3, readOnly, hasComponent);
+        // A function block instance inside the structure, as CODESYS publishes
+        // fbProduct inside stRecipe: an Object below a Variable.
+        if (ok) {
+            UA_ObjectAttributes fbAttr = UA_ObjectAttributes_default;
+            fbAttr.displayName =
+                UA_LOCALIZEDTEXT(const_cast<char *>("en-US"), const_cast<char *>("Fb"));
+            const UA_StatusCode fbStatus = UA_Server_addObjectNode(
+                m_server, UA_NODEID_STRING(m_ns, const_cast<char *>("Button.Fb")), button,
+                hasComponent, UA_QUALIFIEDNAME(m_ns, const_cast<char *>("Fb")),
+                UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE), fbAttr, nullptr, nullptr);
+            if (fbStatus != UA_STATUSCODE_GOOD)
+                qWarning("adding Button.Fb failed: %s", UA_StatusCode_name(fbStatus));
+            ok = fbStatus == UA_STATUSCODE_GOOD
+                 && addInt32("Button.Fb.Speed",
+                             UA_NODEID_STRING(m_ns, const_cast<char *>("Button.Fb")), 7,
+                             readOnly, hasComponent);
+        }
 
         UA_VariableAttributes textAttr = UA_VariableAttributes_default;
         textAttr.displayName =
@@ -379,6 +396,22 @@ private slots:
 
     /*! A node with two hierarchical parents is captured once with both recorded. */
     void recordsAdditionalParents();
+
+    /*!
+        Scalar variables of a simple type are no longer browsed once the probe
+        of their TypeDefinition found no children; every variable is still
+        captured with its value, in about one read request per 16 variables.
+    */
+    void skipsLeafBrowsesAfterProbe();
+
+    /*! browseScalarLeaves browses every variable, as before. */
+    void browsesAllLeavesWhenRequested();
+
+    /*!
+        A probe that finds children of a scalar variable makes its
+        TypeDefinition "always browse"; without a probe such children are lost.
+    */
+    void probeKeepsChildrenOfScalars();
 
     /*! A variable whose value cannot be read is still browsed for its children. */
     void browsesChildrenOfUnreadableVariable();
@@ -503,6 +536,49 @@ void CloneTraversalTest::capturesLargeAddressSpace()
     QCOMPARE(last.value.toInt(), 5199);
     QCOMPARE(last.resolvedDataType.builtInBase, QStringLiteral("Int32"));
     QVERIFY(last.accessLevel > 0);
+}
+
+void CloneTraversalTest::skipsLeafBrowsesAfterProbe()
+{
+    const Result result = run(m_server.nodeId("Bulk"));
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QCOMPARE(result.completion.nodeCount, kBulkCount);
+    QVERIFY(result.completion.leafVariablesNotBrowsed > 0);
+    QCOMPARE(result.completion.browseRequests + result.completion.leafVariablesNotBrowsed,
+             kBulkCount + 1); // every variable plus the root is browsed or counted
+    // One combined request per 16 variables, plus a few for the leftover values.
+    QVERIFY2(result.completion.readRequests <= kBulkCount / 16 + 8,
+             qPrintable(QString::number(result.completion.readRequests)));
+    for (const CloneNode &node : result.nodes)
+        QVERIFY2(node.value.isValid(), qPrintable(node.nodeId));
+}
+
+void CloneTraversalTest::browsesAllLeavesWhenRequested()
+{
+    CloneOptions options;
+    options.browseScalarLeaves = true;
+    const Result result = run(m_server.nodeId("Bulk"), options);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QCOMPARE(result.completion.leafVariablesNotBrowsed, 0);
+    QCOMPARE(result.completion.browseRequests, kBulkCount + 1);
+}
+
+void CloneTraversalTest::probeKeepsChildrenOfScalars()
+{
+    // Locked is a scalar Int32 with the child Inner.
+    const Result probed = run(m_server.nodeId("Area"));
+    QVERIFY(probed.finished);
+    QVERIFY(!find(probed.nodes, m_server.nodeId("Inner")).nodeId.isEmpty());
+    QCOMPARE(probed.completion.leafVariablesNotBrowsed, 0);
+
+    CloneOptions noProbe;
+    noProbe.leafProbeCount = 0;
+    const Result skipped = run(m_server.nodeId("Area"), noProbe);
+    QVERIFY(skipped.finished);
+    QVERIFY(find(skipped.nodes, m_server.nodeId("Inner")).nodeId.isEmpty());
+    QVERIFY(skipped.completion.leafVariablesNotBrowsed > 0);
 }
 
 void CloneTraversalTest::recordsAdditionalParents()
@@ -775,6 +851,13 @@ void CloneTraversalTest::clonesStructuresIntoRuntime()
                  .value<QOpcUaQualifiedName>()
                  .name(),
              QStringLiteral("ST_Button"));
+
+    // The function block object below the structure variable runs in the runtime too.
+    const ServerProject::Node *speed = findNode(QStringLiteral("Button.Fb.Speed"));
+    QVERIFY(speed);
+    QOpcUaNode *speedNode = read(speed->nodeId, QOpcUa::NodeAttribute::Value);
+    QCOMPARE(speedNode->attribute(QOpcUa::NodeAttribute::Value).toInt(), 7);
+    delete speedNode;
 
     QOpcUaNode *matrixNode = read(matrix->nodeId, QOpcUa::NodeAttribute::Value
                                                        | QOpcUa::NodeAttribute::ValueRank);

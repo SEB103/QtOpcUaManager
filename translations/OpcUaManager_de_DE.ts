@@ -1958,7 +1958,12 @@
         <translation>Sitzungen: %1 · Sichere Kanäle: %2 · Laufzeit: %3 s</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>vom Server nicht geliefert (eine Struktur, die einen Funktionsbaustein oder ein anderes Objekt enthält)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Unbenannter Server</translation>
     </message>
@@ -2095,7 +2100,7 @@
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-920"/>
+        <location line="-926"/>
         <source>%1 node(s) captured</source>
         <translation>%1 Knoten erfasst</translation>
     </message>
@@ -2115,7 +2120,7 @@
         <translation>%1 Datentyp(en) werden ermittelt</translation>
     </message>
     <message>
-        <location line="+675"/>
+        <location line="+681"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>

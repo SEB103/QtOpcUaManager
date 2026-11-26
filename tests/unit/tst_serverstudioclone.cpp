@@ -35,6 +35,13 @@ private slots:
     /*! A cancelled clone leaves the open project unchanged. */
     void cancelledCloneKeepsProject();
 
+    /*!
+        A variable without a readable DataType but with members (a CODESYS
+        structure holding a function block) is a container, not a failed read,
+        and is cloned as a structure whose source type is "not provided".
+    */
+    void clonesContainersWithoutDataType();
+
 private:
     /*! Returns the last notification text in \a spy, or an empty string. */
     static QString lastMessage(const QSignalSpy &spy);
@@ -308,6 +315,62 @@ void ServerStudioCloneTest::cancelledCloneKeepsProject()
     QCOMPARE(studio.projectName(), QStringLiteral("Kept"));
     QVERIFY(lastMessage(notificationSpy).contains(QLatin1String("cancelled")));
     QVERIFY(!studio.cloneInProgress());
+}
+
+void ServerStudioCloneTest::clonesContainersWithoutDataType()
+{
+    CloneNode recipe = variable(QStringLiteral("stRecipe"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    recipe.attributeErrors = {QStringLiteral("DataType: BadNotSupported")};
+    CloneNode key = variable(QStringLiteral("strKey_Set"), recipe.nodeId,
+                             QStringLiteral("ns=0;i=12"), QStringLiteral("String"),
+                             Resolution::BuiltIn, QStringLiteral("K1"));
+    CloneNode fb;
+    fb.nodeId = recipe.nodeId + QStringLiteral(".fbProduct");
+    fb.parentNodeId = recipe.nodeId;
+    fb.browseName = QStringLiteral("fbProduct");
+    fb.nodeClass = 1;
+    // A variable with the same error but no members stays a failed read, and
+    // so does one that also failed for another attribute.
+    CloneNode lonely = variable(QStringLiteral("xLonely"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    lonely.attributeErrors = {QStringLiteral("DataType: BadNotSupported")};
+    CloneNode broken = variable(QStringLiteral("stBroken"), QStringLiteral("ns=4;s=V_HMI"),
+                                QString(), QString(), Resolution::None, QVariant());
+    broken.attributeErrors = {QStringLiteral("DataType: BadNotSupported"),
+                              QStringLiteral("ValueRank: BadNotSupported")};
+    CloneNode brokenChild = variable(QStringLiteral("x"), broken.nodeId,
+                                     QStringLiteral("ns=0;i=1"), QStringLiteral("Boolean"),
+                                     Resolution::BuiltIn, true);
+
+    QList<CloneNode> nodes{recipe, key, fb, lonely, broken, brokenChild};
+    QCOMPARE(CloneBrowser::markContainersWithoutDataType(nodes), 1);
+    QVERIFY(nodes.at(0).dataTypeNotProvided);
+    QVERIFY(!nodes.at(3).dataTypeNotProvided);
+    QVERIFY(!nodes.at(4).dataTypeNotProvided);
+
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    CloneCompletion completion;
+    completion.state = CloneCompletion::State::Complete;
+    completion.nodeCount = int(nodes.size());
+    emit manager.cloneSnapshotReady(0, {recipe, key, fb}, {}, completion);
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("containers.uaserver"));
+    QVERIFY(studio.saveProjectAs(path));
+    const auto loaded = ServerProject::Serializer::load(path);
+    QVERIFY2(loaded.ok, qPrintable(loaded.errorString));
+    const ServerProject::Node *recipeNode = find(loaded.data, QStringLiteral("stRecipe"));
+    QVERIFY(recipeNode);
+    QVERIFY(recipeNode->isStructure());
+    QVERIFY(find(loaded.data, QStringLiteral("fbProduct")));
+
+    studio.setSelectedNodeId(recipeNode->nodeId);
+    QVERIFY(studio.selectedNode().value(QStringLiteral("sourceDataType")).toString()
+                .contains(QLatin1String("not provided by the server")));
 }
 
 QTEST_GUILESS_MAIN(ServerStudioCloneTest)

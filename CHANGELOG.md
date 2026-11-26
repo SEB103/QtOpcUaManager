@@ -45,6 +45,16 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   that still cannot be determined leaves its variables without a value (reported as
   incomplete) instead of reading what may be a large structure. The progress dialog shows
   where the clone waits: browsing, metadata or value reads, or data type lookups.
+- **Clone to Server Studio**: much faster on large PLCs. A variable of a simple scalar type
+  is no longer browsed for children once a sample of 200 variables of the same kind had
+  none (on a CODESYS PLC about nine in ten nodes; each browse cost a round trip), and the
+  values travel in the same read requests as the variable metadata again. Structures,
+  arrays and variables of unknown type are always browsed. The log line every 30 seconds
+  shows the number and average latency of browse and read requests.
+- **Clone to Server Studio**: a CODESYS structure that contains a function block instance,
+  for which the server provides no type, is cloned as a structure with all its members
+  instead of being reported as a failed read; the property editor states that the server
+  did not provide its type.
 - **Clone to Server Studio**: variable data types are now resolved through the source
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard

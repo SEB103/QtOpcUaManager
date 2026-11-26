@@ -1958,7 +1958,12 @@
         <translation>Sessions : %1 · Canaux sécurisés : %2 · Disponibilité : %3 s</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>non fourni par le serveur (une structure qui contient un bloc fonctionnel ou un autre objet)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Serveur sans titre</translation>
     </message>
@@ -2095,7 +2100,7 @@
         <translation>%1 nœud(s) cloné(s) depuis le serveur.</translation>
     </message>
     <message>
-        <location line="-920"/>
+        <location line="-926"/>
         <source>%1 node(s) captured</source>
         <translation>%1 nœud(s) capturé(s)</translation>
     </message>
@@ -2115,7 +2120,7 @@
         <translation>Recherche de %1 type(s) de données</translation>
     </message>
     <message>
-        <location line="+675"/>
+        <location line="+681"/>
         <source>Cloned Server</source>
         <translation>Serveur cloné</translation>
     </message>

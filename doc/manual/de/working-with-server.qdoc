@@ -59,6 +59,10 @@
     Array eines einfachen Typs und ein mehrdimensionales Array (zum Beispiel
     \c{Int32[2,3]}) als solche nachgebildet werden. Der Serverbaum zeigt diese Typen an,
     zum Beispiel \c{ST_HMI_Button[13]}.
+    Für eine Struktur, die eine Funktionsbaustein-Instanz enthält, liefert CODESYS keinen
+    Typ; eine solche Struktur wird mit dem allgemeinen Typ \c Structure geklont, ihre
+    Mitglieder sind vollständig, und der Eigenschaftseditor weist darauf hin, dass der
+    Server den Typ nicht geliefert hat.
 
     Das Klonen läuft mit einem Fortschrittsdialog; \e{Abbrechen} beendet es und lässt
     das aktuelle Server-Projekt unverändert. Das Durchsuchen ist durch das im Klon-Dialog

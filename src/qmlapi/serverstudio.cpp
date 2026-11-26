@@ -729,6 +729,12 @@ QVariantMap ServerStudio::selectedNode() const
                              : QStringLiteral("%1 (%2)").arg(sourceType,
                                                              node->source.originalDataTypeId);
         }
+        // A cloned structure without any original DataType is a container the
+        // server published without a type, e.g. a CODESYS structure that holds
+        // a function block instance.
+        if (sourceType.isEmpty() && node->isStructure() && !node->source.originalNodeId.isEmpty())
+            sourceType = tr("not provided by the server (a structure that contains a function "
+                            "block or another object)");
         map["sourceDataType"] = sourceType;
     }
     map["sourceNodeId"] = node->source.originalNodeId;

@@ -59,6 +59,10 @@
     array di un tipo semplice e un array multidimensionale (ad esempio \c{Int32[2,3]})
     vengono riprodotti come tali. L’albero del server mostra questi tipi, ad esempio
     \c{ST_HMI_Button[13]}.
+    CODESYS non fornisce un tipo per una struttura che contiene un’istanza di blocco
+    funzionale; tale struttura viene clonata con il tipo generico \c Structure, i suoi
+    membri sono completi e l’editor delle proprietà indica che il server non ha fornito il
+    tipo.
 
     La clonazione si svolge con una finestra di avanzamento; \e{Annulla} la interrompe e
     lascia invariato il progetto server attuale. L’esplorazione è limitata dal limite di

@@ -56,6 +56,9 @@
     type and a multi-dimensional array (for example \c{Int32[2,3]}) are reproduced as such.
     The type column of the server tree shows these types, for example
     \c{ST_HMI_Button[13]}.
+    CODESYS provides no type for a structure that contains a function block instance;
+    such a structure is cloned with the generic type \c Structure, its members are
+    complete, and the property editor states that the server did not provide the type.
 
     The clone runs with a progress dialog; \e{Cancel} stops it and leaves the current
     server project unchanged. The browse is bounded by the node limit chosen in the clone

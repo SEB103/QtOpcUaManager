@@ -89,6 +89,13 @@ struct CloneNode
     /** Whether the Value was deliberately not read because the DataType is a structure. */
     bool valueSkipped = false;
 
+    /**
+     * Whether the server does not provide the DataType of this variable although
+     * its members are browsable, e.g. a CODESYS structure that contains a
+     * function block instance. Such a container is not a failed read.
+     */
+    bool dataTypeNotProvided = false;
+
     /** Whether a read response for this variable arrived. */
     bool attributesRead = false;
 
@@ -131,6 +138,13 @@ struct CloneOptions
     int typeLookupTimeoutMs = 120000;
     /** Lookup rounds per DataType before its variables are left without a value. */
     int typeLookupAttempts = 3;
+    /** Whether scalar variables of simple types are browsed for children too. */
+    bool browseScalarLeaves = false;
+    /**
+     * Scalar variables of simple types browsed per TypeDefinition before the
+     * others of that TypeDefinition are left unbrowsed; 0 skips them at once.
+     */
+    int leafProbeCount = 200;
 };
 
 /** Breakdown of the work of a running clone traversal. */
@@ -195,6 +209,12 @@ struct CloneCompletion
     int failedBrowses = 0;
     /** Variables with at least one failed attribute read. */
     int failedReads = 0;
+    /** Scalar variables of simple types that were not browsed for children. */
+    int leafVariablesNotBrowsed = 0;
+    /** Browse requests sent. */
+    int browseRequests = 0;
+    /** Read requests sent (metadata, values or both). */
+    int readRequests = 0;
     /** Limits the traversal ran with. */
     CloneOptions options;
     /** Duration of the traversal in milliseconds. */
@@ -235,6 +255,13 @@ public:
     /** Stops the traversal; finished() reports the nodes captured so far as Cancelled. */
     void cancel();
 
+    /**
+     * Marks the variables in \a nodes whose only failure is an unreadable
+     * DataType but which have captured children as containers
+     * (CloneNode::dataTypeNotProvided); returns how many were marked.
+     */
+    static int markContainersWithoutDataType(QList<CloneNode> &nodes);
+
 signals:
     /** Emitted about twice a second with the breakdown of the work in \a progress. */
     void progress(quint64 requestId, const CloneProgress &progress);
@@ -258,9 +285,27 @@ private:
     /** One attribute read request in flight. */
     struct ReadBatch
     {
-        QStringList nodeIds;  //!< Variables in this request.
-        QSet<QString> keySet; //!< Same ids, used to claim the shared result signal.
-        bool values = false;  //!< Value read (true) or metadata read (false).
+        QStringList metadataIds; //!< Variables whose metadata attributes are read.
+        QStringList valueIds;    //!< Variables whose Value is read.
+        QSet<QString> keySet;    //!< Both lists, used to claim the shared result signal.
+        qint64 startedMs = 0;    //!< Traversal time when the request was sent.
+    };
+
+    /** Probe of whether scalar variables of one TypeDefinition have children. */
+    struct LeafProbe
+    {
+        int issued = 0;           //!< Probe browses sent.
+        int answered = 0;         //!< Probe browses answered.
+        bool hasChildren = false; //!< A probe found children: always browse this kind.
+    };
+
+    /** Request statistics of one kind over a time window. */
+    struct RequestStats
+    {
+        int count = 0;       //!< Answered requests.
+        qint64 totalMs = 0;  //!< Sum of their latencies.
+        int items = 0;       //!< Nodes or read operations they carried.
+        int empty = 0;       //!< Browses that returned no children.
     };
 
     void pump();
@@ -269,9 +314,13 @@ private:
                       const QList<QOpcUaReferenceDescription> &references,
                       QOpcUa::UaStatusCode status);
     void markBrowseError(const QString &nodeId, const QString &reason);
-    void startRead(const QStringList &nodeIds, bool values);
-    void routeValueRead(const QString &nodeId);
-    void queueValueRead(CloneNode &node, const ResolvedDataType &type);
+    void startRead(const QStringList &metadataIds, const QStringList &valueIds);
+    void routeVariable(const QString &nodeId);
+    void settleVariable(CloneNode &node, const ResolvedDataType &type);
+    bool isScalarLeaf(const CloneNode &node, const ResolvedDataType &type) const;
+    void browseVariable(const QString &nodeId);
+    void recordProbe(const QString &nodeId, bool hasChildren);
+    void logProgress();
     void startTypeLookup();
     void handleTypeLookupFinished();
     void logReadFailure(const QString &nodeId, const QString &what);
@@ -307,6 +356,12 @@ private:
     QHash<QString, int> m_typeLookupRounds;   //!< Lookup rounds that timed out, per DataType id.
     QSet<QString> m_typeLookupGivenUp;        //!< DataType ids whose lookups kept timing out.
     int m_progressTicks = 0;                  //!< Progress reports since the last log line.
+    QHash<QString, int> m_pendingBrowseDepth; //!< Variables whose browse waits for their metadata.
+    QHash<QString, LeafProbe> m_leafProbes;   //!< Leaf probes per TypeDefinition id.
+    QHash<QString, QString> m_probeNodes;     //!< Probe browses in flight: node -> TypeDefinition.
+    QHash<QOpcUaNode *, qint64> m_browseStarted; //!< Start time of each browse in flight.
+    RequestStats m_browseWindow;              //!< Browse statistics since the last log line.
+    RequestStats m_readWindow;                //!< Read statistics since the last log line.
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 

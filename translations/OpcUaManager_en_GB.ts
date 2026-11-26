@@ -1958,7 +1958,12 @@
         <translation>Sessions: %1 · Secure channels: %2 · Uptime: %3 s</translation>
     </message>
     <message>
-        <location line="+338"/>
+        <location line="+332"/>
+        <source>not provided by the server (a structure that contains a function block or another object)</source>
+        <translation>not provided by the server (a structure that contains a function block or another object)</translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>Untitled Server</source>
         <translation>Untitled Server</translation>
     </message>
@@ -2095,7 +2100,7 @@
         <translation>Cloned %1 node(s) from the server.</translation>
     </message>
     <message>
-        <location line="-920"/>
+        <location line="-926"/>
         <source>%1 node(s) captured</source>
         <translation>%1 node(s) captured</translation>
     </message>
@@ -2115,7 +2120,7 @@
         <translation>Looking up %1 data type(s)</translation>
     </message>
     <message>
-        <location line="+675"/>
+        <location line="+681"/>
         <source>Cloned Server</source>
         <translation>Cloned Server</translation>
     </message>
