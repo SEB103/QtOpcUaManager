@@ -483,9 +483,10 @@ void CloneBrowser::pump()
     // A metadata request also carries up to as many queued values as it has
     // variables, so a variable costs no round trip of its own (the request
     // shape of one metadata + Value read per 16 variables). A full batch of
-    // values, e.g. released by a DataType lookup, gets a request of its own;
-    // leftover values are read when no metadata is queued and no read runs.
-    const auto take = [](QStringList &queue, int count) {
+    // single-attribute reads (values, and the DataType checks of built nodes),
+    // e.g. released by a DataType lookup or an array expansion, gets a request
+    // of its own; leftovers are read when no metadata is queued and no read runs.
+    const auto take = [](QStringList &queue, qsizetype count) {
         const qsizetype n = std::min<qsizetype>(count, queue.size());
         QStringList batch = queue.mid(0, n);
         queue.remove(0, n);
@@ -494,17 +495,19 @@ void CloneBrowser::pump()
     while (m_reading.size() < m_options.maxConcurrentReads) {
         QStringList metadata;
         QStringList values;
-        if (m_valueQueue.size() >= m_options.valuesPerRead) {
+        QStringList checks;
+        const qsizetype singles = m_valueQueue.size() + m_checkQueue.size();
+        if (singles >= m_options.valuesPerRead
+            || (singles > 0 && m_readQueue.isEmpty() && m_reading.isEmpty())) {
             values = take(m_valueQueue, m_options.valuesPerRead);
+            checks = take(m_checkQueue, m_options.valuesPerRead - values.size());
         } else if (!m_readQueue.isEmpty()) {
             metadata = take(m_readQueue, m_options.variablesPerRead);
             values = take(m_valueQueue, m_options.variablesPerRead);
-        } else if (!m_valueQueue.isEmpty() && m_reading.isEmpty()) {
-            values = take(m_valueQueue, m_options.valuesPerRead);
         } else {
             break;
         }
-        startRead(metadata, values);
+        startRead(metadata, values, checks);
     }
 
     startTypeLookup();
@@ -694,31 +697,39 @@ void CloneBrowser::markBrowseError(const QString &nodeId, const QString &reason)
 
 /*!
  * \internal
- * \brief Issues one batched read of the metadata of \a metadataIds and the Value of \a valueIds.
+ * \brief Issues one batched read of the metadata of \a metadataIds, the Value
+ * of \a valueIds and the DataType of \a checkIds.
  *
- * Either list may be empty. The request is claimed later by the union of both
+ * Any list may be empty. The request is claimed later by the union of the
  * lists, which is unique among the requests in flight: a variable's Value is
- * only queued after its metadata request has been answered.
+ * only queued after its metadata request has been answered, and a built
+ * variable is in exactly one of the value and check queues.
  */
-void CloneBrowser::startRead(const QStringList &metadataIds, const QStringList &valueIds)
+void CloneBrowser::startRead(const QStringList &metadataIds, const QStringList &valueIds,
+                             const QStringList &checkIds)
 {
     QList<QOpcUaReadItem> items;
-    items.reserve(metadataIds.size() * kMetadataAttributes.size() + valueIds.size());
+    items.reserve(metadataIds.size() * kMetadataAttributes.size() + valueIds.size()
+                  + checkIds.size());
     for (const QString &nodeId : metadataIds) {
         for (const QOpcUa::NodeAttribute attribute : kMetadataAttributes)
             items.append(QOpcUaReadItem(nodeId, attribute));
     }
     for (const QString &nodeId : valueIds)
         items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
+    for (const QString &nodeId : checkIds)
+        items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::DataType));
 
     QSet<QString> keySet(metadataIds.cbegin(), metadataIds.cend());
     keySet.unite(QSet<QString>(valueIds.cbegin(), valueIds.cend()));
-    m_reading.append({metadataIds, valueIds, keySet, m_elapsed.elapsed()});
+    keySet.unite(QSet<QString>(checkIds.cbegin(), checkIds.cend()));
+    m_reading.append({metadataIds, valueIds, checkIds, keySet, m_elapsed.elapsed()});
     ++m_completion.readRequests;
     if (!m_client->readNodeAttributes(items)) {
         m_reading.removeLast();
         failRead(metadataIds, QStringLiteral("Read: read request could not be started"));
         failRead(valueIds, QStringLiteral("Value: read request could not be started"));
+        failRead(checkIds, QStringLiteral("DataType: read request could not be started"));
     }
 }
 
@@ -820,7 +831,8 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         const ReadBatch batch = m_reading.takeFirst();
         ++m_readWindow.count;
         m_readWindow.totalMs += m_elapsed.elapsed() - batch.startedMs;
-        const qsizetype size = batch.metadataIds.size() + batch.valueIds.size();
+        const qsizetype size =
+            batch.metadataIds.size() + batch.valueIds.size() + batch.checkIds.size();
         // A too large request or response is split like too many operations.
         const bool tooLarge = serviceResult == QOpcUa::UaStatusCode::BadTooManyOperations
                               || serviceResult == QOpcUa::UaStatusCode::BadResponseTooLarge
@@ -830,13 +842,15 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
             if (!batch.metadataIds.isEmpty())
                 m_options.variablesPerRead = std::max<int>(1, int(batch.metadataIds.size() / 2));
             else
-                m_options.valuesPerRead = std::max<int>(1, int(batch.valueIds.size() / 2));
+                m_options.valuesPerRead = std::max<int>(1, int(size / 2));
             m_readQueue = batch.metadataIds + m_readQueue;
             m_valueQueue = batch.valueIds + m_valueQueue;
+            m_checkQueue = batch.checkIds + m_checkQueue;
         } else {
             const QString status = QOpcUa::statusToString(serviceResult);
             failRead(batch.metadataIds, QStringLiteral("Read: %1").arg(status));
             failRead(batch.valueIds, QStringLiteral("Value: %1").arg(status));
+            failRead(batch.checkIds, QStringLiteral("DataType: %1").arg(status));
         }
         pump();
         return;
@@ -852,6 +866,7 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
     if (batch == m_reading.end())
         return; // A read issued by another component.
     const QStringList metadataIds = batch->metadataIds;
+    const QStringList confirmIds = batch->valueIds + batch->checkIds;
     ++m_readWindow.count;
     m_readWindow.totalMs += m_elapsed.elapsed() - batch->startedMs;
     m_readWindow.items += int(results.size());
@@ -863,22 +878,33 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         if (it != m_index.constEnd())
             applyReadResult(m_nodes[it.value()], result);
     }
+    const auto unknownNode = [](const CloneNode &node) {
+        return std::any_of(node.attributeErrors.cbegin(), node.attributeErrors.cend(),
+                           [](const QString &error) {
+                               return error.contains(QLatin1String("BadNodeIdUnknown"))
+                                      || error.contains(QLatin1String("BadNodeIdInvalid"));
+                           });
+    };
     for (const QString &nodeId : metadataIds) {
         const auto it = m_index.constFind(nodeId);
         if (it == m_index.constEnd())
             continue;
         const CloneNode &node = m_nodes.at(it.value());
         // A built node the server does not know: its element is browsed instead.
-        if (node.synthesized && node.dataTypeId.isEmpty()
-            && std::any_of(node.attributeErrors.cbegin(), node.attributeErrors.cend(),
-                           [](const QString &error) {
-                               return error.contains(QLatin1String("BadNodeIdUnknown"))
-                                      || error.contains(QLatin1String("BadNodeIdInvalid"));
-                           })) {
+        if (node.synthesized && node.dataTypeId.isEmpty() && unknownNode(node)) {
             handleTemplateMiss(node);
             continue;
         }
         routeVariable(nodeId);
+    }
+    // A built node with copied metadata is confirmed by its Value or DataType read.
+    for (const QString &nodeId : confirmIds) {
+        const auto it = m_index.constFind(nodeId);
+        if (it == m_index.constEnd())
+            continue;
+        const CloneNode &node = m_nodes.at(it.value());
+        if (node.metadataFromTemplate && unknownNode(node))
+            handleTemplateMiss(node);
     }
     pump();
 }
@@ -1140,7 +1166,11 @@ void CloneBrowser::expandJobs()
  *
  * Every node below the template is copied with the "<template>" NodeId prefix
  * replaced by the element's NodeId; BrowseName, DisplayName, NodeClass and
- * TypeDefinition are copied, everything else is read from the server. A
+ * TypeDefinition are copied. With CloneOptions::copyTemplateMetadata, a
+ * variable whose template node has its metadata (read without errors, or
+ * itself copied) also takes DataType, ValueRank, ArrayDimensions and access
+ * levels from it and is confirmed by reading only its Value, or its DataType
+ * when no Value is read; other variables get the full metadata read. A
  * template that contains an Object cannot be verified by a variable read, so
  * its elements are browsed normally instead.
  */
@@ -1227,9 +1257,31 @@ void CloneBrowser::expandJob(const ExpansionJob &job)
             copy.isFolder = source.isFolder;
             copy.synthesized = true;
             copy.expansionElementId = elementId;
+            const bool sourceHasMetadata =
+                source.metadataFromTemplate
+                || (source.attributesRead && !source.dataTypeId.isEmpty()
+                    && source.attributeErrors.isEmpty());
+            const bool copyMetadata =
+                copy.isVariable && m_options.copyTemplateMetadata && sourceHasMetadata;
+            if (copyMetadata) {
+                copy.dataTypeId = source.dataTypeId;
+                copy.valueRank = source.valueRank;
+                copy.arrayDimensions = source.arrayDimensions;
+                copy.accessLevel = source.accessLevel;
+                copy.userAccessLevel = source.userAccessLevel;
+                copy.valueSkipped = source.valueSkipped;
+                copy.metadataFromTemplate = true;
+            }
             appendNode(copy);
-            if (copy.isVariable)
+            if (copyMetadata) {
+                ++m_completion.templateMetadataNodes;
+                if (!copy.valueSkipped && m_options.readValues)
+                    m_valueQueue.append(copy.nodeId);
+                else
+                    m_checkQueue.append(copy.nodeId);
+            } else if (copy.isVariable) {
                 m_readQueue.append(copy.nodeId);
+            }
             ++built;
         }
     }
@@ -1272,6 +1324,8 @@ void CloneBrowser::handleTemplateMiss(const CloneNode &node)
                 continue;
             built.missing = true;
             ++m_missingNodes;
+            if (built.metadataFromTemplate)
+                --m_completion.templateMetadataNodes;
             m_index.remove(built.nodeId);
             dropped.insert(built.nodeId);
             pending.append(built.nodeId);
@@ -1281,6 +1335,7 @@ void CloneBrowser::handleTemplateMiss(const CloneNode &node)
     const auto isDropped = [&dropped](const QString &id) { return dropped.contains(id); };
     m_readQueue.removeIf(isDropped);
     m_valueQueue.removeIf(isDropped);
+    m_checkQueue.removeIf(isDropped);
     m_browseQueue.enqueue({elementId, m_expandedElements.value(elementId, 1)});
 }
 
@@ -1472,11 +1527,12 @@ CloneProgress CloneBrowser::progressSnapshot() const
     snapshot.browseQueued = int(m_browseQueue.size());
     snapshot.browsing = int(m_browsing.size());
     snapshot.metadataQueued = int(m_readQueue.size());
-    snapshot.valuesQueued = int(m_valueQueue.size());
+    snapshot.valuesQueued = int(m_valueQueue.size() + m_checkQueue.size());
     for (const QStringList &nodeIds : m_waitingForType)
         snapshot.waitingForType += int(nodeIds.size());
     for (const ReadBatch &batch : m_reading)
-        snapshot.reading += int(batch.metadataIds.size() + batch.valueIds.size());
+        snapshot.reading +=
+            int(batch.metadataIds.size() + batch.valueIds.size() + batch.checkIds.size());
     snapshot.readRequests = int(m_reading.size());
     snapshot.typeLookups = m_typeLookup ? int(m_typeLookupIds.size()) : 0;
     snapshot.waitingForTemplate = int(m_deferredElements.size());
@@ -1580,7 +1636,8 @@ int CloneBrowser::pendingCount() const
 void CloneBrowser::finishIfIdle()
 {
     if (m_finished || !m_browseQueue.isEmpty() || !m_browsing.isEmpty()
-        || !m_readQueue.isEmpty() || !m_valueQueue.isEmpty() || !m_reading.isEmpty()
+        || !m_readQueue.isEmpty() || !m_valueQueue.isEmpty() || !m_checkQueue.isEmpty()
+        || !m_reading.isEmpty()
         || !m_waitingForType.isEmpty() || m_typeLookup)
         return;
     if (!m_jobs.isEmpty()) {
@@ -1654,7 +1711,8 @@ void CloneBrowser::finish(CloneCompletion::State state)
         << m_completion.limitedArrays << "arrayElementsSkipped"
         << m_completion.arrayElementsSkipped << "expandedArrays" << m_completion.expandedArrays
         << "synthesizedNodes" << m_completion.synthesizedNodes << "templateMisses"
-        << m_completion.templateMisses << "maxNodesPerRead"
+        << m_completion.templateMisses << "templateMetadataNodes"
+        << m_completion.templateMetadataNodes << "maxNodesPerRead"
         << m_completion.serverMaxNodesPerRead << "elapsedMs" << m_completion.elapsedMs;
 
     QStringList typeIds;

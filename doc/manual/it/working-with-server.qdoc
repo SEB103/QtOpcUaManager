@@ -81,9 +81,9 @@
 
     Con tutti gli elementi, un array di strutture i cui elementi seguono lo schema di NodeId
     \c{<array>[indice]} viene clonato dal suo primo elemento: solo quell’elemento viene
-    esplorato, i membri degli altri vengono derivati da esso e poi letti dal server, così
-    tipi e valori sono quelli del server. Un elemento diverso dal primo viene esplorato a
-    parte. Le richieste di lettura sono dimensionate in base al limite MaxNodesPerRead del
+    esplorato, i membri degli altri vengono derivati da esso e ne riprendono tipi di dati e
+    forme degli array; ciascuno è confermato leggendo il suo valore dal server, così i
+    valori sono quelli del server. Un elemento diverso dal primo viene esplorato a parte. Le richieste di lettura sono dimensionate in base al limite MaxNodesPerRead del
     server.
 
     \section1 Scambiare spazi degli indirizzi

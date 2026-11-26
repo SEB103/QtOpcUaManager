@@ -98,6 +98,9 @@ struct CloneNode
     /** Whether the node was built from a template array element instead of being browsed. */
     bool synthesized = false;
 
+    /** For a synthesized variable: whether its metadata was copied from its template node. */
+    bool metadataFromTemplate = false;
+
     /** For a synthesized node: the array element whose subtree it belongs to. */
     QString expansionElementId;
 
@@ -171,6 +174,13 @@ struct CloneOptions
      * browsing every element.
      */
     bool expandArraysByTemplate = true;
+    /**
+     * Whether a node built from a template element takes DataType, ValueRank,
+     * ArrayDimensions and access levels from its template node. It is then
+     * confirmed by reading its Value alone (its DataType when no Value is read),
+     * many nodes per request, instead of reading all its metadata.
+     */
+    bool copyTemplateMetadata = true;
     /** Upper bound of variables per metadata read once the server's MaxNodesPerRead is known. */
     int maxVariablesPerRead = 64;
     /** Upper bound of variables per Value read once the server's MaxNodesPerRead is known. */
@@ -285,6 +295,8 @@ struct CloneCompletion
     int synthesizedNodes = 0;
     /** Elements whose built nodes did not exist on the server; they were browsed instead. */
     int templateMisses = 0;
+    /** Synthesized variables whose metadata was copied from their template node. */
+    int templateMetadataNodes = 0;
     /** The server's MaxNodesPerRead (0: no limit), or -1 when it could not be read. */
     int serverMaxNodesPerRead = -1;
     /** Browse requests sent. */
@@ -365,7 +377,8 @@ private:
     {
         QStringList metadataIds; //!< Variables whose metadata attributes are read.
         QStringList valueIds;    //!< Variables whose Value is read.
-        QSet<QString> keySet;    //!< Both lists, used to claim the shared result signal.
+        QStringList checkIds;    //!< Built variables whose DataType is read to confirm them.
+        QSet<QString> keySet;    //!< All lists, used to claim the shared result signal.
         qint64 startedMs = 0;    //!< Traversal time when the request was sent.
     };
 
@@ -402,7 +415,8 @@ private:
                       const QList<QOpcUaReferenceDescription> &references,
                       QOpcUa::UaStatusCode status);
     void markBrowseError(const QString &nodeId, const QString &reason);
-    void startRead(const QStringList &metadataIds, const QStringList &valueIds);
+    void startRead(const QStringList &metadataIds, const QStringList &valueIds,
+                   const QStringList &checkIds);
     void routeVariable(const QString &nodeId);
     void settleVariable(CloneNode &node, const ResolvedDataType &type);
     bool isScalarLeaf(const CloneNode &node, const ResolvedDataType &type) const;
@@ -448,6 +462,7 @@ private:
     QSet<QOpcUaNode *> m_browsing;            //!< Browse requests in flight.
     QStringList m_readQueue;                  //!< Variables waiting for the metadata read.
     QStringList m_valueQueue;                 //!< Variables waiting for the Value read.
+    QStringList m_checkQueue;                 //!< Built variables waiting for the DataType check.
     QHash<QString, ResolvedDataType> m_typeCache;    //!< Resolved DataTypes by normalized id.
     QHash<QString, QStringList> m_waitingForType;    //!< Variables waiting for a type lookup.
     QStringList m_typeQueue;                  //!< DataType ids waiting for a lookup.

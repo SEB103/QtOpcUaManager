@@ -35,8 +35,9 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   and the clone report names the limited arrays.
   With all elements, an array of structures that follows the CODESYS NodeId pattern
   `<array>[index]` is cloned from its first element: only that element is browsed, the
-  members of the others are derived from it and read from the server, and an element that
-  differs is browsed on its own. Read requests are sized from the server's MaxNodesPerRead
+  members of the others are derived from it, take its data types and array shapes, and
+  are confirmed by reading their values (many per request; a snapshot still reads every
+  attribute), and an element that differs is browsed on its own. Read requests are sized from the server's MaxNodesPerRead
   (up to 64 variables per request).
 - **Server Studio**: structure data types. A structure variable references its
   structure type and has its members as child nodes (the way CODESYS publishes them);

@@ -84,8 +84,9 @@
 
     Avec tous les éléments, un tableau de structures dont les éléments suivent le modèle de
     NodeId \c{<tableau>[index]} est cloné à partir de son premier élément : seul cet
-    élément est parcouru, les membres des autres en sont déduits puis lus sur le serveur,
-    de sorte que leurs types et valeurs sont ceux du serveur. Un élément qui diffère du
+    élément est parcouru, les membres des autres en sont déduits et reprennent ses types
+    de données et formes de tableaux ; chacun est confirmé par la lecture de sa valeur sur
+    le serveur, de sorte que les valeurs sont celles du serveur. Un élément qui diffère du
     premier est parcouru séparément. Les requêtes de lecture sont dimensionnées selon la
     limite MaxNodesPerRead du serveur.
 

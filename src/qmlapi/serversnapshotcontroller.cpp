@@ -165,6 +165,9 @@ bool ServerSnapshotController::start(int scope, bool includeValues, int maxNodes
     if (maxNodes > 0)
         options.maxNodes = maxNodes;
     options.maxArrayElements = std::max(0, maxArrayElements);
+    // A snapshot records the attributes as the server reports them, so the
+    // nodes built from template elements read their full metadata.
+    options.copyTemplateMetadata = false;
 
     switch (scope) {
     case SelectedNodeScope:

@@ -514,6 +514,13 @@ private slots:
     */
     void expandsArraysFromTemplate();
 
+    /*!
+        Built nodes that copy their template's metadata end with the same
+        attributes as built nodes whose metadata is read, in fewer read requests,
+        and a node missing on the server is still found by its Value or DataType.
+    */
+    void copiesTemplateMetadata();
+
     /*! Arrays outside the NodeId pattern or with an Object in the template are browsed. */
     void browsesArraysThatCannotBeExpanded();
 
@@ -744,6 +751,54 @@ void CloneTraversalTest::expandsArraysFromTemplate()
     const Result browsed = run(m_server.nodeId("Tables"), noTemplate);
     QCOMPARE(browsed.completion.synthesizedNodes, 0);
     QCOMPARE(browsed.nodes.size(), result.nodes.size());
+}
+
+void CloneTraversalTest::copiesTemplateMetadata()
+{
+    const Result copied = run(m_server.nodeId("Tables"));
+    CloneOptions fullRead;
+    fullRead.copyTemplateMetadata = false;
+    const Result read = run(m_server.nodeId("Tables"), fullRead);
+    QVERIFY(copied.finished && read.finished);
+    QCOMPARE(copied.completion.state, State::Complete);
+    QCOMPARE(copied.completion.failedReads, 0);
+    QCOMPARE(copied.completion.templateMisses, 1);
+    QCOMPARE(read.completion.templateMisses, 1);
+    QCOMPARE(read.completion.templateMetadataNodes, 0);
+    QVERIFY(copied.completion.templateMetadataNodes > 300);
+    QCOMPARE(copied.nodes.size(), read.nodes.size());
+    QVERIFY2(copied.completion.readRequests < read.completion.readRequests,
+             qPrintable(QStringLiteral("%1 vs %2").arg(copied.completion.readRequests)
+                            .arg(read.completion.readRequests)));
+
+    int compared = 0;
+    for (const CloneNode &node : copied.nodes) {
+        if (!node.metadataFromTemplate)
+            continue;
+        const CloneNode other = find(read.nodes, node.nodeId);
+        QVERIFY2(!other.nodeId.isEmpty(), qPrintable(node.nodeId));
+        QCOMPARE(node.dataTypeId, other.dataTypeId);
+        QCOMPARE(node.resolvedDataType.builtInBase, other.resolvedDataType.builtInBase);
+        QCOMPARE(node.valueRank, other.valueRank);
+        QCOMPARE(node.arrayDimensions, other.arrayDimensions);
+        QCOMPARE(node.accessLevel, other.accessLevel);
+        QCOMPARE(node.userAccessLevel, other.userAccessLevel);
+        QCOMPARE(node.valueSkipped, other.valueSkipped);
+        QCOMPARE(node.value, other.value);
+        QVERIFY(node.attributeErrors.isEmpty());
+        ++compared;
+    }
+    QCOMPARE(compared, copied.completion.templateMetadataNodes);
+
+    // Without values the built nodes are confirmed by their DataType.
+    CloneOptions noValues;
+    noValues.readValues = false;
+    const Result checked = run(m_server.nodeId("Tables"), noValues);
+    QVERIFY(checked.finished);
+    QCOMPARE(checked.completion.templateMisses, 1);
+    QCOMPARE(checked.completion.failedReads, 0);
+    QCOMPARE(checked.nodes.size(), copied.nodes.size());
+    QVERIFY(find(checked.nodes, m_server.nodeId("Rows[7].Count")).nodeId.isEmpty());
 }
 
 void CloneTraversalTest::browsesArraysThatCannotBeExpanded()

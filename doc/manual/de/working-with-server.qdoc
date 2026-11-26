@@ -80,9 +80,10 @@
 
     Mit allen Elementen wird ein Array von Strukturen, dessen Elemente dem NodeId-Muster
     \c{<Array>[Index]} folgen, aus seinem ersten Element geklont: Nur dieses Element wird
-    durchsucht, die Mitglieder der übrigen werden daraus abgeleitet und dann vom Server
-    gelesen, sodass Typen und Werte die des Servers sind. Ein Element, das vom ersten
-    abweicht, wird einzeln durchsucht. Die Leseanfragen richten sich nach dem
+    durchsucht, die Mitglieder der übrigen werden daraus abgeleitet und übernehmen seine
+    Datentypen und Array-Formen; jedes wird durch Lesen seines Werts vom Server bestätigt,
+    sodass die Werte die des Servers sind. Ein Element, das vom ersten abweicht, wird
+    einzeln durchsucht. Die Leseanfragen richten sich nach dem
     MaxNodesPerRead-Limit des Servers.
 
     \section1 Adressräume austauschen

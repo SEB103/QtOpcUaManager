@@ -75,9 +75,9 @@
 
     With all elements, an array of structures whose elements follow the NodeId pattern
     \c{<array>[index]} is cloned from its first element: only that element is browsed,
-    the members of the others are derived from it and then read from the server, so their
-    types and values are the server's. An element that differs from the first is browsed
-    on its own. The read requests are sized from the server's MaxNodesPerRead limit.
+    the members of the others are derived from it and take its data types and array
+    shapes; each of them is confirmed by reading its value from the server, so the values
+    are the server's. An element that differs from the first is browsed on its own. The read requests are sized from the server's MaxNodesPerRead limit.
 
     \section1 Exchange address spaces
 
