@@ -115,6 +115,59 @@ constexpr int kMaxLoggedReadFailures = 20;
 
 /*!
  * \internal
+ * \brief Returns the symbol path of string NodeId \a nodeId: the text after its last '|'.
+ *
+ * CODESYS NodeIds carry a kind marker before the path, e.g. "|var|" for
+ * variables and "|vprop|" for the Dimensions/IndexMin/IndexMax properties of
+ * an array, so the same path appears behind different prefixes. Without a
+ * marker the text after ";s=" is the path.
+ */
+QString symbolPath(const QString &nodeId)
+{
+    const qsizetype bar = nodeId.lastIndexOf(QLatin1Char('|'));
+    if (bar >= 0)
+        return nodeId.mid(bar + 1);
+    const qsizetype string = nodeId.indexOf(QLatin1String(";s="));
+    return string >= 0 ? nodeId.mid(string + 3) : nodeId;
+}
+
+/*!
+ * \internal
+ * \brief Returns \a nodeId of a template subtree node mapped to another array element.
+ * \param nodeId NodeId of a node below the template element.
+ * \param templateId NodeId of the template element.
+ * \param elementId NodeId of the element the copy is for.
+ * \return The mapped NodeId, or an empty string when \a nodeId does not contain
+ *         the template's path.
+ *
+ * A NodeId that starts with the template's NodeId gets the element's NodeId as
+ * prefix. Otherwise the template's symbol path is replaced where it occurs as
+ * a whole path segment, which maps e.g. the CODESYS property
+ * "|vprop|…arr[1].sub.Dimensions" of the template "|var|…arr[1]" correctly.
+ */
+QString mapTemplateId(const QString &nodeId, const QString &templateId, const QString &elementId)
+{
+    if (nodeId.startsWith(templateId))
+        return elementId + nodeId.mid(templateId.size());
+    const QString templatePath = symbolPath(templateId);
+    const QString elementPath = symbolPath(elementId);
+    if (templatePath.isEmpty())
+        return {};
+    for (qsizetype pos = nodeId.indexOf(templatePath); pos >= 0;
+         pos = nodeId.indexOf(templatePath, pos + 1)) {
+        const qsizetype end = pos + templatePath.size();
+        const bool startsSegment = pos == 0 || nodeId.at(pos - 1) == QLatin1Char('|')
+                                   || nodeId.at(pos - 1) == QLatin1Char('=');
+        const bool endsSegment = end == nodeId.size() || nodeId.at(end) == QLatin1Char('.')
+                                 || nodeId.at(end) == QLatin1Char('[');
+        if (startsSegment && endsSegment)
+            return nodeId.left(pos) + elementPath + nodeId.mid(end);
+    }
+    return {};
+}
+
+/*!
+ * \internal
  * \brief Minimum number of captured elements for an array to be expanded by template.
  */
 constexpr int kTemplateMinElements = 3;
@@ -507,7 +560,7 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
             }
         }
 
-        if (m_nodes.size() >= m_options.maxNodes) {
+        if (liveNodeCount() >= m_options.maxNodes) {
             m_completion.nodeLimitReached = true;
             break;
         }
@@ -977,25 +1030,51 @@ void CloneBrowser::expandJob(const ExpansionJob &job)
         return;
     }
 
+    // Every template node must map to the other elements; otherwise the
+    // elements are browsed, so no node is silently left out.
+    const bool mappable = job.elementIds.isEmpty()
+                          || std::all_of(subtree.cbegin(), subtree.cend(), [&](qsizetype index) {
+                                 return !mapTemplateId(m_nodes.at(index).nodeId, job.templateId,
+                                                       job.elementIds.first())
+                                             .isEmpty();
+                             });
+    if (!mappable) {
+        qCInfo(lcOpcUaClone).noquote()
+            << "template" << job.templateId << "has NodeIds outside its path; elements are browsed";
+        for (const QString &elementId : job.elementIds) {
+            m_deferredElements.remove(elementId);
+            m_browseQueue.enqueue({elementId, job.depth});
+        }
+        return;
+    }
+
     int built = 0;
+    int unmapped = 0;
     for (const QString &elementId : job.elementIds) {
         m_deferredElements.remove(elementId);
         if (!m_index.contains(elementId))
             continue;
         m_expandedElements.insert(elementId, job.depth);
+        // Template node id -> its copy for this element; parents come first.
+        QHash<QString, QString> copied{{job.templateId, elementId}};
         for (const qsizetype index : std::as_const(subtree)) {
-            if (m_nodes.size() >= m_options.maxNodes) {
+            if (liveNodeCount() >= m_options.maxNodes) {
                 m_completion.nodeLimitReached = true;
                 break;
             }
             const CloneNode &source = m_nodes.at(index);
+            const QString parentCopy = copied.value(source.parentNodeId);
+            const QString copyId = mapTemplateId(source.nodeId, job.templateId, elementId);
+            if (parentCopy.isEmpty() || copyId.isEmpty()) {
+                ++unmapped; // browsed by the element's fallback if it is real
+                continue;
+            }
+            copied.insert(source.nodeId, copyId);
             CloneNode copy;
-            copy.nodeId = elementId + source.nodeId.mid(job.templateId.size());
+            copy.nodeId = copyId;
             if (m_index.contains(copy.nodeId))
                 continue;
-            copy.parentNodeId = source.parentNodeId == job.templateId
-                                    ? elementId
-                                    : elementId + source.parentNodeId.mid(job.templateId.size());
+            copy.parentNodeId = parentCopy;
             copy.browseName = source.browseName;
             copy.browseNameNamespace = source.browseNameNamespace;
             copy.displayName = source.displayName;
@@ -1017,7 +1096,7 @@ void CloneBrowser::expandJob(const ExpansionJob &job)
     }
     qCInfo(lcOpcUaClone).noquote()
         << "array expanded:" << job.arrayId << "template" << job.templateId << "elements"
-        << job.elementIds.size() << "built nodes" << built;
+        << job.elementIds.size() << "built nodes" << built << "unmapped" << unmapped;
 }
 
 /*!
@@ -1049,6 +1128,7 @@ void CloneBrowser::handleTemplateMiss(const CloneNode &node)
             if (!built.synthesized || built.missing)
                 continue;
             built.missing = true;
+            ++m_missingNodes;
             m_index.remove(built.nodeId);
             dropped.insert(built.nodeId);
             pending.append(built.nodeId);
@@ -1245,7 +1325,7 @@ void CloneBrowser::failTypeLookup(const QString &typeId)
 CloneProgress CloneBrowser::progressSnapshot() const
 {
     CloneProgress snapshot;
-    snapshot.captured = int(m_nodes.size());
+    snapshot.captured = int(liveNodeCount());
     snapshot.browseQueued = int(m_browseQueue.size());
     snapshot.browsing = int(m_browsing.size());
     snapshot.metadataQueued = int(m_readQueue.size());

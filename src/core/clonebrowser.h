@@ -375,6 +375,7 @@ private:
     void expandJob(const ExpansionJob &job);
     void handleTemplateMiss(const CloneNode &node);
     void appendNode(const CloneNode &node);
+    qsizetype liveNodeCount() const { return m_nodes.size() - m_missingNodes; }
     void startLimitsRead();
     void applyLimits(const QList<QOpcUaReadResult> &results);
     void startTypeLookup();
@@ -425,6 +426,7 @@ private:
     QSet<QString> m_fallbackElements;         //!< Expanded elements browsed after a miss.
     QMetaObject::Connection m_limitsConnection; //!< Claims the MaxNodesPerRead read.
     bool m_limitsPending = false;             //!< MaxNodesPerRead read in flight.
+    qsizetype m_missingNodes = 0;             //!< Built nodes marked missing (not live).
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 
