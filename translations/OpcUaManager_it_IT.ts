@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+221"/>
+        <location line="+262"/>
         <source>Browse…</source>
         <translation>Sfoglia…</translation>
     </message>
     <message>
-        <location line="-215"/>
+        <location line="-256"/>
         <source>Full path:</source>
         <translation>Percorso completo:</translation>
     </message>
@@ -1554,7 +1554,12 @@
         <translation>Se disattivato, i nodi vengono rinominati in base al percorso di esplorazione sotto un unico namespace del clone.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+13"/>
+        <source>Cloning server</source>
+        <translation>Clonazione del server</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Errore del progetto</translation>
     </message>
@@ -1620,7 +1625,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+830"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+840"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>%n nodo aggiunto alla vista dati.</numerusform>
@@ -1692,7 +1697,7 @@
         <translation>%1 è di sola lettura: il server non concede CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+353"/>
+        <location line="+357"/>
         <source>The stored server was not found during discovery.</source>
         <translation>Il server salvato non è stato trovato durante la discovery.</translation>
     </message>
@@ -1878,7 +1883,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+184"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+232"/>
         <source>Stopped</source>
         <translation>Arrestato</translation>
     </message>
@@ -2005,12 +2010,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+545"/>
+        <location line="+576"/>
         <source>No OPC UA client is available.</source>
         <translation>Nessun client OPC UA disponibile.</translation>
     </message>
     <message>
-        <location line="-539"/>
+        <location line="-570"/>
         <source>A clone is already in progress.</source>
         <translation>Una clonazione è già in corso.</translation>
     </message>
@@ -2020,32 +2025,57 @@
         <translation>Clonazione dello spazio di indirizzi del server…</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
+        <source>Clone cancelled; the server project was not changed.</source>
+        <translation>Clonazione annullata; il progetto server non è stato modificato.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>Nothing was cloned. Connect to a server and try again.</source>
         <translation>Non è stato clonato nulla. Connettiti a un server e riprova.</translation>
     </message>
     <message>
-        <location line="+126"/>
+        <location line="+131"/>
+        <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
+        <translation>%1 nodo/i clonato/i; è stato raggiunto il limite di %2 nodi, quindi il clone è incompleto.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Cloned %1 node(s); %2 node(s) at the depth limit of %3 were not browsed, so the clone may be incomplete.</source>
+        <translation>%1 nodo/i clonato/i; %2 nodo/i al limite di profondità di %3 non sono stati esplorati, quindi il clone potrebbe essere incompleto.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Cloned %1 node(s); the server did not answer in time and %2 node(s) were left unread, so the clone is incomplete.</source>
+        <translation>%1 nodo/i clonato/i; il server non ha risposto in tempo e %2 nodo/i non sono stati letti, quindi il clone è incompleto.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>%1 nodo/i non hanno potuto essere letti o esplorati completamente.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
         <translation>%1 variabile/i usano un tipo di dati sostitutivo (struttura, data/ora o tipo non supportato).</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Cloned %1 node(s); the address space was large and was truncated.</source>
-        <translation>Clonati %1 nodo/i; lo spazio di indirizzi era ampio ed è stato troncato.</translation>
-    </message>
-    <message>
-        <location line="+4"/>
+        <location line="-10"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Clonati %1 nodo/i dal server.</translation>
     </message>
     <message>
-        <location line="-132"/>
+        <location line="-142"/>
         <source>Cloned Server</source>
         <translation>Server clonato</translation>
     </message>
     <message>
-        <location line="+400"/>
+        <location line="-651"/>
+        <source>%1 node(s) captured, %2 waiting for the server</source>
+        <translation>%1 nodo/i acquisito/i, %2 in attesa del server</translation>
+    </message>
+    <message>
+        <location line="+1074"/>
         <source>Create or open a server project first.</source>
         <translation>Crea o apri prima un progetto server.</translation>
     </message>

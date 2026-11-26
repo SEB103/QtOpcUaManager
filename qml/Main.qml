@@ -876,6 +876,47 @@ ApplicationWindow {
         }
     }
 
+    // Progress of a running clone. It opens and closes with the clone; Cancel
+    // stops the browse and leaves the current server project unchanged.
+    Dialog {
+        id: cloneProgressDialog
+
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(mainWindow.uiWidth - 80, 440)
+        title: qsTr("Cloning server")
+        modal: true
+        standardButtons: Dialog.Cancel
+        closePolicy: Popup.NoAutoClose
+
+        onRejected: cppServerStudio.cancelClone()
+
+        Connections {
+            target: cppServerStudio
+
+            function onCloneProgressChanged() {
+                if (cppServerStudio.cloneInProgress && !cloneProgressDialog.opened)
+                    cloneProgressDialog.open()
+                else if (!cppServerStudio.cloneInProgress && cloneProgressDialog.opened)
+                    cloneProgressDialog.close()
+            }
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+
+            ProgressBar {
+                Layout.fillWidth: true
+                indeterminate: true
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: cppServerStudio.cloneProgressText
+            }
+        }
+    }
+
     Connections {
         target: cppProjectManager
 

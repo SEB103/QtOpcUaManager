@@ -19,7 +19,18 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 
 ## [Unreleased]
 
+### Added
+- **Clone to Server Studio**: a progress dialog shows the captured and pending nodes and
+  can cancel the clone; a cancelled clone leaves the current server project unchanged.
+
 ### Fixed
+- **Clone to Server Studio**: an incomplete clone is no longer reported as complete. The
+  browse no longer stops at 5000 nodes or after a fixed 30 seconds: it is bounded to
+  50 000 nodes, a depth of 64, 10 minutes in total and 30 seconds without a server
+  response, and the status message names the limit or timeout that ended it and the
+  nodes that could not be read or browsed. Members of a structure or array are now
+  found even when the structure's own value cannot be read, attribute reads are batched,
+  and at most a few requests are sent to the server at a time.
 - **Clone to Server Studio**: variable data types are now resolved through the source
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard

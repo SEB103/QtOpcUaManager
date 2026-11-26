@@ -860,17 +860,31 @@ void OpcUaService::browseForClone(const QString &rootNodeId, quint64 requestId)
 
     if (!m_clientConnected || !m_client) {
         setLastError(QStringLiteral("Clone requires an active OPC UA connection."));
-        emit cloneSnapshotReady(requestId, {}, {}, false, false);
+        emit cloneSnapshotReady(requestId, {}, {}, CloneCompletion());
         return;
     }
 
-    auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, this);
-    connect(browser, &CloneBrowser::finished, this,
-            [this](quint64 id, const QList<CloneNode> &nodes, const QStringList &namespaceUris,
-                   bool success, bool truncated) {
-                emit cloneSnapshotReady(id, nodes, namespaceUris, success, truncated);
-            });
+    auto *browser = new CloneBrowser(m_client, rootNodeId, requestId, CloneOptions(), this);
+    m_cloneBrowser = browser;
+    connect(browser, &CloneBrowser::progress, this, &OpcUaService::cloneProgress);
+    connect(browser, &CloneBrowser::finished, this, &OpcUaService::cloneSnapshotReady);
     browser->start();
+}
+
+/*!
+ * \brief Cancels the clone browse in progress, if any.
+ *
+ * The browser reports the nodes captured so far through cloneSnapshotReady()
+ * with CloneCompletion::State::Cancelled.
+ */
+void OpcUaService::cancelClone()
+{
+    if (!isInObjectThread()) {
+        QMetaObject::invokeMethod(this, [this]() { cancelClone(); }, Qt::QueuedConnection);
+        return;
+    }
+    if (m_cloneBrowser)
+        m_cloneBrowser->cancel();
 }
 
 /*!

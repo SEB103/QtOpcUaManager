@@ -316,6 +316,16 @@ void OpcUaManager::requestCloneSnapshot()
 }
 
 /*!
+ * \brief Cancels the clone browse in progress.
+ *
+ * The worker answers through cloneSnapshotReady() with a Cancelled completion.
+ */
+void OpcUaManager::cancelCloneSnapshot()
+{
+    emit cloneCancelRequested();
+}
+
+/*!
  * \brief Returns the owned focus-segment tree model exposed to QML.
  */
 OpcUaModel *OpcUaManager::focusModel() const
@@ -1771,6 +1781,8 @@ void OpcUaManager::attachService(OpcUaService *service)
             service, &OpcUaService::browseChildren, Qt::QueuedConnection);
     connect(this, &OpcUaManager::cloneBrowseRequested,
             service, &OpcUaService::browseForClone, Qt::QueuedConnection);
+    connect(this, &OpcUaManager::cloneCancelRequested,
+            service, &OpcUaService::cancelClone, Qt::QueuedConnection);
 
     connect(service, &OpcUaService::availableBackendsChanged,
             this, &OpcUaManager::applyAvailableBackends, Qt::QueuedConnection);
@@ -1797,6 +1809,8 @@ void OpcUaManager::attachService(OpcUaService *service)
     // The clone result is relayed straight to GUI consumers (Server Studio).
     connect(service, &OpcUaService::cloneSnapshotReady,
             this, &OpcUaManager::cloneSnapshotReady, Qt::QueuedConnection);
+    connect(service, &OpcUaService::cloneProgress,
+            this, &OpcUaManager::cloneProgress, Qt::QueuedConnection);
 
     // Both the main tree and the focus segment browse through the service. Each
     // model's request is remapped to a manager-global id so the reply is routed

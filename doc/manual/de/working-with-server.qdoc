@@ -51,6 +51,12 @@
     String-Variablen angelegt; die Statusmeldung nach dem Klonen nennt, wie viele Variablen
     einen solchen Ersatztyp verwenden.
 
+    Das Klonen läuft mit einem Fortschrittsdialog; \e{Abbrechen} beendet es und lässt
+    das aktuelle Server-Projekt unverändert. Das Durchsuchen ist auf 50 000 Knoten, eine
+    Tiefe von 64 Ebenen, insgesamt 10 Minuten und 30 Sekunden ohne Serverantwort begrenzt.
+    Beendet ein Limit das Klonen oder können einzelne Knoten nicht gelesen oder durchsucht
+    werden, nennt die Statusmeldung dies, und der Klon ist unvollständig.
+
     \section1 Adressräume austauschen
 
     Verwenden Sie NodeSet2-Import/-Export, um einen Adressraum zwischen diesem Werkzeug und

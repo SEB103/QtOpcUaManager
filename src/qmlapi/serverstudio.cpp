@@ -148,10 +148,58 @@ void ServerStudio::setOpcUaManager(OpcUaManager *manager)
     if (m_opcUaManager) {
         connect(m_opcUaManager, &OpcUaManager::cloneSnapshotReady, this,
                 [this](quint64 /*requestId*/, const QList<CloneNode> &nodes,
-                       const QStringList &namespaceUris, bool success, bool truncated) {
-                    applyCloneSnapshot(nodes, namespaceUris, success, truncated);
+                       const QStringList &namespaceUris, const CloneCompletion &completion) {
+                    applyCloneSnapshot(nodes, namespaceUris, completion);
+                });
+        connect(m_opcUaManager, &OpcUaManager::cloneProgress, this,
+                [this](quint64 /*requestId*/, int captured, int pending) {
+                    // After Cancel, late progress must not reopen the progress dialog.
+                    if (!m_cloneInProgress || m_cloneCancelling)
+                        return;
+                    m_cloneCaptured = captured;
+                    m_clonePending = pending;
+                    emit cloneProgressChanged();
                 });
     }
+}
+
+/*!
+ * \brief Returns a short progress text for the clone in flight.
+ *
+ * Empty when no clone is running.
+ */
+QString ServerStudio::cloneProgressText() const
+{
+    if (!m_cloneInProgress)
+        return {};
+    return tr("%1 node(s) captured, %2 waiting for the server").arg(m_cloneCaptured).arg(m_clonePending);
+}
+
+/*!
+ * \internal
+ * \brief Sets whether a clone is in flight to \a inProgress and resets the counters.
+ */
+void ServerStudio::setCloneInProgress(bool inProgress)
+{
+    m_cloneInProgress = inProgress;
+    m_cloneCancelling = false;
+    m_cloneCaptured = 0;
+    m_clonePending = 0;
+    emit cloneProgressChanged();
+}
+
+/*!
+ * \brief Cancels the clone in progress.
+ *
+ * The worker answers with a Cancelled result, which leaves the current project
+ * unchanged.
+ */
+void ServerStudio::cancelClone()
+{
+    if (!m_cloneInProgress || m_cloneCancelling || !m_opcUaManager)
+        return;
+    m_cloneCancelling = true;
+    m_opcUaManager->cancelCloneSnapshot();
 }
 
 // --- Runtime lifecycle accessors -------------------------------------------
@@ -746,7 +794,7 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
     }
 
     m_clonePreserveIds = preserveOriginalIds;
-    m_cloneInProgress = true;
+    setCloneInProgress(true);
     notify(Diagnostics::Info, [this] {
         return tr("Cloning the server address space…");
     });
@@ -755,11 +803,19 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds)
 }
 
 void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
-                                      const QStringList &namespaceUris, bool success, bool truncated)
+                                      const QStringList &namespaceUris,
+                                      const CloneCompletion &completion)
 {
-    m_cloneInProgress = false;
+    setCloneInProgress(false);
 
-    if (!success || nodes.isEmpty()) {
+    if (completion.state == CloneCompletion::State::Cancelled) {
+        notify(Diagnostics::Info, [this] {
+            return tr("Clone cancelled; the server project was not changed.");
+        });
+        return;
+    }
+
+    if (completion.state == CloneCompletion::State::Failed || nodes.isEmpty()) {
         notify(Diagnostics::Warning, [this] {
             return tr("Nothing was cloned. Connect to a server and try again.");
         });
@@ -881,27 +937,50 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     emit securityChanged();
     emit selectedNodeChanged();
 
-    // Appends the substitution count, so a clone that differs from the source
-    // in some variable types never reads as an exact copy.
-    const auto withSubstitutions = [this, substitutedCount](const QString &text) {
-        if (substitutedCount == 0)
-            return text;
-        return text + QLatin1Char(' ')
-               + tr("%1 variable(s) use a substitute data type (structure, date/time or "
-                    "unsupported type).")
-                     .arg(substitutedCount);
-    };
-
-    if (truncated) {
-        notify(Diagnostics::Warning, [this, withSubstitutions, n = int(project.nodes.size())] {
-            return withSubstitutions(
-                tr("Cloned %1 node(s); the address space was large and was truncated.").arg(n));
-        });
-    } else {
-        notify(Diagnostics::Info, [this, withSubstitutions, n = int(project.nodes.size())] {
-            return withSubstitutions(tr("Cloned %1 node(s) from the server.").arg(n));
-        });
-    }
+    // The report states how complete the clone is: a partial traversal, failed
+    // reads/browses and substituted types are each named, so a clone that
+    // differs from the source never reads as an exact copy.
+    const int failedNodes = completion.failedReads + completion.failedBrowses;
+    const bool exact = completion.isComplete() && failedNodes == 0;
+    notify(exact && substitutedCount == 0 ? Diagnostics::Info : Diagnostics::Warning,
+           [this, completion, failedNodes, substitutedCount, n = int(project.nodes.size())] {
+               QString text;
+               switch (completion.state) {
+               case CloneCompletion::State::Truncated:
+                   text = completion.nodeLimitReached
+                              ? tr("Cloned %1 node(s); the limit of %2 nodes was reached, so the "
+                                   "clone is incomplete.")
+                                    .arg(n)
+                                    .arg(completion.options.maxNodes)
+                              : tr("Cloned %1 node(s); %2 node(s) at the depth limit of %3 were "
+                                   "not browsed, so the clone may be incomplete.")
+                                    .arg(n)
+                                    .arg(completion.depthLimitedNodes)
+                                    .arg(completion.options.maxDepth);
+                   break;
+               case CloneCompletion::State::TimedOut:
+                   text = tr("Cloned %1 node(s); the server did not answer in time and %2 "
+                             "node(s) were left unread, so the clone is incomplete.")
+                              .arg(n)
+                              .arg(completion.pendingRequests);
+                   break;
+               default:
+                   text = tr("Cloned %1 node(s) from the server.").arg(n);
+                   break;
+               }
+               if (failedNodes > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 node(s) could not be read or browsed completely.")
+                                 .arg(failedNodes);
+               }
+               if (substitutedCount > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 variable(s) use a substitute data type (structure, "
+                                "date/time or unsupported type).")
+                                 .arg(substitutedCount);
+               }
+               return text;
+           });
 }
 
 // --- Address-space editing --------------------------------------------------

@@ -118,6 +118,8 @@ public slots:
      * real server's whole address space into a server project.
      */
     void browseForClone(const QString &rootNodeId, quint64 requestId);
+    /** Cancels the clone browse in progress; its result arrives as Cancelled. */
+    void cancelClone();
 
 signals:
     /** Emitted when available backend plugin names change. */
@@ -159,12 +161,13 @@ signals:
 
     /**
      * Emitted when a clone browse for \a requestId finishes. \a nodes is the
-     * captured address space, \a namespaceUris the server's NamespaceArray,
-     * \a success whether anything was captured, and \a truncated whether the
-     * node cap stopped the browse early.
+     * captured address space, \a namespaceUris the server's NamespaceArray, and
+     * \a completion tells whether the result is complete.
      */
     void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
-                            const QStringList &namespaceUris, bool success, bool truncated);
+                            const QStringList &namespaceUris, const CloneCompletion &completion);
+    /** Emitted periodically during a clone browse with the \a captured node count and \a pending work. */
+    void cloneProgress(quint64 requestId, int captured, int pending);
 
 private slots:
     /** Applies a FindServers result for \a requestUrl. */
@@ -299,6 +302,8 @@ private:
     quint64 m_lastStructuredRequestId {0};
     /** Active browse-based structured reader, if a fallback read is in flight. */
     QPointer<StructuredNodeReader> m_structReader;
+    /** Clone browse in progress, if any; it deletes itself when finished. */
+    QPointer<CloneBrowser> m_cloneBrowser;
     /** Application identity applied to the active client. */
     QOpcUaApplicationIdentity m_identity;
     /** Runtime PKI configuration for certificate validation and authentication. */

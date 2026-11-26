@@ -552,6 +552,22 @@ add_dependencies(tst_serverclonebrowse OpcUaServerRuntime appOpcUaManager)
 
 add_test(NAME ServerCloneBrowse.Integration COMMAND tst_serverclonebrowse)
 
+# Integration test of the clone traversal against an in-process open62541 server
+# (large address space, multiple references, unreadable values, limits).
+qt_add_executable(tst_clonetraversal
+    integration/tst_clonetraversal.cpp
+)
+
+target_link_libraries(tst_clonetraversal
+    PRIVATE
+        OpcUaCore
+        Qt6::OpcUa
+        Qt6::Test
+        open62541::open62541
+)
+
+add_test(NAME CloneTraversal.Integration COMMAND tst_clonetraversal)
+
 # Integration test for custom enumeration data types.
 qt_add_executable(tst_serverenum
     integration/tst_serverenum.cpp

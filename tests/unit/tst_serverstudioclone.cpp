@@ -8,6 +8,7 @@
 #include <QtTest>
 
 #include "core/clonebrowser.h"
+#include "core/diagnosticslevel.h"
 #include "qmlapi/opcuamanager.h"
 #include "qmlapi/serverstudio.h"
 #include "serverproject/serverprojectserializer.h"
@@ -23,7 +24,17 @@ private slots:
     /*! Vendor aliases keep their base type; unsupported types are substituted and reported. */
     void mapsResolvedBaseTypes();
 
+    /*! Truncated, timed-out and partly failed clones are reported as incomplete. */
+    void reportsIncompleteClone_data();
+    void reportsIncompleteClone();
+
+    /*! A cancelled clone leaves the open project unchanged. */
+    void cancelledCloneKeepsProject();
+
 private:
+    /*! Returns the last notification text in \a spy, or an empty string. */
+    static QString lastMessage(const QSignalSpy &spy);
+
     /*! Returns a cloned variable \a name under \a parent with \a typeId resolved to \a base. */
     static CloneNode variable(const QString &name, const QString &parent, const QString &typeId,
                               const QString &base, Resolution resolution, const QVariant &value,
@@ -102,7 +113,10 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
     ServerStudio studio;
     studio.setOpcUaManager(&manager);
     QSignalSpy notificationSpy(&studio, &ServerStudio::notification);
-    emit manager.cloneSnapshotReady(0, nodes, {}, true, false);
+    CloneCompletion completion;
+    completion.state = CloneCompletion::State::Complete;
+    completion.nodeCount = int(nodes.size());
+    emit manager.cloneSnapshotReady(0, nodes, {}, completion);
 
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -149,6 +163,82 @@ void ServerStudioCloneTest::mapsResolvedBaseTypes()
             reported = true;
     }
     QVERIFY2(reported, "clone notification does not report the substituted variables");
+}
+
+QString ServerStudioCloneTest::lastMessage(const QSignalSpy &spy)
+{
+    return spy.isEmpty() ? QString() : spy.last().at(1).toString();
+}
+
+void ServerStudioCloneTest::reportsIncompleteClone_data()
+{
+    QTest::addColumn<int>("state");
+    QTest::addColumn<bool>("nodeLimit");
+    QTest::addColumn<int>("failedReads");
+    QTest::addColumn<QString>("expected");
+
+    QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0
+                                << QStringLiteral("the limit of 50000 nodes was reached");
+    QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0
+                                 << QStringLiteral("at the depth limit of 64");
+    QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0
+                             << QStringLiteral("did not answer in time and 7 node(s)");
+    QTest::newRow("failed reads") << int(CloneCompletion::State::Complete) << false << 3
+                                  << QStringLiteral("3 node(s) could not be read");
+}
+
+void ServerStudioCloneTest::reportsIncompleteClone()
+{
+    QFETCH(int, state);
+    QFETCH(bool, nodeLimit);
+    QFETCH(int, failedReads);
+    QFETCH(QString, expected);
+
+    const QString hmi = QStringLiteral("ns=4;s=|var|PLC.Application.V_HMI");
+    QList<CloneNode> nodes{variable(QStringLiteral("xActive"), hmi, QStringLiteral("ns=0;i=1"),
+                                    QStringLiteral("Boolean"), Resolution::BuiltIn, true)};
+    nodes.first().parentNodeId.clear();
+
+    CloneCompletion completion;
+    completion.state = static_cast<CloneCompletion::State>(state);
+    completion.nodeCount = int(nodes.size());
+    completion.nodeLimitReached = nodeLimit;
+    completion.depthLimitedNodes = nodeLimit ? 0 : 2;
+    completion.pendingRequests = 7;
+    completion.failedReads = failedReads;
+
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    QSignalSpy notificationSpy(&studio, &ServerStudio::notification);
+    emit manager.cloneSnapshotReady(0, nodes, {}, completion);
+
+    QVERIFY(studio.hasProject());
+    const QString message = lastMessage(notificationSpy);
+    QVERIFY2(message.contains(expected), qPrintable(message));
+    QCOMPARE(notificationSpy.last().at(0).toInt(), int(Diagnostics::Warning));
+}
+
+void ServerStudioCloneTest::cancelledCloneKeepsProject()
+{
+    OpcUaManager manager;
+    ServerStudio studio;
+    studio.setOpcUaManager(&manager);
+    studio.newProject(QStringLiteral("Kept"));
+    QCOMPARE(studio.projectName(), QStringLiteral("Kept"));
+
+    CloneNode folder;
+    folder.nodeId = QStringLiteral("ns=1;s=A");
+    folder.browseName = QStringLiteral("A");
+    folder.nodeClass = 1;
+    CloneCompletion completion;
+    completion.state = CloneCompletion::State::Cancelled;
+    QSignalSpy notificationSpy(&studio, &ServerStudio::notification);
+    emit manager.cloneSnapshotReady(0, {folder}, {}, completion);
+
+    QCOMPARE(studio.projectName(), QStringLiteral("Kept"));
+    QVERIFY(lastMessage(notificationSpy).contains(QLatin1String("cancelled")));
+    QVERIFY(!studio.cloneInProgress());
 }
 
 QTEST_GUILESS_MAIN(ServerStudioCloneTest)

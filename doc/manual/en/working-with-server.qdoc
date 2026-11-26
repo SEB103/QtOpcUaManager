@@ -48,6 +48,12 @@
     variables; the status message after the clone states how many variables use such a
     substitute type.
 
+    The clone runs with a progress dialog; \e{Cancel} stops it and leaves the current
+    server project unchanged. The browse is bounded to 50 000 nodes, a depth of 64 levels,
+    10 minutes in total and 30 seconds without a server response. When a limit ends the
+    clone, or some nodes cannot be read or browsed, the status message says so and the
+    clone is incomplete.
+
     \section1 Exchange address spaces
 
     Use NodeSet2 import/export to move an address space between this tool and other OPC

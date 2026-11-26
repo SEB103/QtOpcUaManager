@@ -51,6 +51,12 @@
     vengono creati come variabili String; il messaggio di stato dopo la clonazione indica
     quante variabili usano un tale tipo sostitutivo.
 
+    La clonazione si svolge con una finestra di avanzamento; \e{Annulla} la interrompe
+    e lascia invariato il progetto server attuale. L’esplorazione è limitata a 50 000 nodi,
+    una profondità di 64 livelli, 10 minuti in totale e 30 secondi senza risposta del server.
+    Quando un limite termina la clonazione, o alcuni nodi non possono essere letti o
+    esplorati, il messaggio di stato lo indica e il clone è incompleto.
+
     \section1 Scambiare spazi degli indirizzi
 
     Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento

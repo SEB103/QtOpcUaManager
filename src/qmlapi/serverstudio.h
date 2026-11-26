@@ -64,6 +64,10 @@ class ServerStudio : public QObject
     // Security configuration.
     Q_PROPERTY(QVariantMap security READ security NOTIFY securityChanged)
 
+    // Clone in progress.
+    Q_PROPERTY(bool cloneInProgress READ cloneInProgress NOTIFY cloneProgressChanged)
+    Q_PROPERTY(QString cloneProgressText READ cloneProgressText NOTIFY cloneProgressChanged)
+
 public:
     /** Creates the facade, its runtime controller and its tree model. */
     explicit ServerStudio(QObject *parent = nullptr);
@@ -145,6 +149,15 @@ public:
      * outcome).
      */
     Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds);
+
+    /** Cancels the clone in progress; the current project stays unchanged. */
+    Q_INVOKABLE void cancelClone();
+
+    /** Returns whether a clone browse is in flight. */
+    bool cloneInProgress() const { return m_cloneInProgress; }
+
+    /** Returns a short progress text for the clone in flight, e.g. "1200 nodes captured". */
+    QString cloneProgressText() const;
 
     // Address-space editing.
     /** Adds a folder under \a parentNodeId (empty = Objects root); returns its id. */
@@ -266,6 +279,7 @@ signals:
     void enumsChanged();
     void rulesChanged();
     void nodesChanged();
+    void cloneProgressChanged();
     void notification(int level, const QString &message);
     /**
      * Re-emits the last notification's text rebuilt in the active language for
@@ -307,11 +321,14 @@ private:
     /**
      * Builds a cloned project from the worker's clone result and adopts it.
      * \a nodes is the captured address space, \a namespaceUris the server's
-     * NamespaceArray (for the preserve-ids mode), \a truncated whether the node
-     * cap stopped the browse.
+     * NamespaceArray (for the preserve-ids mode), \a completion whether the
+     * result is complete; a cancelled clone leaves the current project unchanged.
      */
     void applyCloneSnapshot(const QList<CloneNode> &nodes, const QStringList &namespaceUris,
-                            bool success, bool truncated);
+                            const CloneCompletion &completion);
+
+    /** Sets whether a clone is in flight, resets its counters and notifies QML. */
+    void setCloneInProgress(bool inProgress);
 
     /** Returns the independent server PKI directory used by the runtime. */
     QString serverPkiDir() const;
@@ -354,6 +371,15 @@ private:
 
     /** Whether a clone browse is currently in flight. */
     bool m_cloneInProgress = false;
+
+    /** Whether cancelling the clone in flight was requested. */
+    bool m_cloneCancelling = false;
+
+    /** Nodes captured so far by the clone in flight. */
+    int m_cloneCaptured = 0;
+
+    /** Nodes still queued or in flight in the clone browse. */
+    int m_clonePending = 0;
 };
 
 #endif // SERVERSTUDIO_H

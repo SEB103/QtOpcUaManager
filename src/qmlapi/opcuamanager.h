@@ -281,6 +281,9 @@ public:
      */
     void requestCloneSnapshot();
 
+    /** Cancels the clone browse in progress; its result arrives as Cancelled. */
+    void cancelCloneSnapshot();
+
     /** Returns the owned Data Access View table model exposed to QML. */
     DataAccessModel *dataModel() const;
 
@@ -675,13 +678,17 @@ signals:
     void writeValueRequested(const QString &nodeId, const QVariant &value);
     /** Requests a recursive clone browse under \a rootNodeId for \a requestId. */
     void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId);
+    /** Requests cancelling the clone browse in progress on the worker service. */
+    void cloneCancelRequested();
     /**
      * Relays the worker service's clone result to GUI consumers (Server Studio).
      * \a nodes is the captured address space, \a namespaceUris the server's
-     * NamespaceArray, \a truncated whether the node cap stopped the browse.
+     * NamespaceArray, \a completion whether the result is complete.
      */
     void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
-                            const QStringList &namespaceUris, bool success, bool truncated);
+                            const QStringList &namespaceUris, const CloneCompletion &completion);
+    /** Relays clone progress: \a captured nodes so far and \a pending work. */
+    void cloneProgress(quint64 requestId, int captured, int pending);
 
 public slots:
     /** Applies available backend plugin names received from the worker service. */

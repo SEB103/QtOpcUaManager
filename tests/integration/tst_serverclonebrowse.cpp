@@ -197,8 +197,10 @@ void ServerCloneBrowseTest::capturesSubtreeWithValues()
     const QList<QVariant> args = finishedSpy.takeFirst();
     const auto nodes = args.at(1).value<QList<CloneNode>>();
     const auto namespaceUris = args.at(2).toStringList();
-    const bool success = args.at(3).toBool();
-    QVERIFY(success);
+    const auto completion = args.at(3).value<CloneCompletion>();
+    QCOMPARE(completion.state, CloneCompletion::State::Complete);
+    QCOMPARE(completion.nodeCount, int(nodes.size()));
+    QCOMPARE(completion.pendingRequests, 0);
     QVERIFY(namespaceUris.contains(QStringLiteral("urn:opcuamanager:clonetest")));
 
     const CloneNode app = nodeNamed(nodes, QStringLiteral("App"));

@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+221"/>
+        <location line="+262"/>
         <source>Browse…</source>
         <translation>Browse…</translation>
     </message>
     <message>
-        <location line="-215"/>
+        <location line="-256"/>
         <source>Full path:</source>
         <translation>Full path:</translation>
     </message>
@@ -1554,7 +1554,12 @@
         <translation>When off, nodes are renamed by browse path under a single clone namespace.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="+13"/>
+        <source>Cloning server</source>
+        <translation>Cloning server</translation>
+    </message>
+    <message>
+        <location line="+56"/>
         <source>Project error</source>
         <translation>Project error</translation>
     </message>
@@ -1620,7 +1625,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+830"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+840"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>Added %n node to the Data View.</numerusform>
@@ -1692,7 +1697,7 @@
         <translation>%1 is read-only: the server does not grant CurrentWrite.</translation>
     </message>
     <message>
-        <location line="+353"/>
+        <location line="+357"/>
         <source>The stored server was not found during discovery.</source>
         <translation>The stored server was not found during discovery.</translation>
     </message>
@@ -1878,7 +1883,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+184"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+232"/>
         <source>Stopped</source>
         <translation>Stopped</translation>
     </message>
@@ -2005,12 +2010,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+545"/>
+        <location line="+576"/>
         <source>No OPC UA client is available.</source>
         <translation>No OPC UA client is available.</translation>
     </message>
     <message>
-        <location line="-539"/>
+        <location line="-570"/>
         <source>A clone is already in progress.</source>
         <translation>A clone is already in progress.</translation>
     </message>
@@ -2020,32 +2025,57 @@
         <translation>Cloning the server address space…</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
+        <source>Clone cancelled; the server project was not changed.</source>
+        <translation>Clone cancelled; the server project was not changed.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>Nothing was cloned. Connect to a server and try again.</source>
         <translation>Nothing was cloned. Connect to a server and try again.</translation>
     </message>
     <message>
-        <location line="+126"/>
+        <location line="+131"/>
+        <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
+        <translation>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Cloned %1 node(s); %2 node(s) at the depth limit of %3 were not browsed, so the clone may be incomplete.</source>
+        <translation>Cloned %1 node(s); %2 node(s) at the depth limit of %3 were not browsed, so the clone may be incomplete.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Cloned %1 node(s); the server did not answer in time and %2 node(s) were left unread, so the clone is incomplete.</source>
+        <translation>Cloned %1 node(s); the server did not answer in time and %2 node(s) were left unread, so the clone is incomplete.</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>%1 node(s) could not be read or browsed completely.</source>
+        <translation>%1 node(s) could not be read or browsed completely.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
         <source>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</source>
         <translation>%1 variable(s) use a substitute data type (structure, date/time or unsupported type).</translation>
     </message>
     <message>
-        <location line="+8"/>
-        <source>Cloned %1 node(s); the address space was large and was truncated.</source>
-        <translation>Cloned %1 node(s); the address space was large and was truncated.</translation>
-    </message>
-    <message>
-        <location line="+4"/>
+        <location line="-10"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Cloned %1 node(s) from the server.</translation>
     </message>
     <message>
-        <location line="-132"/>
+        <location line="-142"/>
         <source>Cloned Server</source>
         <translation>Cloned Server</translation>
     </message>
     <message>
-        <location line="+400"/>
+        <location line="-651"/>
+        <source>%1 node(s) captured, %2 waiting for the server</source>
+        <translation>%1 node(s) captured, %2 waiting for the server</translation>
+    </message>
+    <message>
+        <location line="+1074"/>
         <source>Create or open a server project first.</source>
         <translation>Create or open a server project first.</translation>
     </message>
