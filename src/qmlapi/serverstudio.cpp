@@ -1223,6 +1223,13 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
                    text = tr("Cloned %1 node(s) from the server.").arg(n);
                    break;
                }
+               if (completion.expandedArrays > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 array(s) were built from their first element and checked "
+                                "by reading (%2 node(s)).")
+                                 .arg(completion.expandedArrays)
+                                 .arg(completion.synthesizedNodes);
+               }
                if (completion.limitedArrays > 0) {
                    text += QLatin1Char(' ')
                            + tr("%1 array(s) were limited to their first %2 elements; %3 "

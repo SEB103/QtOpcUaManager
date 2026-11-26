@@ -2075,12 +2075,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+686"/>
+        <location line="+693"/>
         <source>No OPC UA client is available.</source>
         <translation>Aucun client OPC UA n’est disponible.</translation>
     </message>
     <message>
-        <location line="-680"/>
+        <location line="-687"/>
         <source>A clone is already in progress.</source>
         <translation>Un clonage est déjà en cours.</translation>
     </message>
@@ -2116,6 +2116,11 @@
     </message>
     <message>
         <location line="+11"/>
+        <source>%1 array(s) were built from their first element and checked by reading (%2 node(s)).</source>
+        <translation>%1 tableau(x) ont été construits à partir de leur premier élément et vérifiés par lecture (%2 nœud(s)).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</source>
         <translation>%1 tableau(x) ont été limités à leurs %2 premiers éléments ; %3 élément(s) n’ont pas été clonés.</translation>
     </message>
@@ -2125,7 +2130,7 @@
         <translation>%1 nœud(s) n’ont pas pu être lus ou parcourus entièrement.</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-20"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>%1 nœud(s) cloné(s) depuis le serveur.</translation>
     </message>
@@ -2155,7 +2160,7 @@
         <translation>Serveur cloné</translation>
     </message>
     <message>
-        <location line="+251"/>
+        <location line="+258"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 variable(s) utilisent un type de données de substitution (date/heure ou type non pris en charge).</translation>
     </message>

@@ -24,6 +24,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstring>
+#include <string>
 #include <thread>
 
 #include "core/clonebrowser.h"
@@ -252,7 +253,7 @@ private:
                     nullptr)
                     == UA_STATUSCODE_GOOD;
 
-        ok = ok && buildStructures();
+        ok = ok && buildStructures() && buildTables();
 
         for (int i = 0; ok && i < kBulkCount; ++i) {
             const QByteArray name = QByteArrayLiteral("Bulk.V") + QByteArray::number(i);
@@ -376,6 +377,99 @@ private:
         return ok;
     }
 
+    /*!
+     * \brief Adds the variable \a id named \a browseName below \a parent.
+     *
+     * A \a dataType of Int32 gets \a value; any other type (a structure) has no
+     * value. \a length > 0 makes it a one-dimensional array of that length.
+     */
+    bool addNamed(const std::string &id, const std::string &browseName, const UA_NodeId &parent,
+                  const UA_NodeId &dataType, UA_Int32 value = 0, UA_UInt32 length = 0)
+    {
+        UA_VariableAttributes attr = UA_VariableAttributes_default;
+        attr.displayName = UA_LOCALIZEDTEXT(const_cast<char *>("en-US"),
+                                            const_cast<char *>(browseName.c_str()));
+        attr.dataType = dataType;
+        attr.valueRank = length > 0 ? UA_VALUERANK_ONE_DIMENSION : UA_VALUERANK_SCALAR;
+        UA_UInt32 dimensions[1] = {length};
+        if (length > 0) {
+            attr.arrayDimensions = dimensions;
+            attr.arrayDimensionsSize = 1;
+        }
+        attr.accessLevel = UA_ACCESSLEVELMASK_READ;
+        if (UA_NodeId_equal(&dataType, &UA_TYPES[UA_TYPES_INT32].typeId))
+            UA_Variant_setScalar(&attr.value, &value, &UA_TYPES[UA_TYPES_INT32]);
+        const UA_StatusCode status = UA_Server_addVariableNode(
+            m_server, UA_NODEID_STRING(m_ns, const_cast<char *>(id.c_str())), parent,
+            UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+            UA_QUALIFIEDNAME(m_ns, const_cast<char *>(browseName.c_str())),
+            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, nullptr, nullptr);
+        if (status != UA_STATUSCODE_GOOD)
+            qWarning("adding %s failed: %s", id.c_str(), UA_StatusCode_name(status));
+        return status == UA_STATUSCODE_GOOD;
+    }
+
+    /*!
+     * \brief Adds the Tables folder with arrays of structures named like CODESYS publishes them.
+     *
+     * Rows[1..50] (ST_Button) each have Count (= index) and Cells[1..3] with Flag
+     * (= index); Rows[7] has no Count, so a copy of the template differs from the
+     * server. Odd[1..3] has element NodeIds outside the "<array>[i]" pattern, and
+     * Fbs[1..3] elements contain an Object.
+     */
+    bool buildTables()
+    {
+        const UA_NodeId objects = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+        const UA_NodeId buttonType = UA_NODEID_NUMERIC(m_ns, kButtonTypeId);
+        const UA_NodeId int32Type = UA_TYPES[UA_TYPES_INT32].typeId;
+        const auto id = [this](const std::string &text) {
+            return UA_NODEID_STRING(m_ns, const_cast<char *>(text.c_str()));
+        };
+        if (!addFolder("Tables", objects))
+            return false;
+        const std::string tables = "Tables";
+
+        bool ok = addNamed("Rows", "Rows", id(tables), buttonType, 0, 50);
+        for (int i = 1; ok && i <= 50; ++i) {
+            const std::string row = "Rows[" + std::to_string(i) + "]";
+            ok = addNamed(row, row, id("Rows"), buttonType);
+            if (ok && i != 7)
+                ok = addNamed(row + ".Count", "Count", id(row), int32Type, i);
+            ok = ok && addNamed(row + ".Cells", "Cells", id(row), buttonType, 0, 3);
+            for (int j = 1; ok && j <= 3; ++j) {
+                const std::string cell = row + ".Cells[" + std::to_string(j) + "]";
+                ok = addNamed(cell, "Cells[" + std::to_string(j) + "]", id(row + ".Cells"),
+                              buttonType)
+                     && addNamed(cell + ".Flag", "Flag", id(cell), int32Type, j);
+            }
+        }
+
+        ok = ok && addNamed("Odd", "Odd", id(tables), buttonType, 0, 3);
+        for (int i = 1; ok && i <= 3; ++i) {
+            const std::string element = "OddElement" + std::to_string(i);
+            ok = addNamed(element, "Odd[" + std::to_string(i) + "]", id("Odd"), buttonType)
+                 && addNamed(element + ".X", "X", id(element), int32Type, i);
+        }
+
+        ok = ok && addNamed("Fbs", "Fbs", id(tables), buttonType, 0, 3);
+        for (int i = 1; ok && i <= 3; ++i) {
+            const std::string element = "Fbs[" + std::to_string(i) + "]";
+            ok = addNamed(element, element, id("Fbs"), buttonType);
+            UA_ObjectAttributes fbAttr = UA_ObjectAttributes_default;
+            fbAttr.displayName = UA_LOCALIZEDTEXT(const_cast<char *>("en-US"),
+                                                  const_cast<char *>("Fb"));
+            ok = ok
+                 && UA_Server_addObjectNode(m_server, id(element + ".Fb"), id(element),
+                                            UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                                            UA_QUALIFIEDNAME(m_ns, const_cast<char *>("Fb")),
+                                            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
+                                            fbAttr, nullptr, nullptr)
+                        == UA_STATUSCODE_GOOD
+                 && addNamed(element + ".Fb.Speed", "Speed", id(element + ".Fb"), int32Type, i);
+        }
+        return ok;
+    }
+
     UA_Server *m_server = nullptr;      //!< The embedded server.
     UA_UInt16 m_ns = 0;                 //!< Index of the test namespace.
     std::atomic<bool> m_running{false}; //!< Keeps the event loop running.
@@ -403,6 +497,16 @@ private slots:
         captured with its value, in about one read request per 16 variables.
     */
     void skipsLeafBrowsesAfterProbe();
+
+    /*!
+        Arrays of structures that follow the CODESYS NodeId pattern are built
+        from their first element and verified by reading; an element that differs
+        from the template is browsed instead.
+    */
+    void expandsArraysFromTemplate();
+
+    /*! Arrays outside the NodeId pattern or with an Object in the template are browsed. */
+    void browsesArraysThatCannotBeExpanded();
 
     /*! maxArrayElements captures only the first elements of an array and reports the rest. */
     void limitsArrayElements();
@@ -555,6 +659,66 @@ void CloneTraversalTest::skipsLeafBrowsesAfterProbe()
              qPrintable(QString::number(result.completion.readRequests)));
     for (const CloneNode &node : result.nodes)
         QVERIFY2(node.value.isValid(), qPrintable(node.nodeId));
+}
+
+void CloneTraversalTest::expandsArraysFromTemplate()
+{
+    const Result result = run(m_server.nodeId("Tables"));
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QCOMPARE(result.completion.failedReads, 0);
+    QCOMPARE(result.completion.templateMisses, 1); // Rows[7] has no Count
+    QVERIFY(result.completion.expandedArrays >= 2); // Rows and a nested Cells
+    QVERIFY(result.completion.synthesizedNodes > 300);
+
+    const auto nodeAt = [&](const std::string &name) {
+        return find(result.nodes, m_server.nodeId(name.c_str()));
+    };
+    for (int i = 1; i <= 50; ++i) {
+        const std::string row = "Rows[" + std::to_string(i) + "]";
+        if (i == 7) {
+            QVERIFY(nodeAt(row + ".Count").nodeId.isEmpty());
+        } else {
+            const CloneNode count = nodeAt(row + ".Count");
+            QVERIFY2(!count.nodeId.isEmpty(), row.c_str());
+            QCOMPARE(count.value.toInt(), i);
+            QCOMPARE(count.browseName, QStringLiteral("Count"));
+            QCOMPARE(count.resolvedDataType.builtInBase, QStringLiteral("Int32"));
+        }
+        for (int j = 1; j <= 3; ++j) {
+            const CloneNode flag =
+                nodeAt(row + ".Cells[" + std::to_string(j) + "].Flag");
+            QVERIFY2(!flag.nodeId.isEmpty(), row.c_str());
+            QCOMPARE(flag.value.toInt(), j);
+            QCOMPARE(flag.parentNodeId,
+                     m_server.nodeId((row + ".Cells[" + std::to_string(j) + "]").c_str()));
+        }
+    }
+    QVERIFY(nodeAt("Rows[50].Cells[3].Flag").synthesized);
+    // Only the templates and the fallback element were browsed, not 50 rows.
+    QVERIFY2(result.completion.browseRequests < 60,
+             qPrintable(QString::number(result.completion.browseRequests)));
+
+    CloneOptions noTemplate;
+    noTemplate.expandArraysByTemplate = false;
+    const Result browsed = run(m_server.nodeId("Tables"), noTemplate);
+    QCOMPARE(browsed.completion.synthesizedNodes, 0);
+    QCOMPARE(browsed.nodes.size(), result.nodes.size());
+}
+
+void CloneTraversalTest::browsesArraysThatCannotBeExpanded()
+{
+    const Result result = run(m_server.nodeId("Tables"));
+    QVERIFY(result.finished);
+    for (int i = 1; i <= 3; ++i) {
+        const std::string odd = "OddElement" + std::to_string(i) + ".X";
+        QCOMPARE(find(result.nodes, m_server.nodeId(odd.c_str())).value.toInt(), i);
+        QVERIFY(!find(result.nodes, m_server.nodeId(odd.c_str())).synthesized);
+        const std::string speed = "Fbs[" + std::to_string(i) + "].Fb.Speed";
+        const CloneNode fbSpeed = find(result.nodes, m_server.nodeId(speed.c_str()));
+        QCOMPARE(fbSpeed.value.toInt(), i);
+        QVERIFY(!fbSpeed.synthesized);
+    }
 }
 
 void CloneTraversalTest::limitsArrayElements()

@@ -26,6 +26,11 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   It also limits the elements cloned per array (first 10 by default, first 100, or all):
   a large array such as a 1000-row recipe table of structures holds most nodes of a PLC,
   and the clone report names the limited arrays.
+  With all elements, an array of structures that follows the CODESYS NodeId pattern
+  `<array>[index]` is cloned from its first element: only that element is browsed, the
+  members of the others are derived from it and read from the server, and an element that
+  differs is browsed on its own. Read requests are sized from the server's MaxNodesPerRead
+  (up to 64 variables per request).
 - **Server Studio**: structure data types. A structure variable references its
   structure type and has its members as child nodes (the way CODESYS publishes them);
   the runtime serves the type as a `Structure` subtype. Variables may be

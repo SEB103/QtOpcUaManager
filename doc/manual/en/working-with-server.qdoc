@@ -73,6 +73,12 @@
     them can take very long. The clone report names how many arrays were limited and how
     many elements were not cloned.
 
+    With all elements, an array of structures whose elements follow the NodeId pattern
+    \c{<array>[index]} is cloned from its first element: only that element is browsed,
+    the members of the others are derived from it and then read from the server, so their
+    types and values are the server's. An element that differs from the first is browsed
+    on its own. The read requests are sized from the server's MaxNodesPerRead limit.
+
     \section1 Exchange address spaces
 
     Use NodeSet2 import/export to move an address space between this tool and other OPC

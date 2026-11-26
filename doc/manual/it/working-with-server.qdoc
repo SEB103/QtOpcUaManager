@@ -79,6 +79,13 @@
     di clonazione indica quanti array sono stati limitati e quanti elementi non sono stati
     clonati.
 
+    Con tutti gli elementi, un array di strutture i cui elementi seguono lo schema di NodeId
+    \c{<array>[indice]} viene clonato dal suo primo elemento: solo quell’elemento viene
+    esplorato, i membri degli altri vengono derivati da esso e poi letti dal server, così
+    tipi e valori sono quelli del server. Un elemento diverso dal primo viene esplorato a
+    parte. Le richieste di lettura sono dimensionate in base al limite MaxNodesPerRead del
+    server.
+
     \section1 Scambiare spazi degli indirizzi
 
     Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento

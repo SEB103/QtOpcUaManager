@@ -82,6 +82,13 @@
     rapport de clonage indique combien de tableaux ont été limités et combien d’éléments
     n’ont pas été clonés.
 
+    Avec tous les éléments, un tableau de structures dont les éléments suivent le modèle de
+    NodeId \c{<tableau>[index]} est cloné à partir de son premier élément : seul cet
+    élément est parcouru, les membres des autres en sont déduits puis lus sur le serveur,
+    de sorte que leurs types et valeurs sont ceux du serveur. Un élément qui diffère du
+    premier est parcouru séparément. Les requêtes de lecture sont dimensionnées selon la
+    limite MaxNodesPerRead du serveur.
+
     \section1 Échanger des espaces d’adressage
 
     Utilisez l’import/export NodeSet2 pour déplacer un espace d’adressage entre cet outil et

@@ -2081,12 +2081,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+686"/>
+        <location line="+693"/>
         <source>No OPC UA client is available.</source>
         <translation>Клієнт OPC UA недоступний.</translation>
     </message>
     <message>
-        <location line="-680"/>
+        <location line="-687"/>
         <source>A clone is already in progress.</source>
         <translation>Клонування вже виконується.</translation>
     </message>
@@ -2122,6 +2122,11 @@
     </message>
     <message>
         <location line="+11"/>
+        <source>%1 array(s) were built from their first element and checked by reading (%2 node(s)).</source>
+        <translation>Масивів, побудованих за першим елементом і перевірених читанням: %1 (вузлів: %2).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
         <source>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</source>
         <translation>Масивів обрізано до перших %2 елементів: %1; не клоновано елементів: %3.</translation>
     </message>
@@ -2131,7 +2136,7 @@
         <translation>Вузлів, які не вдалося повністю прочитати або переглянути: %1.</translation>
     </message>
     <message>
-        <location line="-13"/>
+        <location line="-20"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Клоновано вузлів із сервера: %1.</translation>
     </message>
@@ -2161,7 +2166,7 @@
         <translation>Клонований сервер</translation>
     </message>
     <message>
-        <location line="+251"/>
+        <location line="+258"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Змінних із заміненим типом даних: %1 (дата/час або непідтримуваний тип).</translation>
     </message>

@@ -89,6 +89,15 @@ struct CloneNode
     /** Whether the Value was deliberately not read because the DataType is a structure. */
     bool valueSkipped = false;
 
+    /** Whether the node was built from a template array element instead of being browsed. */
+    bool synthesized = false;
+
+    /** For a synthesized node: the array element whose subtree it belongs to. */
+    QString expansionElementId;
+
+    /** Set while traversing for a synthesized node the server does not have; never published. */
+    bool missing = false;
+
     /**
      * Whether the server does not provide the DataType of this variable although
      * its members are browsable, e.g. a CODESYS structure that contains a
@@ -150,6 +159,16 @@ struct CloneOptions
      * array variable); 0 captures all. Further elements are counted as skipped.
      */
     int maxArrayElements = 0;
+    /**
+     * Whether the elements of an array of structures are built from its first
+     * element (by the NodeId pattern) and verified by reading them, instead of
+     * browsing every element.
+     */
+    bool expandArraysByTemplate = true;
+    /** Upper bound of variables per metadata read once the server's MaxNodesPerRead is known. */
+    int maxVariablesPerRead = 64;
+    /** Upper bound of variables per Value read once the server's MaxNodesPerRead is known. */
+    int maxValuesPerRead = 256;
 };
 
 /** Breakdown of the work of a running clone traversal. */
@@ -173,11 +192,14 @@ struct CloneProgress
     int readRequests = 0;
     /** DataType ids in the running lookup round; 0 when none runs. */
     int typeLookups = 0;
+    /** Array elements waiting to be built from their template element. */
+    int waitingForTemplate = 0;
 
     /** Returns the number of nodes whose browse or read is queued or in flight. */
     int pending() const
     {
-        return browseQueued + browsing + metadataQueued + valuesQueued + waitingForType + reading;
+        return browseQueued + browsing + metadataQueued + valuesQueued + waitingForType + reading
+               + waitingForTemplate;
     }
 };
 
@@ -220,6 +242,14 @@ struct CloneCompletion
     int limitedArrays = 0;
     /** Array elements not captured because of CloneOptions::maxArrayElements. */
     int arrayElementsSkipped = 0;
+    /** Arrays whose elements were built from a template element. */
+    int expandedArrays = 0;
+    /** Nodes built from template elements and confirmed by reading them. */
+    int synthesizedNodes = 0;
+    /** Elements whose built nodes did not exist on the server; they were browsed instead. */
+    int templateMisses = 0;
+    /** The server's MaxNodesPerRead (0: no limit), or -1 when it could not be read. */
+    int serverMaxNodesPerRead = -1;
     /** Browse requests sent. */
     int browseRequests = 0;
     /** Read requests sent (metadata, values or both). */
@@ -306,6 +336,16 @@ private:
         int issued = 0;           //!< Probe browses sent.
         int answered = 0;         //!< Probe browses answered.
         bool hasChildren = false; //!< A probe found children: always browse this kind.
+        QStringList waiting;      //!< Variables waiting for the probe's outcome.
+    };
+
+    /** Array whose other elements are built from its template element. */
+    struct ExpansionJob
+    {
+        QString arrayId;          //!< The array variable.
+        QString templateId;       //!< Element that is browsed and copied.
+        QStringList elementIds;   //!< Elements built from the template.
+        int depth = 0;            //!< Depth of the elements.
     };
 
     /** Request statistics of one kind over a time window. */
@@ -330,6 +370,13 @@ private:
     void browseVariable(const QString &nodeId);
     void recordProbe(const QString &nodeId, bool hasChildren);
     void logProgress();
+    void planExpansion(const BrowseItem &item, const QList<qsizetype> &elementIndices);
+    void expandJobs();
+    void expandJob(const ExpansionJob &job);
+    void handleTemplateMiss(const CloneNode &node);
+    void appendNode(const CloneNode &node);
+    void startLimitsRead();
+    void applyLimits(const QList<QOpcUaReadResult> &results);
     void startTypeLookup();
     void handleTypeLookupFinished();
     void logReadFailure(const QString &nodeId, const QString &what);
@@ -371,6 +418,13 @@ private:
     QHash<QOpcUaNode *, qint64> m_browseStarted; //!< Start time of each browse in flight.
     RequestStats m_browseWindow;              //!< Browse statistics since the last log line.
     RequestStats m_readWindow;                //!< Read statistics since the last log line.
+    QHash<QString, QList<qsizetype>> m_children; //!< Parent node id -> indices of its children.
+    QList<ExpansionJob> m_jobs;               //!< Arrays waiting for template expansion.
+    QHash<QString, int> m_deferredElements;   //!< Elements waiting for expansion -> depth.
+    QHash<QString, int> m_expandedElements;   //!< Expanded elements -> depth, for a fallback browse.
+    QSet<QString> m_fallbackElements;         //!< Expanded elements browsed after a miss.
+    QMetaObject::Connection m_limitsConnection; //!< Claims the MaxNodesPerRead read.
+    bool m_limitsPending = false;             //!< MaxNodesPerRead read in flight.
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 

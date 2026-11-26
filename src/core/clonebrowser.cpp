@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <climits>
 #include <utility>
 
 /*!
@@ -62,6 +63,22 @@ Q_LOGGING_CATEGORY(lcOpcUaClone, "opcua.clone", QtInfoMsg)
  * variables without a value and with an error, because an unknown type may be
  * a structure whose Value would encode a whole subtree.
  *
+ * Arrays of structures hold most nodes of a large PLC (a 1000-row recipe
+ * table of structures alone can hold more than half of them). When the
+ * elements of an array follow the NodeId pattern "<array>[index]", only the
+ * first element is browsed; once nothing else is queued, its subtree is
+ * copied for the other elements by replacing the "<array>[first]" prefix,
+ * deepest arrays first. The copies are then read like any variable, so their
+ * DataType, ValueRank, access levels and values come from the server; a copy
+ * the server does not know (BadNodeIdUnknown) makes that element fall back to
+ * a normal browse. Elements of arrays whose template contains an Object, or
+ * that do not follow the pattern, are browsed as before.
+ *
+ * At the start, the server's MaxNodesPerRead is read; the read batches are
+ * then enlarged up to CloneOptions::maxVariablesPerRead and
+ * CloneOptions::maxValuesPerRead within that limit, because a PLC that serves
+ * one request at a time pays mostly per request.
+ *
  * A node reached through more than one hierarchical reference is captured and
  * browsed once; the additional parents are recorded. Reaching the node or depth
  * limit marks the result Truncated, the idle timeout (or an optional overall
@@ -95,6 +112,24 @@ const QList<QOpcUa::NodeAttribute> kMetadataAttributes = {
  * \brief Number of read failures logged in detail; later ones are only counted.
  */
 constexpr int kMaxLoggedReadFailures = 20;
+
+/*!
+ * \internal
+ * \brief Minimum number of captured elements for an array to be expanded by template.
+ */
+constexpr int kTemplateMinElements = 3;
+
+/*!
+ * \internal
+ * \brief Node id of Server.ServerCapabilities.OperationLimits.MaxNodesPerRead.
+ */
+const QString kMaxNodesPerReadId = QStringLiteral("ns=0;i=11705");
+
+/*!
+ * \internal
+ * \brief Operations a metadata read costs per variable: five attributes plus a carried Value.
+ */
+constexpr int kOperationsPerVariable = 6;
 
 /*!
  * \internal
@@ -189,6 +224,8 @@ CloneBrowser::CloneBrowser(QOpcUaClient *client, const QString &rootNodeId, quin
     m_options.typeLookupAttempts = std::max(1, m_options.typeLookupAttempts);
     m_options.leafProbeCount = std::max(0, m_options.leafProbeCount);
     m_options.maxArrayElements = std::max(0, m_options.maxArrayElements);
+    m_options.maxVariablesPerRead = std::max(1, m_options.maxVariablesPerRead);
+    m_options.maxValuesPerRead = std::max(1, m_options.maxValuesPerRead);
     m_options.maxNodes = std::max(1, m_options.maxNodes);
     m_options.maxDepth = std::max(1, m_options.maxDepth);
 }
@@ -257,6 +294,7 @@ void CloneBrowser::start()
     m_readConnection = connect(m_client, &QOpcUaClient::readNodeAttributesFinished, this,
                                &CloneBrowser::handleReadResults);
 
+    startLimitsRead();
     m_browseQueue.enqueue({m_rootNodeId, 0});
     pump();
 }
@@ -431,17 +469,19 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
 
     // Large arrays (e.g. a 1000-row recipe table of structures) hold most of
     // a PLC's nodes; their elements can be limited.
-    bool limitElements = false;
-    if (m_options.maxArrayElements > 0 && !parentIsRoot) {
+    bool isArray = false;
+    if (!parentIsRoot) {
         const auto parent = m_index.constFind(item.nodeId);
         if (parent != m_index.constEnd()) {
             const CloneNode &array = m_nodes.at(parent.value());
-            limitElements = array.isVariable
-                            && (array.valueRank >= 1 || !array.arrayDimensions.isEmpty());
+            isArray = array.isVariable
+                      && (array.valueRank >= 1 || !array.arrayDimensions.isEmpty());
         }
     }
+    const bool limitElements = isArray && m_options.maxArrayElements > 0;
     int elements = 0;
     int skippedElements = 0;
+    QList<qsizetype> elementIndices;
     for (const QOpcUaReferenceDescription &reference : references) {
         const QString childId = reference.targetNodeId().nodeId();
         if (childId.isEmpty() || childId == m_rootNodeId)
@@ -484,8 +524,10 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
         child.isFolder = reference.nodeClass() == QOpcUa::NodeClass::Object
                          && child.typeDefinitionId == kFolderTypeId;
 
-        m_index.insert(childId, m_nodes.size());
-        m_nodes.append(child);
+        if (isArray && child.browseName.endsWith(QLatin1Char(']'))
+            && child.browseName.contains(QLatin1Char('[')))
+            elementIndices.append(m_nodes.size());
+        appendNode(child);
 
         const int childDepth = item.depth + 1;
         if (childDepth >= m_options.maxDepth)
@@ -497,6 +539,9 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
         if (child.isVariable)
             m_readQueue.append(childId);
     }
+
+    if (isArray)
+        planExpansion(item, elementIndices);
 
     if (skippedElements > 0) {
         ++m_completion.limitedArrays;
@@ -582,7 +627,12 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         ++m_readWindow.count;
         m_readWindow.totalMs += m_elapsed.elapsed() - batch.startedMs;
         const qsizetype size = batch.metadataIds.size() + batch.valueIds.size();
-        if (serviceResult == QOpcUa::UaStatusCode::BadTooManyOperations && size > 1) {
+        // A too large request or response is split like too many operations.
+        const bool tooLarge = serviceResult == QOpcUa::UaStatusCode::BadTooManyOperations
+                              || serviceResult == QOpcUa::UaStatusCode::BadResponseTooLarge
+                              || serviceResult == QOpcUa::UaStatusCode::BadRequestTooLarge
+                              || serviceResult == QOpcUa::UaStatusCode::BadEncodingLimitsExceeded;
+        if (tooLarge && size > 1) {
             if (!batch.metadataIds.isEmpty())
                 m_options.variablesPerRead = std::max<int>(1, int(batch.metadataIds.size() / 2));
             else
@@ -619,8 +669,23 @@ void CloneBrowser::handleReadResults(const QList<QOpcUaReadResult> &results,
         if (it != m_index.constEnd())
             applyReadResult(m_nodes[it.value()], result);
     }
-    for (const QString &nodeId : metadataIds)
+    for (const QString &nodeId : metadataIds) {
+        const auto it = m_index.constFind(nodeId);
+        if (it == m_index.constEnd())
+            continue;
+        const CloneNode &node = m_nodes.at(it.value());
+        // A built node the server does not know: its element is browsed instead.
+        if (node.synthesized && node.dataTypeId.isEmpty()
+            && std::any_of(node.attributeErrors.cbegin(), node.attributeErrors.cend(),
+                           [](const QString &error) {
+                               return error.contains(QLatin1String("BadNodeIdUnknown"))
+                                      || error.contains(QLatin1String("BadNodeIdInvalid"));
+                           })) {
+            handleTemplateMiss(node);
+            continue;
+        }
         routeVariable(nodeId);
+    }
     pump();
 }
 
@@ -694,8 +759,10 @@ void CloneBrowser::routeVariable(const QString &nodeId)
  * \brief Decides the browse and the Value read of \a node, whose DataType is \a type.
  *
  * The Value is queued unless \a type is a structure. A scalar of a simple type
- * is browsed only while its TypeDefinition is being probed or after a probe
- * found children; otherwise it is counted as not browsed. Every other
+ * is one of the probes of its TypeDefinition, waits for the probe's outcome,
+ * is browsed after a probe found children, or is counted as not browsed once
+ * all probes came back empty. Waiting instead of browsing keeps the decision
+ * independent of how fast reads arrive compared with browses. Every other
  * variable is browsed.
  */
 void CloneBrowser::settleVariable(CloneNode &node, const ResolvedDataType &type)
@@ -710,18 +777,21 @@ void CloneBrowser::settleVariable(CloneNode &node, const ResolvedDataType &type)
         return;
     }
 
-    LeafProbe &probe = m_leafProbes[node.typeDefinitionId];
-    if (!probe.hasChildren && probe.answered >= m_options.leafProbeCount) {
-        if (m_pendingBrowseDepth.remove(node.nodeId))
-            ++m_completion.leafVariablesNotBrowsed;
+    if (!m_pendingBrowseDepth.contains(node.nodeId))
         return;
-    }
-    if (!probe.hasChildren && probe.issued < m_options.leafProbeCount
-        && m_pendingBrowseDepth.contains(node.nodeId)) {
+    LeafProbe &probe = m_leafProbes[node.typeDefinitionId];
+    if (probe.hasChildren) {
+        browseVariable(node.nodeId);
+    } else if (probe.answered >= m_options.leafProbeCount) {
+        m_pendingBrowseDepth.remove(node.nodeId);
+        ++m_completion.leafVariablesNotBrowsed;
+    } else if (probe.issued < m_options.leafProbeCount) {
         ++probe.issued;
         m_probeNodes.insert(node.nodeId, node.typeDefinitionId);
+        browseVariable(node.nodeId);
+    } else {
+        probe.waiting.append(node.nodeId);
     }
-    browseVariable(node.nodeId);
 }
 
 /*!
@@ -756,6 +826,9 @@ void CloneBrowser::browseVariable(const QString &nodeId)
         return;
     const int depth = it.value();
     m_pendingBrowseDepth.erase(it);
+    // An element waiting for its template is built, not browsed.
+    if (m_deferredElements.contains(nodeId))
+        return;
     m_browseQueue.enqueue({nodeId, depth});
 }
 
@@ -782,11 +855,267 @@ void CloneBrowser::recordProbe(const QString &nodeId, bool hasChildren)
         qCInfo(lcOpcUaClone).noquote()
             << "scalar variables of TypeDefinition" << typeDefinition
             << "have children (e.g." << nodeId << "); all of them are browsed";
+        for (const QString &waitingId : std::exchange(probe.waiting, {}))
+            browseVariable(waitingId);
     } else if (!probe.hasChildren && probe.answered == m_options.leafProbeCount) {
         qCInfo(lcOpcUaClone).noquote()
             << probe.answered << "scalar variables of TypeDefinition" << typeDefinition
             << "had no children; further ones are not browsed";
+        for (const QString &waitingId : std::exchange(probe.waiting, {})) {
+            if (m_pendingBrowseDepth.remove(waitingId))
+                ++m_completion.leafVariablesNotBrowsed;
+        }
     }
+}
+
+/*!
+ * \internal
+ * \brief Appends \a node to the captured nodes and indexes it by id and by parent.
+ */
+void CloneBrowser::appendNode(const CloneNode &node)
+{
+    const qsizetype index = m_nodes.size();
+    m_index.insert(node.nodeId, index);
+    m_children[node.parentNodeId].append(index);
+    m_nodes.append(node);
+}
+
+/*!
+ * \internal
+ * \brief Plans the template expansion of the array browsed as \a item.
+ * \param item The browsed array variable.
+ * \param elementIndices Indices of the element children captured by this browse.
+ *
+ * The first element stays the template and is browsed normally; the other
+ * elements are deferred: they are captured and read, but not browsed, and
+ * their subtrees are built by expandJob(). An array qualifies only when it has
+ * at least kTemplateMinElements elements, a string NodeId, and every element
+ * follows the pattern NodeId "<array>[i]" with BrowseName "<arrayName>[i]".
+ */
+void CloneBrowser::planExpansion(const BrowseItem &item, const QList<qsizetype> &elementIndices)
+{
+    if (!m_options.expandArraysByTemplate || elementIndices.size() < kTemplateMinElements
+        || !item.nodeId.contains(QLatin1String(";s=")))
+        return;
+    const auto arrayIt = m_index.constFind(item.nodeId);
+    if (arrayIt == m_index.constEnd())
+        return;
+    const QString arrayName = m_nodes.at(arrayIt.value()).browseName;
+
+    for (const qsizetype index : elementIndices) {
+        const CloneNode &element = m_nodes.at(index);
+        if (!element.isVariable || !element.browseName.startsWith(arrayName))
+            return;
+        const QString suffix = element.browseName.mid(arrayName.size());
+        if (!suffix.startsWith(QLatin1Char('[')) || element.nodeId != item.nodeId + suffix)
+            return;
+    }
+
+    ExpansionJob job;
+    job.arrayId = item.nodeId;
+    job.templateId = m_nodes.at(elementIndices.first()).nodeId;
+    job.depth = item.depth + 1;
+    for (qsizetype i = 1; i < elementIndices.size(); ++i) {
+        const QString elementId = m_nodes.at(elementIndices.at(i)).nodeId;
+        job.elementIds.append(elementId);
+        m_deferredElements.insert(elementId, job.depth);
+    }
+    m_jobs.append(job);
+}
+
+/*!
+ * \internal
+ * \brief Expands every planned array, deepest first.
+ *
+ * Jobs are expanded in reverse order of planning: an array nested inside a
+ * template element is planned after its outer array, so it is complete before
+ * the outer template is copied.
+ */
+void CloneBrowser::expandJobs()
+{
+    const QList<ExpansionJob> jobs = std::exchange(m_jobs, {});
+    for (auto it = jobs.crbegin(); it != jobs.crend(); ++it)
+        expandJob(*it);
+}
+
+/*!
+ * \internal
+ * \brief Builds the subtree of \a job's template element for each of its other elements.
+ *
+ * Every node below the template is copied with the "<template>" NodeId prefix
+ * replaced by the element's NodeId; BrowseName, DisplayName, NodeClass and
+ * TypeDefinition are copied, everything else is read from the server. A
+ * template that contains an Object cannot be verified by a variable read, so
+ * its elements are browsed normally instead.
+ */
+void CloneBrowser::expandJob(const ExpansionJob &job)
+{
+    // The template subtree, parents before children.
+    QList<qsizetype> subtree;
+    QList<QString> pending{job.templateId};
+    bool hasObject = false;
+    while (!pending.isEmpty()) {
+        const QString parentId = pending.takeFirst();
+        for (const qsizetype index : m_children.value(parentId)) {
+            const CloneNode &node = m_nodes.at(index);
+            if (node.missing)
+                continue;
+            if (!node.isVariable)
+                hasObject = true;
+            subtree.append(index);
+            pending.append(node.nodeId);
+        }
+    }
+
+    if (hasObject) {
+        qCInfo(lcOpcUaClone).noquote()
+            << "template" << job.templateId << "contains an Object; elements are browsed";
+        for (const QString &elementId : job.elementIds) {
+            m_deferredElements.remove(elementId);
+            m_browseQueue.enqueue({elementId, job.depth});
+        }
+        return;
+    }
+
+    int built = 0;
+    for (const QString &elementId : job.elementIds) {
+        m_deferredElements.remove(elementId);
+        if (!m_index.contains(elementId))
+            continue;
+        m_expandedElements.insert(elementId, job.depth);
+        for (const qsizetype index : std::as_const(subtree)) {
+            if (m_nodes.size() >= m_options.maxNodes) {
+                m_completion.nodeLimitReached = true;
+                break;
+            }
+            const CloneNode &source = m_nodes.at(index);
+            CloneNode copy;
+            copy.nodeId = elementId + source.nodeId.mid(job.templateId.size());
+            if (m_index.contains(copy.nodeId))
+                continue;
+            copy.parentNodeId = source.parentNodeId == job.templateId
+                                    ? elementId
+                                    : elementId + source.parentNodeId.mid(job.templateId.size());
+            copy.browseName = source.browseName;
+            copy.browseNameNamespace = source.browseNameNamespace;
+            copy.displayName = source.displayName;
+            copy.nodeClass = source.nodeClass;
+            copy.typeDefinitionId = source.typeDefinitionId;
+            copy.isVariable = source.isVariable;
+            copy.isFolder = source.isFolder;
+            copy.synthesized = true;
+            copy.expansionElementId = elementId;
+            appendNode(copy);
+            if (copy.isVariable)
+                m_readQueue.append(copy.nodeId);
+            ++built;
+        }
+    }
+    if (built > 0) {
+        ++m_completion.expandedArrays;
+        m_completion.synthesizedNodes += built;
+    }
+    qCInfo(lcOpcUaClone).noquote()
+        << "array expanded:" << job.arrayId << "template" << job.templateId << "elements"
+        << job.elementIds.size() << "built nodes" << built;
+}
+
+/*!
+ * \internal
+ * \brief Drops the nodes built for the element of \a node and browses that element instead.
+ *
+ * \a node is a built node the server does not know, so the element differs
+ * from its template. Its built nodes are marked missing (never published) and
+ * removed from the index, so the browse can capture the real children.
+ */
+void CloneBrowser::handleTemplateMiss(const CloneNode &node)
+{
+    const QString elementId = node.expansionElementId;
+    if (elementId.isEmpty() || m_fallbackElements.contains(elementId))
+        return;
+    m_fallbackElements.insert(elementId);
+    ++m_completion.templateMisses;
+    if (m_completion.templateMisses <= kMaxLoggedReadFailures) {
+        qCInfo(lcOpcUaClone).noquote()
+            << "template miss:" << node.nodeId << "does not exist; browsing" << elementId;
+    }
+
+    QSet<QString> dropped;
+    QList<QString> pending{elementId};
+    while (!pending.isEmpty()) {
+        const QString parentId = pending.takeFirst();
+        for (const qsizetype index : m_children.value(parentId)) {
+            CloneNode &built = m_nodes[index];
+            if (!built.synthesized || built.missing)
+                continue;
+            built.missing = true;
+            m_index.remove(built.nodeId);
+            dropped.insert(built.nodeId);
+            pending.append(built.nodeId);
+        }
+    }
+    m_completion.synthesizedNodes -= int(dropped.size());
+    const auto isDropped = [&dropped](const QString &id) { return dropped.contains(id); };
+    m_readQueue.removeIf(isDropped);
+    m_valueQueue.removeIf(isDropped);
+    m_browseQueue.enqueue({elementId, m_expandedElements.value(elementId, 1)});
+}
+
+/*!
+ * \internal
+ * \brief Reads the server's MaxNodesPerRead to size the read batches.
+ */
+void CloneBrowser::startLimitsRead()
+{
+    m_limitsPending = true;
+    m_limitsConnection =
+        connect(m_client, &QOpcUaClient::readNodeAttributesFinished, this,
+                [this](const QList<QOpcUaReadResult> &results, QOpcUa::UaStatusCode) {
+                    if (!m_limitsPending || results.size() != 1
+                        || results.first().nodeId() != kMaxNodesPerReadId)
+                        return;
+                    applyLimits(results);
+                });
+    if (!m_client->readNodeAttributes({QOpcUaReadItem(kMaxNodesPerReadId,
+                                                      QOpcUa::NodeAttribute::Value)}))
+        applyLimits({});
+}
+
+/*!
+ * \internal
+ * \brief Sizes the read batches from the MaxNodesPerRead read \a results.
+ *
+ * 0 means no limit: the batches grow to CloneOptions::maxVariablesPerRead and
+ * CloneOptions::maxValuesPerRead. A positive limit is divided by the
+ * operations per variable. When the limit cannot be read the default sizes
+ * stay. BadTooManyOperations still halves a batch that is too large.
+ */
+void CloneBrowser::applyLimits(const QList<QOpcUaReadResult> &results)
+{
+    if (!m_limitsPending)
+        return;
+    m_limitsPending = false;
+    disconnect(m_limitsConnection);
+    if (results.isEmpty() || isBad(results.first().statusCode())
+        || !results.first().value().isValid()) {
+        qCInfo(lcOpcUaClone) << "MaxNodesPerRead not available; read batches stay"
+                             << m_options.variablesPerRead << "/" << m_options.valuesPerRead;
+        return;
+    }
+    const quint32 limit = results.first().value().toUInt();
+    m_completion.serverMaxNodesPerRead = int(std::min<quint32>(limit, quint32(INT_MAX)));
+    if (limit == 0) {
+        m_options.variablesPerRead = m_options.maxVariablesPerRead;
+        m_options.valuesPerRead = m_options.maxValuesPerRead;
+    } else {
+        m_options.variablesPerRead = std::clamp<int>(int(limit / kOperationsPerVariable), 1,
+                                                     m_options.maxVariablesPerRead);
+        m_options.valuesPerRead = std::clamp<int>(int(std::min<quint32>(limit, 1u << 20)), 1,
+                                                  m_options.maxValuesPerRead);
+    }
+    qCInfo(lcOpcUaClone).noquote()
+        << "server MaxNodesPerRead" << limit << "-> variables per metadata read"
+        << m_options.variablesPerRead << ", per value read" << m_options.valuesPerRead;
 }
 
 /*!
@@ -812,6 +1141,8 @@ void CloneBrowser::logProgress()
         << average(m_browseWindow) << "empty" << m_browseWindow.empty << "reads"
         << m_readWindow.count << "avgMs" << average(m_readWindow) << "operations"
         << m_readWindow.items << "| leavesNotBrowsed" << m_completion.leafVariablesNotBrowsed
+        << "waitingForTemplate" << snapshot.waitingForTemplate << "synthesized"
+        << m_completion.synthesizedNodes
         << "elapsedMs" << m_elapsed.elapsed();
     m_browseWindow = RequestStats();
     m_readWindow = RequestStats();
@@ -925,6 +1256,7 @@ CloneProgress CloneBrowser::progressSnapshot() const
         snapshot.reading += int(batch.metadataIds.size() + batch.valueIds.size());
     snapshot.readRequests = int(m_reading.size());
     snapshot.typeLookups = m_typeLookup ? int(m_typeLookupIds.size()) : 0;
+    snapshot.waitingForTemplate = int(m_deferredElements.size());
     return snapshot;
 }
 
@@ -1026,6 +1358,11 @@ void CloneBrowser::finishIfIdle()
         || !m_readQueue.isEmpty() || !m_valueQueue.isEmpty() || !m_reading.isEmpty()
         || !m_waitingForType.isEmpty() || m_typeLookup)
         return;
+    if (!m_jobs.isEmpty()) {
+        expandJobs();
+        pump();
+        return;
+    }
     const bool truncated = m_completion.nodeLimitReached || m_completion.depthLimitedNodes > 0;
     finish(truncated ? CloneCompletion::State::Truncated : CloneCompletion::State::Complete);
 }
@@ -1052,6 +1389,11 @@ void CloneBrowser::finish(CloneCompletion::State state)
         m_progressTimer->stop();
     if (m_readConnection)
         disconnect(m_readConnection);
+    if (m_limitsConnection)
+        disconnect(m_limitsConnection);
+
+    // Built nodes the server does not have are never published.
+    m_nodes.removeIf([](const CloneNode &node) { return node.missing; });
 
     if (m_rootBrowseFailed && m_nodes.isEmpty() && state != CloneCompletion::State::Cancelled)
         state = CloneCompletion::State::Failed;
@@ -1078,7 +1420,10 @@ void CloneBrowser::finish(CloneCompletion::State state)
         << m_completion.browseRequests << "readRequests" << m_completion.readRequests
         << "leavesNotBrowsed" << m_completion.leafVariablesNotBrowsed << "limitedArrays"
         << m_completion.limitedArrays << "arrayElementsSkipped"
-        << m_completion.arrayElementsSkipped << "elapsedMs" << m_completion.elapsedMs;
+        << m_completion.arrayElementsSkipped << "expandedArrays" << m_completion.expandedArrays
+        << "synthesizedNodes" << m_completion.synthesizedNodes << "templateMisses"
+        << m_completion.templateMisses << "maxNodesPerRead"
+        << m_completion.serverMaxNodesPerRead << "elapsedMs" << m_completion.elapsedMs;
 
     QStringList typeIds;
     QSet<QString> seen;
