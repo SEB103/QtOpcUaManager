@@ -442,6 +442,9 @@ private:
             if (ok && i != 7)
                 ok = addNamed(row + ".Count", "Count", id(row), int32Type, i);
             ok = ok && addNamed(row + ".Cells", "Cells", id(row), buttonType, 0, 3);
+            // CODESYS publishes array properties with a "|vprop|" NodeId prefix.
+            ok = ok && addNamed("|vprop|" + row + ".Cells.Dimensions", "Dimensions",
+                                id(row + ".Cells"), int32Type, 1);
             for (int j = 1; ok && j <= 3; ++j) {
                 const std::string cell = row + ".Cells[" + std::to_string(j) + "]";
                 ok = addNamed(cell, "Cells[" + std::to_string(j) + "]", id(row + ".Cells"),
@@ -726,6 +729,12 @@ void CloneTraversalTest::expandsArraysFromTemplate()
         }
     }
     QVERIFY(nodeAt("Rows[50].Cells[3].Flag").synthesized);
+    // The "|vprop|" property of a nested array maps to every element.
+    for (int i = 1; i <= 50; ++i) {
+        const CloneNode dims = nodeAt("|vprop|Rows[" + std::to_string(i) + "].Cells.Dimensions");
+        QVERIFY2(!dims.nodeId.isEmpty(), std::to_string(i).c_str());
+        QCOMPARE(dims.value.toInt(), 1);
+    }
     // Only the templates and the fallback element were browsed, not 50 rows.
     QVERIFY2(result.completion.browseRequests < 60,
              qPrintable(QString::number(result.completion.browseRequests)));

@@ -414,6 +414,7 @@ private:
     void expandJob(const ExpansionJob &job);
     void handleTemplateMiss(const CloneNode &node);
     void appendNode(const CloneNode &node);
+    qsizetype liveNodeCount() const { return m_nodes.size() - m_missingNodes; }
     void startLimitsRead();
     void applyLimits(const QList<QOpcUaReadResult> &results);
     void startRootInfoRead();
@@ -470,6 +471,7 @@ private:
     QMetaObject::Connection m_limitsConnection; //!< Claims the MaxNodesPerRead read.
     QMetaObject::Connection m_rootInfoConnection; //!< Claims the captured root's attribute read.
     bool m_limitsPending = false;             //!< MaxNodesPerRead read in flight.
+    qsizetype m_missingNodes = 0;             //!< Built nodes marked missing (not live).
     QList<ReadBatch> m_reading;               //!< Read requests in flight.
     QMetaObject::Connection m_readConnection; //!< Connection to the shared read signal.
 
