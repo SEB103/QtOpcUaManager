@@ -46,6 +46,10 @@ Q_LOGGING_CATEGORY(lcOpcUaClone, "opcua.clone", QtInfoMsg)
  * the same data again and again. A DataType that the namespace-0 tables do not
  * cover is looked up through DataTypeResolver while the traversal continues;
  * the variables using it wait for that lookup before their Value is read.
+ * A lookup round that times out on a busy server is retried; a type that is
+ * still unknown after CloneOptions::typeLookupAttempts rounds leaves its
+ * variables without a value and with an error, because an unknown type may be
+ * a structure whose Value would encode a whole subtree.
  *
  * A node reached through more than one hierarchical reference is captured and
  * browsed once; the additional parents are recorded. Reaching the node or depth
@@ -92,6 +96,12 @@ const QString kStructureBase = QStringLiteral("Structure");
  * \brief Interval of the progress reports in milliseconds.
  */
 constexpr int kProgressIntervalMs = 500;
+
+/*!
+ * \internal
+ * \brief Progress reports between two progress lines in the log (every 30 s).
+ */
+constexpr int kProgressLogTicks = 60;
 
 /*!
  * \internal
@@ -164,6 +174,8 @@ CloneBrowser::CloneBrowser(QOpcUaClient *client, const QString &rootNodeId, quin
     m_options.maxConcurrentReads = std::max(1, m_options.maxConcurrentReads);
     m_options.variablesPerRead = std::max(1, m_options.variablesPerRead);
     m_options.valuesPerRead = std::max(1, m_options.valuesPerRead);
+    m_options.typeLookupTimeoutMs = std::max(1, m_options.typeLookupTimeoutMs);
+    m_options.typeLookupAttempts = std::max(1, m_options.typeLookupAttempts);
     m_options.maxNodes = std::max(1, m_options.maxNodes);
     m_options.maxDepth = std::max(1, m_options.maxDepth);
 }
@@ -206,13 +218,31 @@ void CloneBrowser::start()
 
     m_idleTimer = new QTimer(this);
     m_idleTimer->setSingleShot(true);
-    connect(m_idleTimer, &QTimer::timeout, this,
-            [this]() { finish(CloneCompletion::State::TimedOut); });
+    connect(m_idleTimer, &QTimer::timeout, this, [this]() {
+        // A DataType lookup round has its own timeout; while it runs the
+        // traversal is not idle even if no browse or read is in flight.
+        if (m_typeLookup) {
+            m_idleTimer->start(m_options.idleTimeoutMs);
+            return;
+        }
+        finish(CloneCompletion::State::TimedOut);
+    });
     m_idleTimer->start(m_options.idleTimeoutMs);
 
     m_progressTimer = new QTimer(this);
     connect(m_progressTimer, &QTimer::timeout, this, [this]() {
-        emit progress(m_requestId, int(m_nodes.size()), pendingCount());
+        const CloneProgress snapshot = progressSnapshot();
+        if (++m_progressTicks >= kProgressLogTicks) {
+            m_progressTicks = 0;
+            qCInfo(lcOpcUaClone).noquote()
+                << "progress: captured" << snapshot.captured << "toBrowse"
+                << snapshot.browseQueued << "browsing" << snapshot.browsing << "metadataQueued"
+                << snapshot.metadataQueued << "valuesQueued" << snapshot.valuesQueued
+                << "waitingForType" << snapshot.waitingForType << "readRequests"
+                << snapshot.readRequests << "typeLookups" << snapshot.typeLookups
+                << "elapsedMs" << m_elapsed.elapsed();
+        }
+        emit progress(m_requestId, snapshot);
     });
     m_progressTimer->start(kProgressIntervalMs);
 
@@ -529,6 +559,11 @@ void CloneBrowser::routeValueRead(const QString &nodeId)
         return;
 
     const QString typeId = DataTypeIds::normalize(node.dataTypeId);
+    if (m_typeLookupGivenUp.contains(typeId)) {
+        node.attributeErrors.append(QStringLiteral("Value: not read, DataType lookup timed out"));
+        logReadFailure(nodeId, QStringLiteral("Value: not read, DataType lookup timed out"));
+        return;
+    }
     auto cached = m_typeCache.constFind(typeId);
     if (cached == m_typeCache.constEnd()) {
         const ResolvedDataType local = DataTypeIds::resolveLocally(typeId);
@@ -574,6 +609,7 @@ void CloneBrowser::startTypeLookup()
     m_typeLookupIds = m_typeQueue;
     m_typeQueue.clear();
     m_typeLookup = new DataTypeResolver(m_client, this);
+    m_typeLookup->setTimeoutMs(m_options.typeLookupTimeoutMs);
     connect(m_typeLookup, &DataTypeResolver::finished, this,
             &CloneBrowser::handleTypeLookupFinished);
     m_typeLookup->resolve(m_typeLookupIds);
@@ -582,6 +618,10 @@ void CloneBrowser::startTypeLookup()
 /*!
  * \internal
  * \brief Caches the resolved DataTypes and routes the variables waiting for them.
+ *
+ * When the round timed out, a type that is still unresolved is not cached: it
+ * is looked up again in a later round, and its variables keep waiting. After
+ * CloneOptions::typeLookupAttempts timed-out rounds the type is given up.
  */
 void CloneBrowser::handleTypeLookupFinished()
 {
@@ -593,9 +633,23 @@ void CloneBrowser::handleTypeLookupFinished()
         return;
     touch();
 
+    const bool timedOut = lookup->timedOut();
     const QStringList typeIds = std::exchange(m_typeLookupIds, {});
     for (const QString &typeId : typeIds) {
         const ResolvedDataType resolved = lookup->result(typeId);
+        const bool unresolved = resolved.resolution == ResolvedDataType::Resolution::None
+                                || resolved.resolution == ResolvedDataType::Resolution::Unresolved;
+        if (timedOut && unresolved) {
+            const int rounds = ++m_typeLookupRounds[typeId];
+            qCInfo(lcOpcUaClone).noquote()
+                << "DataType lookup timed out:" << typeId << "round" << rounds << "of"
+                << m_options.typeLookupAttempts;
+            if (rounds < m_options.typeLookupAttempts)
+                m_typeQueue.append(typeId);
+            else
+                failTypeLookup(typeId);
+            continue;
+        }
         m_typeCache.insert(typeId, resolved);
         const QStringList waiting = m_waitingForType.take(typeId);
         for (const QString &nodeId : waiting) {
@@ -605,6 +659,49 @@ void CloneBrowser::handleTypeLookupFinished()
         }
     }
     pump();
+}
+
+/*!
+ * \internal
+ * \brief Gives up the DataType \a typeId: its variables get no Value read.
+ *
+ * The waiting variables and every later variable of this type record the
+ * error, so the clone reports them as incomplete. The final resolution after
+ * the traversal still tries the type once more for its name and base.
+ */
+void CloneBrowser::failTypeLookup(const QString &typeId)
+{
+    m_typeLookupGivenUp.insert(typeId);
+    const QStringList waiting = m_waitingForType.take(typeId);
+    for (const QString &nodeId : waiting) {
+        const auto it = m_index.constFind(nodeId);
+        if (it == m_index.constEnd())
+            continue;
+        const QString error = QStringLiteral("Value: not read, DataType lookup timed out");
+        m_nodes[it.value()].attributeErrors.append(error);
+        logReadFailure(nodeId, error);
+    }
+}
+
+/*!
+ * \internal
+ * \brief Returns the current breakdown of queued and in-flight work.
+ */
+CloneProgress CloneBrowser::progressSnapshot() const
+{
+    CloneProgress snapshot;
+    snapshot.captured = int(m_nodes.size());
+    snapshot.browseQueued = int(m_browseQueue.size());
+    snapshot.browsing = int(m_browsing.size());
+    snapshot.metadataQueued = int(m_readQueue.size());
+    snapshot.valuesQueued = int(m_valueQueue.size());
+    for (const QStringList &nodeIds : m_waitingForType)
+        snapshot.waitingForType += int(nodeIds.size());
+    for (const ReadBatch &batch : m_reading)
+        snapshot.reading += int(batch.nodeIds.size());
+    snapshot.readRequests = int(m_reading.size());
+    snapshot.typeLookups = m_typeLookup ? int(m_typeLookupIds.size()) : 0;
+    return snapshot;
 }
 
 /*!
@@ -692,14 +789,7 @@ void CloneBrowser::touch()
  */
 int CloneBrowser::pendingCount() const
 {
-    qsizetype reading = 0;
-    for (const ReadBatch &batch : m_reading)
-        reading += batch.nodeIds.size();
-    qsizetype waiting = 0;
-    for (const QStringList &nodeIds : m_waitingForType)
-        waiting += nodeIds.size();
-    return int(m_browseQueue.size() + m_browsing.size() + m_readQueue.size()
-               + m_valueQueue.size() + waiting + reading);
+    return progressSnapshot().pending();
 }
 
 /*!
@@ -776,6 +866,7 @@ void CloneBrowser::finish(CloneCompletion::State state)
     }
 
     m_resolver = new DataTypeResolver(m_client, this);
+    m_resolver->setTimeoutMs(m_options.typeLookupTimeoutMs);
     connect(m_resolver, &DataTypeResolver::finished, this, &CloneBrowser::publishResult);
     m_resolver->resolve(typeIds);
 }

@@ -1918,7 +1918,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+366"/>
         <source>Stopped</source>
         <translation>Gestoppt</translation>
     </message>
@@ -2095,17 +2095,32 @@
         <translation>%1 Knoten vom Server geklont.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-920"/>
+        <source>%1 node(s) captured</source>
+        <translation>%1 Knoten erfasst</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>Warteschlange: %1 zu durchsuchen, %2 Metadaten-Lesevorgänge, %3 Wert-Lesevorgänge, %4 warten auf Datentypen</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>In Arbeit: %1 Durchsuchung(en), %2 Leseanfrage(n)</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>%1 Datentyp(en) werden ermittelt</translation>
+    </message>
+    <message>
+        <location line="+675"/>
         <source>Cloned Server</source>
         <translation>Geklonter Server</translation>
     </message>
     <message>
-        <location line="-675"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>%1 Knoten erfasst, %2 warten auf den Server</translation>
-    </message>
-    <message>
-        <location line="+917"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 Variable(n) verwenden einen Ersatzdatentyp (Datum/Uhrzeit oder nicht unterstützter Typ).</translation>
     </message>
@@ -2148,12 +2163,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+434"/>
         <source>(none)</source>
         <translation>(keine)</translation>
     </message>
     <message>
-        <location line="-300"/>
+        <location line="-310"/>
         <source>(no values)</source>
         <translation>(keine Werte)</translation>
     </message>
@@ -2205,12 +2220,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+864"/>
+        <location line="+873"/>
         <source>New Server Project</source>
         <translation>Neues Serverprojekt</translation>
     </message>
     <message>
-        <location line="-836"/>
+        <location line="-845"/>
         <source>+ Folder</source>
         <translation>+ Ordner</translation>
     </message>
@@ -2221,12 +2236,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+528"/>
+        <location line="+537"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Select a node to edit its properties.</source>
         <translation>Wählen Sie einen Knoten, um seine Eigenschaften zu bearbeiten.</translation>
     </message>
@@ -2302,13 +2317,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+324"/>
+        <location line="+323"/>
         <location line="+148"/>
         <source>value</source>
         <translation>Wert</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Simulation:</source>
         <translation>Simulation:</translation>
     </message>
@@ -2338,7 +2353,7 @@
         <translation>Anwenden</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+20"/>
         <source>Security</source>
         <translation>Sicherheit</translation>
     </message>

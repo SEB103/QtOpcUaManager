@@ -144,6 +144,12 @@ public:
     /** Returns the resolution of \a typeId with the data collected so far. */
     ResolvedDataType result(const QString &typeId) const;
 
+    /** Sets the safety timeout of resolve() to \a timeoutMs; call before resolve(). */
+    void setTimeoutMs(int timeoutMs);
+
+    /** Returns whether the safety timeout ended resolve() with lookups unanswered. */
+    bool timedOut() const { return m_timedOut; }
+
 signals:
     /** Emitted once when every requested id is resolved, failed or timed out. */
     void finished();
@@ -173,6 +179,8 @@ private:
     QStringList m_queue;                    //!< Ids waiting for a free request slot.
     QSet<QString> m_seen;                   //!< Ids already queued or recorded.
     QTimer *m_timeout = nullptr;            //!< Safety timeout forcing completion.
+    int m_timeoutMs = 0;                    //!< Duration of the safety timeout.
+    bool m_timedOut = false;                //!< The safety timeout fired.
     bool m_finished = false;                //!< Guards against double emission.
 };
 

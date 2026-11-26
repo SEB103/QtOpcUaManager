@@ -1924,7 +1924,7 @@
 <context>
     <name>ServerStudio</name>
     <message>
-        <location filename="../src/qmlapi/serverstudio.cpp" line="+351"/>
+        <location filename="../src/qmlapi/serverstudio.cpp" line="+366"/>
         <source>Stopped</source>
         <translation>Остановлено</translation>
     </message>
@@ -2101,17 +2101,32 @@
         <translation>Клонировано узлов с сервера: %1.</translation>
     </message>
     <message>
-        <location line="-232"/>
+        <location line="-920"/>
+        <source>%1 node(s) captured</source>
+        <translation>Получено узлов: %1</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Queued: %1 to browse, %2 metadata reads, %3 value reads, %4 waiting for data types</source>
+        <translation>В очереди: обход %1, описания %2, значения %3, ждут типа данных %4</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>In progress: %1 browse(s), %2 read request(s)</source>
+        <translation>Выполняется: обход %1, запросов чтения %2</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Looking up %1 data type(s)</source>
+        <translation>Определяются типы данных: %1</translation>
+    </message>
+    <message>
+        <location line="+675"/>
         <source>Cloned Server</source>
         <translation>Клонированный сервер</translation>
     </message>
     <message>
-        <location line="-675"/>
-        <source>%1 node(s) captured, %2 waiting for the server</source>
-        <translation>Получено узлов: %1, ожидают ответа сервера: %2</translation>
-    </message>
-    <message>
-        <location line="+917"/>
+        <location line="+242"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>Переменных с заменённым типом данных: %1 (дата/время или неподдерживаемый тип).</translation>
     </message>
@@ -2154,12 +2169,12 @@
 <context>
     <name>ServerStudioScreen</name>
     <message>
-        <location filename="../qml/ServerStudioScreen.qml" line="+424"/>
+        <location filename="../qml/ServerStudioScreen.qml" line="+434"/>
         <source>(none)</source>
         <translation>(нет)</translation>
     </message>
     <message>
-        <location line="-300"/>
+        <location line="-310"/>
         <source>(no values)</source>
         <translation>(нет значений)</translation>
     </message>
@@ -2211,12 +2226,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+864"/>
+        <location line="+873"/>
         <source>New Server Project</source>
         <translation>Новый проект сервера</translation>
     </message>
     <message>
-        <location line="-836"/>
+        <location line="-845"/>
         <source>+ Folder</source>
         <translation>+ Папка</translation>
     </message>
@@ -2227,12 +2242,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+528"/>
+        <location line="+537"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Select a node to edit its properties.</source>
         <translation>Выберите узел, чтобы изменить его свойства.</translation>
     </message>
@@ -2308,13 +2323,13 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+324"/>
+        <location line="+323"/>
         <location line="+148"/>
         <source>value</source>
         <translation>значение</translation>
     </message>
     <message>
-        <location line="-468"/>
+        <location line="-467"/>
         <source>Simulation:</source>
         <translation>Симуляция:</translation>
     </message>
@@ -2344,7 +2359,7 @@
         <translation>Применить</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+20"/>
         <source>Security</source>
         <translation>Безопасность</translation>
     </message>

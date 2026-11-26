@@ -687,8 +687,8 @@ signals:
      */
     void cloneSnapshotReady(quint64 requestId, const QList<CloneNode> &nodes,
                             const QStringList &namespaceUris, const CloneCompletion &completion);
-    /** Relays clone progress: \a captured nodes so far and \a pending work. */
-    void cloneProgress(quint64 requestId, int captured, int pending);
+    /** Relays clone progress: the breakdown of the browse work in \a progress. */
+    void cloneProgress(quint64 requestId, const CloneProgress &progress);
 
 public slots:
     /** Applies available backend plugin names received from the worker service. */

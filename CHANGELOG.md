@@ -40,7 +40,11 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   or array are now found even when the structure's own value cannot be read, attribute
   reads are batched, and at most a few requests are sent to the server at a time. The
   value of a structure variable is no longer read, only its members, so a large PLC no
-  longer encodes the same nested data once per nesting level.
+  longer encodes the same nested data once per nesting level. On a busy PLC, data type
+  lookups during the clone are retried instead of giving up after 15 seconds, and a type
+  that still cannot be determined leaves its variables without a value (reported as
+  incomplete) instead of reading what may be a large structure. The progress dialog shows
+  where the clone waits: browsing, metadata or value reads, or data type lookups.
 - **Clone to Server Studio**: variable data types are now resolved through the source
   server's type hierarchy instead of falling back to `Int32` for every type outside the
   standard built-ins. CODESYS IEC aliases such as `STRING` and `UINT`, and standard

@@ -377,11 +377,8 @@ private:
     /** Whether cancelling the clone in flight was requested. */
     bool m_cloneCancelling = false;
 
-    /** Nodes captured so far by the clone in flight. */
-    int m_cloneCaptured = 0;
-
-    /** Nodes still queued or in flight in the clone browse. */
-    int m_clonePending = 0;
+    /** Latest progress breakdown of the clone in flight. */
+    CloneProgress m_cloneProgress;
 };
 
 #endif // SERVERSTUDIO_H
