@@ -72,6 +72,12 @@
     oder durchsucht werden, nennen ein Dialog und die Statusmeldung dies, und der Klon ist
     unvollständig.
 
+    Der Klon-Dialog begrenzt außerdem die Elemente, die je Array geklont werden: die ersten
+    10 (Standard), die ersten 100 oder alle. Große Arrays, etwa eine Rezepttabelle aus 1000
+    Strukturen, enthalten die meisten Knoten einer SPS, und eine SPS beantwortet ihre
+    Anfragen nacheinander, sodass das Klonen aller Elemente sehr lange dauern kann. Der
+    Klonbericht nennt, wie viele Arrays begrenzt und wie viele Elemente nicht geklont wurden.
+
     \section1 Adressräume austauschen
 
     Verwenden Sie NodeSet2-Import/-Export, um einen Adressraum zwischen diesem Werkzeug und

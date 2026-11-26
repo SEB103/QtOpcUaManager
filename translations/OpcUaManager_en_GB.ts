@@ -1494,12 +1494,12 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+326"/>
+        <location line="+349"/>
         <source>Browse…</source>
         <translation>Browse…</translation>
     </message>
     <message>
-        <location line="-320"/>
+        <location line="-343"/>
         <source>Full path:</source>
         <translation>Full path:</translation>
     </message>
@@ -1539,7 +1539,7 @@
         <translation>Clone server to Server Studio</translation>
     </message>
     <message>
-        <location line="+20"/>
+        <location line="+22"/>
         <source>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</source>
         <translation>The connected server&apos;s whole Objects address space will be browsed and its variable values read into a new server project.</translation>
     </message>
@@ -1577,6 +1577,31 @@
         <location line="+9"/>
         <source>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</source>
         <translation>A clone that reaches the limit is reported as incomplete. Large limits take longer and load the server more.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Array elements:</source>
+        <translation>Array elements:</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>First 10 per array</source>
+        <translation>First 10 per array</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>First 100 per array</source>
+        <translation>First 100 per array</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>All elements</source>
+        <translation>All elements</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</source>
+        <translation>Large arrays, such as a recipe table of 1000 structures, hold most nodes of a PLC. Limited arrays are named in the clone report.</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -1660,7 +1685,7 @@
 <context>
     <name>OpcUaManager</name>
     <message numerus="yes">
-        <location filename="../src/qmlapi/opcuamanager.cpp" line="+841"/>
+        <location filename="../src/qmlapi/opcuamanager.cpp" line="+842"/>
         <source>Added %n node(s) to the Data View.</source>
         <translation>
             <numerusform>Added %n node to the Data View.</numerusform>
@@ -2050,12 +2075,12 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+677"/>
+        <location line="+686"/>
         <source>No OPC UA client is available.</source>
         <translation>No OPC UA client is available.</translation>
     </message>
     <message>
-        <location line="-671"/>
+        <location line="-680"/>
         <source>A clone is already in progress.</source>
         <translation>A clone is already in progress.</translation>
     </message>
@@ -2075,7 +2100,7 @@
         <translation>Nothing was cloned. Connect to a server and try again.</translation>
     </message>
     <message>
-        <location line="+221"/>
+        <location line="+222"/>
         <source>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</source>
         <translation>Cloned %1 node(s); the limit of %2 nodes was reached, so the clone is incomplete.</translation>
     </message>
@@ -2091,16 +2116,21 @@
     </message>
     <message>
         <location line="+11"/>
+        <source>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</source>
+        <translation>%1 array(s) were limited to their first %2 elements; %3 element(s) were not cloned.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <source>%1 node(s) could not be read or browsed completely.</source>
         <translation>%1 node(s) could not be read or browsed completely.</translation>
     </message>
     <message>
-        <location line="-5"/>
+        <location line="-13"/>
         <source>Cloned %1 node(s) from the server.</source>
         <translation>Cloned %1 node(s) from the server.</translation>
     </message>
     <message>
-        <location line="-926"/>
+        <location line="-927"/>
         <source>%1 node(s) captured</source>
         <translation>%1 node(s) captured</translation>
     </message>
@@ -2125,7 +2155,7 @@
         <translation>Cloned Server</translation>
     </message>
     <message>
-        <location line="+242"/>
+        <location line="+251"/>
         <source>%1 variable(s) use a substitute data type (date/time or unsupported type).</source>
         <translation>%1 variable(s) use a substitute data type (date/time or unsupported type).</translation>
     </message>

@@ -23,6 +23,9 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 - **Clone to Server Studio**: a progress dialog shows the captured and pending nodes and
   can cancel the clone; a cancelled clone leaves the current server project unchanged.
   The clone dialog offers a node limit of 50 000, 200 000 (default) or 1 000 000 nodes.
+  It also limits the elements cloned per array (first 10 by default, first 100, or all):
+  a large array such as a 1000-row recipe table of structures holds most nodes of a PLC,
+  and the clone report names the limited arrays.
 - **Server Studio**: structure data types. A structure variable references its
   structure type and has its members as child nodes (the way CODESYS publishes them);
   the runtime serves the type as a `Structure` subtype. Variables may be

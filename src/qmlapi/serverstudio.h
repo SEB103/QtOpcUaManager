@@ -143,12 +143,15 @@ public:
      * every variable's value (scalars and arrays). When \a preserveOriginalIds
      * is true the original namespace URIs and node identifiers are kept;
      * otherwise nodes are renamed to a single clone namespace by browse path.
+     * \a maxNodes limits the browse (0: default); \a maxArrayElements, when
+     * positive, clones only that many elements of each array.
      *
      * The clone is asynchronous: this returns whether the request was started;
      * the project is built when the browse completes (a notification reports the
      * outcome).
      */
-    Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds, int maxNodes = 0);
+    Q_INVOKABLE bool cloneFromClient(bool preserveOriginalIds, int maxNodes = 0,
+                                     int maxArrayElements = 0);
 
     /** Cancels the clone in progress; the current project stays unchanged. */
     Q_INVOKABLE void cancelClone();

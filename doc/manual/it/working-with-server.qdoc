@@ -72,6 +72,13 @@
     limite termina la clonazione, o alcuni nodi non possono essere letti o esplorati, una
     finestra di dialogo e il messaggio di stato lo indicano e il clone è incompleto.
 
+    La finestra di clonazione limita anche gli elementi clonati per array: i primi 10
+    (predefinito), i primi 100 o tutti. Gli array grandi, come una tabella di ricette di
+    1000 strutture, contengono la maggior parte dei nodi di un PLC, e un PLC risponde alle
+    richieste una alla volta, quindi clonarli tutti può richiedere molto tempo. Il rapporto
+    di clonazione indica quanti array sono stati limitati e quanti elementi non sono stati
+    clonati.
+
     \section1 Scambiare spazi degli indirizzi
 
     Usa l’import/export NodeSet2 per spostare uno spazio degli indirizzi tra questo strumento

@@ -847,8 +847,10 @@ ApplicationWindow {
 
         onAccepted: {
             const limits = [50000, 200000, 1000000]
+            const arrayLimits = [10, 100, 0]
             if (cppServerStudio.cloneFromClient(preserveIdsCheck.checked,
-                                                limits[nodeLimitCombo.currentIndex]))
+                                                limits[nodeLimitCombo.currentIndex],
+                                                arrayLimits[arrayLimitCombo.currentIndex]))
                 mainWindow.serverStudioActive = true
         }
 
@@ -894,6 +896,27 @@ ApplicationWindow {
                 font.pixelSize: 12
                 text: qsTr("A clone that reaches the limit is reported as incomplete. Large "
                            + "limits take longer and load the server more.")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Label { text: qsTr("Array elements:") }
+                ComboBox {
+                    id: arrayLimitCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("First 10 per array"), qsTr("First 100 per array"),
+                        qsTr("All elements")]
+                    currentIndex: 0
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                opacity: 0.7
+                font.pixelSize: 12
+                text: qsTr("Large arrays, such as a recipe table of 1000 structures, hold most "
+                           + "nodes of a PLC. Limited arrays are named in the clone report.")
             }
         }
     }

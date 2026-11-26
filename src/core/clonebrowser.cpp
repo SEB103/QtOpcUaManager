@@ -188,6 +188,7 @@ CloneBrowser::CloneBrowser(QOpcUaClient *client, const QString &rootNodeId, quin
     m_options.typeLookupTimeoutMs = std::max(1, m_options.typeLookupTimeoutMs);
     m_options.typeLookupAttempts = std::max(1, m_options.typeLookupAttempts);
     m_options.leafProbeCount = std::max(0, m_options.leafProbeCount);
+    m_options.maxArrayElements = std::max(0, m_options.maxArrayElements);
     m_options.maxNodes = std::max(1, m_options.maxNodes);
     m_options.maxDepth = std::max(1, m_options.maxDepth);
 }
@@ -396,7 +397,10 @@ void CloneBrowser::startBrowse(const BrowseItem &item)
  * dropped once the node limit is reached. Children at the depth limit are
  * captured but not browsed. A child object is queued for browsing at once; a
  * child variable is queued for its metadata read, and its browse is decided
- * by settleVariable() once its type is known.
+ * by settleVariable() once its type is known. Below an array variable only the
+ * first CloneOptions::maxArrayElements element children (browse names ending
+ * in "[...]") are captured; other children, such as the CODESYS Dimensions,
+ * IndexMin and IndexMax properties, are always captured.
  */
 void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
                                 const QList<QOpcUaReferenceDescription> &references,
@@ -424,6 +428,20 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
 
     const bool parentIsRoot = item.depth == 0;
     const QString parentId = parentIsRoot ? QString() : item.nodeId;
+
+    // Large arrays (e.g. a 1000-row recipe table of structures) hold most of
+    // a PLC's nodes; their elements can be limited.
+    bool limitElements = false;
+    if (m_options.maxArrayElements > 0 && !parentIsRoot) {
+        const auto parent = m_index.constFind(item.nodeId);
+        if (parent != m_index.constEnd()) {
+            const CloneNode &array = m_nodes.at(parent.value());
+            limitElements = array.isVariable
+                            && (array.valueRank >= 1 || !array.arrayDimensions.isEmpty());
+        }
+    }
+    int elements = 0;
+    int skippedElements = 0;
     for (const QOpcUaReferenceDescription &reference : references) {
         const QString childId = reference.targetNodeId().nodeId();
         if (childId.isEmpty() || childId == m_rootNodeId)
@@ -438,6 +456,15 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
             if (knownParent != referencingId && !known.additionalParentIds.contains(referencingId))
                 known.additionalParentIds.append(referencingId);
             continue;
+        }
+
+        if (limitElements) {
+            const QString name = reference.browseName().name();
+            if (name.endsWith(QLatin1Char(']')) && name.contains(QLatin1Char('['))
+                && ++elements > m_options.maxArrayElements) {
+                ++skippedElements;
+                continue;
+            }
         }
 
         if (m_nodes.size() >= m_options.maxNodes) {
@@ -469,6 +496,16 @@ void CloneBrowser::handleBrowse(const BrowseItem &item, QOpcUaNode *node,
             m_browseQueue.enqueue({childId, childDepth});
         if (child.isVariable)
             m_readQueue.append(childId);
+    }
+
+    if (skippedElements > 0) {
+        ++m_completion.limitedArrays;
+        m_completion.arrayElementsSkipped += skippedElements;
+        if (m_completion.limitedArrays <= kMaxLoggedReadFailures) {
+            qCInfo(lcOpcUaClone).noquote()
+                << "array limited:" << item.nodeId << "first" << m_options.maxArrayElements
+                << "of" << (m_options.maxArrayElements + skippedElements) << "elements";
+        }
     }
 
     pump();
@@ -1039,8 +1076,9 @@ void CloneBrowser::finish(CloneCompletion::State state)
         << m_completion.failedBrowses << "failedReads" << m_completion.failedReads
         << "depthLimited" << m_completion.depthLimitedNodes << "browseRequests"
         << m_completion.browseRequests << "readRequests" << m_completion.readRequests
-        << "leavesNotBrowsed" << m_completion.leafVariablesNotBrowsed << "elapsedMs"
-        << m_completion.elapsedMs;
+        << "leavesNotBrowsed" << m_completion.leafVariablesNotBrowsed << "limitedArrays"
+        << m_completion.limitedArrays << "arrayElementsSkipped"
+        << m_completion.arrayElementsSkipped << "elapsedMs" << m_completion.elapsedMs;
 
     QStringList typeIds;
     QSet<QString> seen;

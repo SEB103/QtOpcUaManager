@@ -404,6 +404,9 @@ private slots:
     */
     void skipsLeafBrowsesAfterProbe();
 
+    /*! maxArrayElements captures only the first elements of an array and reports the rest. */
+    void limitsArrayElements();
+
     /*! browseScalarLeaves browses every variable, as before. */
     void browsesAllLeavesWhenRequested();
 
@@ -552,6 +555,23 @@ void CloneTraversalTest::skipsLeafBrowsesAfterProbe()
              qPrintable(QString::number(result.completion.readRequests)));
     for (const CloneNode &node : result.nodes)
         QVERIFY2(node.value.isValid(), qPrintable(node.nodeId));
+}
+
+void CloneTraversalTest::limitsArrayElements()
+{
+    CloneOptions options;
+    options.maxArrayElements = 1;
+    const Result result = run(m_server.nodeId("Structs"), options);
+    QVERIFY(result.finished);
+    QCOMPARE(result.completion.state, State::Complete);
+    QVERIFY(!find(result.nodes, m_server.nodeId("Buttons[1]")).nodeId.isEmpty());
+    QVERIFY(find(result.nodes, m_server.nodeId("Buttons[2]")).nodeId.isEmpty());
+    QCOMPARE(result.completion.limitedArrays, 1);
+    QCOMPARE(result.completion.arrayElementsSkipped, 1);
+
+    const Result full = run(m_server.nodeId("Structs"));
+    QVERIFY(!find(full.nodes, m_server.nodeId("Buttons[2]")).nodeId.isEmpty());
+    QCOMPARE(full.completion.limitedArrays, 0);
 }
 
 void CloneTraversalTest::browsesAllLeavesWhenRequested()

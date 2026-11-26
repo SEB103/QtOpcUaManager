@@ -75,6 +75,13 @@
     limite met fin au clonage, ou que certains nœuds ne peuvent pas être lus ou parcourus,
     une boîte de dialogue et le message d’état l’indiquent et le clone est incomplet.
 
+    La boîte de dialogue de clonage limite aussi les éléments clonés par tableau : les 10
+    premiers (par défaut), les 100 premiers ou tous. Les grands tableaux, comme une table de
+    recettes de 1000 structures, contiennent la plupart des nœuds d’un automate, et un
+    automate répond à ses requêtes une par une ; tout cloner peut donc être très long. Le
+    rapport de clonage indique combien de tableaux ont été limités et combien d’éléments
+    n’ont pas été clonés.
+
     \section1 Échanger des espaces d’adressage
 
     Utilisez l’import/export NodeSet2 pour déplacer un espace d’adressage entre cet outil et

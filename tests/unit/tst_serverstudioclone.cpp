@@ -251,16 +251,20 @@ void ServerStudioCloneTest::reportsIncompleteClone_data()
     QTest::addColumn<int>("state");
     QTest::addColumn<bool>("nodeLimit");
     QTest::addColumn<int>("failedReads");
+    QTest::addColumn<int>("limitedArrays");
     QTest::addColumn<QString>("expected");
 
-    QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0
+    QTest::newRow("node limit") << int(CloneCompletion::State::Truncated) << true << 0 << 0
                                 << QStringLiteral("the limit of 200000 nodes was reached");
-    QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0
+    QTest::newRow("depth limit") << int(CloneCompletion::State::Truncated) << false << 0 << 0
                                  << QStringLiteral("at the depth limit of 64");
-    QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0
+    QTest::newRow("timeout") << int(CloneCompletion::State::TimedOut) << false << 0 << 0
                              << QStringLiteral("did not answer in time and 7 node(s)");
-    QTest::newRow("failed reads") << int(CloneCompletion::State::Complete) << false << 3
+    QTest::newRow("failed reads") << int(CloneCompletion::State::Complete) << false << 3 << 0
                                   << QStringLiteral("3 node(s) could not be read");
+    QTest::newRow("array limit") << int(CloneCompletion::State::Complete) << false << 0 << 2
+                                 << QStringLiteral("2 array(s) were limited to their first 10 "
+                                                   "elements; 1980 element(s) were not cloned");
 }
 
 void ServerStudioCloneTest::reportsIncompleteClone()
@@ -268,6 +272,7 @@ void ServerStudioCloneTest::reportsIncompleteClone()
     QFETCH(int, state);
     QFETCH(bool, nodeLimit);
     QFETCH(int, failedReads);
+    QFETCH(int, limitedArrays);
     QFETCH(QString, expected);
 
     const QString hmi = QStringLiteral("ns=4;s=|var|PLC.Application.V_HMI");
@@ -282,6 +287,9 @@ void ServerStudioCloneTest::reportsIncompleteClone()
     completion.depthLimitedNodes = nodeLimit ? 0 : 2;
     completion.pendingRequests = 7;
     completion.failedReads = failedReads;
+    completion.limitedArrays = limitedArrays;
+    completion.arrayElementsSkipped = limitedArrays > 0 ? 1980 : 0;
+    completion.options.maxArrayElements = 10;
 
     OpcUaManager manager;
     ServerStudio studio;

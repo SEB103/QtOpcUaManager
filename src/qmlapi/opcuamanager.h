@@ -279,7 +279,7 @@ public:
      * Requests a recursive clone browse of the connected server's Objects
      * subtree on the worker service. The result arrives via cloneSnapshotReady().
      */
-    void requestCloneSnapshot(int maxNodes = 0);
+    void requestCloneSnapshot(int maxNodes = 0, int maxArrayElements = 0);
 
     /** Cancels the clone browse in progress; its result arrives as Cancelled. */
     void cancelCloneSnapshot();
@@ -677,7 +677,8 @@ signals:
     /** Requests writing \a value to \a nodeId on the worker service. */
     void writeValueRequested(const QString &nodeId, const QVariant &value);
     /** Requests a recursive clone browse under \a rootNodeId for \a requestId, up to \a maxNodes. */
-    void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId, int maxNodes);
+    void cloneBrowseRequested(const QString &rootNodeId, quint64 requestId, int maxNodes,
+                              int maxArrayElements);
     /** Requests cancelling the clone browse in progress on the worker service. */
     void cloneCancelRequested();
     /**

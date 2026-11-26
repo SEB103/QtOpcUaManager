@@ -942,7 +942,7 @@ bool ServerStudio::importNodeSet(const QString &path)
     return true;
 }
 
-bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
+bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes, int maxArrayElements)
 {
     if (!m_opcUaManager) {
         notify(Diagnostics::Error, [this] {
@@ -962,7 +962,7 @@ bool ServerStudio::cloneFromClient(bool preserveOriginalIds, int maxNodes)
     notify(Diagnostics::Info, [this] {
         return tr("Cloning the server address space…");
     });
-    m_opcUaManager->requestCloneSnapshot(maxNodes);
+    m_opcUaManager->requestCloneSnapshot(maxNodes, maxArrayElements);
     return true;
 }
 
@@ -1195,7 +1195,8 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
     // reads/browses and substituted types are each named, so a clone that
     // differs from the source never reads as an exact copy.
     const int failedNodes = completion.failedReads + completion.failedBrowses;
-    const bool exact = completion.isComplete() && failedNodes == 0;
+    const bool exact =
+        completion.isComplete() && failedNodes == 0 && completion.limitedArrays == 0;
     const auto report =
            [this, completion, failedNodes, substitutedCount, n = int(project.nodes.size())] {
                QString text;
@@ -1221,6 +1222,14 @@ void ServerStudio::applyCloneSnapshot(const QList<CloneNode> &nodes,
                default:
                    text = tr("Cloned %1 node(s) from the server.").arg(n);
                    break;
+               }
+               if (completion.limitedArrays > 0) {
+                   text += QLatin1Char(' ')
+                           + tr("%1 array(s) were limited to their first %2 elements; %3 "
+                                "element(s) were not cloned.")
+                                 .arg(completion.limitedArrays)
+                                 .arg(completion.options.maxArrayElements)
+                                 .arg(completion.arrayElementsSkipped);
                }
                if (failedNodes > 0) {
                    text += QLatin1Char(' ')

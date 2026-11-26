@@ -117,7 +117,8 @@ public slots:
      * values, and emits cloneSnapshotReady() for \a requestId. Used to clone a
      * real server's whole address space into a server project.
      */
-    void browseForClone(const QString &rootNodeId, quint64 requestId, int maxNodes = 0);
+    void browseForClone(const QString &rootNodeId, quint64 requestId, int maxNodes = 0,
+                        int maxArrayElements = 0);
     /** Cancels the clone browse in progress; its result arrives as Cancelled. */
     void cancelClone();
 

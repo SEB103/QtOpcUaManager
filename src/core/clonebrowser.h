@@ -145,6 +145,11 @@ struct CloneOptions
      * others of that TypeDefinition are left unbrowsed; 0 skips them at once.
      */
     int leafProbeCount = 200;
+    /**
+     * Elements captured per array (children named like "name[3]" below an
+     * array variable); 0 captures all. Further elements are counted as skipped.
+     */
+    int maxArrayElements = 0;
 };
 
 /** Breakdown of the work of a running clone traversal. */
@@ -211,6 +216,10 @@ struct CloneCompletion
     int failedReads = 0;
     /** Scalar variables of simple types that were not browsed for children. */
     int leafVariablesNotBrowsed = 0;
+    /** Arrays whose elements were cut at CloneOptions::maxArrayElements. */
+    int limitedArrays = 0;
+    /** Array elements not captured because of CloneOptions::maxArrayElements. */
+    int arrayElementsSkipped = 0;
     /** Browse requests sent. */
     int browseRequests = 0;
     /** Read requests sent (metadata, values or both). */
