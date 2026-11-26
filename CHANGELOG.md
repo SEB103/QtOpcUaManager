@@ -19,6 +19,8 @@ update repository. To cut a release, bump that single field, then rebuild and ru
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-26
+
 ### Added
 - **Server snapshot**: *Project > Save Server Snapshot…* writes a read-only record of the
   connected server's address space to a `*.uasnapshot.json` file — original NodeIds and
@@ -37,8 +39,8 @@ update repository. To cut a release, bump that single field, then rebuild and ru
   `<array>[index]` is cloned from its first element: only that element is browsed, the
   members of the others are derived from it, take its data types and array shapes, and
   are confirmed by reading their values (many per request; a snapshot still reads every
-  attribute), and an element that differs is browsed on its own. Read requests are sized from the server's MaxNodesPerRead
-  (up to 64 variables per request).
+  attribute), and an element that differs is browsed on its own. Read requests are sized
+  from the server's MaxNodesPerRead (up to 64 variables per request).
 - **Server Studio**: structure data types. A structure variable references its
   structure type and has its members as child nodes (the way CODESYS publishes them);
   the runtime serves the type as a `Structure` subtype. Variables may be
@@ -371,6 +373,7 @@ built-in server studio.
   `packaging/product.json`; installed-vs-portable data locations are handled by
   `AppPaths`.
 
+[1.5.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.5.0
 [1.4.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.4.1
 [1.4.0]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.4.0
 [1.3.1]: https://github.com/SEB103/QtOpcUaManager/releases/tag/v1.3.1
